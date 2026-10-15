@@ -33,7 +33,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=20261015_1120" />
+  <link rel="stylesheet" href="css/style.css?v=20261015_1145" />
 </head>
 <body class="bg-[#090b10] text-slate-100 min-h-screen">
 
@@ -47,7 +47,7 @@
           <span class="text-[11px] sm:text-xs font-mono text-slate-400 bg-white/[0.04] px-1.5 sm:px-2 py-0.5 rounded border border-white/[0.06]" id="clan-tag">#G890J9JC</span>
         </div>
         <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5" id="clan-desc">
-          클랜원 지원량 · 최근 7일 배틀 · 마지막 접속 실시간 모니터링
+          클랜원 주간 지원량 · 마지막 접속 실시간 모니터링
         </p>
       </div>
 
@@ -207,8 +207,6 @@
         <select id="sort-select" class="bg-[#0f121a] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer">
           <option value="donations-desc">지원량 많은 순</option>
           <option value="donations-asc">지원량 적은 순</option>
-          <option value="recentBattles7d-desc">최근 7일 1v1 많은 순</option>
-          <option value="recentBattles7d-asc">최근 7일 1v1 적은 순</option>
           <option value="lastSeen-desc">접속 최근 순</option>
           <option value="lastSeen-asc">접속 오래된 순</option>
           <option value="trophies-desc">트로피 높은 순</option>
@@ -228,9 +226,6 @@
               <th>클랜원</th>
               <th class="text-center cursor-pointer hover:text-white" onclick="window.app.toggleSort('lastSeen')">
                 마지막 접속
-              </th>
-              <th class="text-center cursor-pointer hover:text-white" onclick="window.app.toggleSort('recentBattles7d')" title="로얄API Decks 탭 기준 (최근 7일 1vs1 대전)">
-                최근 7일 1v1 대전
               </th>
               <th class="text-right cursor-pointer hover:text-white" onclick="window.app.toggleSort('donations')">
                 주간 지원량
@@ -283,8 +278,8 @@
   </div>
 
   <!-- Scripts with Cache Busting -->
-  <script src="js/demo-data.js?v=20261015_1120"></script>
-  <script src="js/api.js?v=20261015_1120"></script>
-  <script src="js/app.js?v=20261015_1120"></script>
+  <script src="js/demo-data.js?v=20261015_1145"></script>
+  <script src="js/api.js?v=20261015_1145"></script>
+  <script src="js/app.js?v=20261015_1145"></script>
 </body>
 </html>

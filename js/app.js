@@ -27,11 +27,11 @@ class ClanManagerApp {
   init() {
     this.bindEvents();
 
-    // 구버전 캐시 무효화 (이전 25~30회 캐시 강제 플러시)
+    // 구버전 캐시 무효화 (이전 캐시 강제 플러시)
     const cacheVerKey = "cr_manager_cache_ver";
-    if (localStorage.getItem(cacheVerKey) !== "20261015_1120") {
+    if (localStorage.getItem(cacheVerKey) !== "20261015_1145") {
       localStorage.removeItem("cr_manager_clan_cache_v1");
-      localStorage.setItem(cacheVerKey, "20261015_1120");
+      localStorage.setItem(cacheVerKey, "20261015_1145");
     }
 
     if (window.lucide) window.lucide.createIcons();
@@ -471,14 +471,6 @@ class ClanManagerApp {
       const relativeSeen = window.crApi.getRelativeTime(member.lastSeen);
       const exactSeen = lastSeenDate?.toLocaleString("ko-KR") || "기록 없음";
 
-      const battles = member.recentBattles7d || 0;
-      const battleText = `${battles}회`;
-      const battlePercent = Math.min(100, Math.round((battles / 75) * 100));
-      let battleBarColor = "bg-blue-500";
-      if (battles >= 30) battleBarColor = "bg-indigo-400";
-      else if (battles >= 15) battleBarColor = "bg-sky-400";
-      else if (battles === 0) battleBarColor = "bg-rose-500/80";
-
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
@@ -501,17 +493,6 @@ class ClanManagerApp {
             <div class="inline-flex items-center gap-1.5" title="${exactSeen}">
               <span class="status-dot ${dotColor}"></span>
               <span class="${seenTextColor} text-xs">${relativeSeen}</span>
-            </div>
-          </td>
-          <td>
-            <div class="w-28 mx-auto" title="로얄API Decks 기준 최근 7일 1vs1 대전">
-              <div class="flex justify-between text-xs mb-1">
-                <span class="font-semibold text-slate-200">${battleText}</span>
-                <span class="text-[10px] text-slate-400">${battles >= 30 ? "초활발" : (battles >= 15 ? "활발" : (battles === 0 ? "0회" : "보통"))}</span>
-              </div>
-              <div class="w-full bg-white/[0.06] rounded-full h-1 overflow-hidden">
-                <div class="${battleBarColor} h-1 rounded-full transition-all" style="width: ${battlePercent}%"></div>
-              </div>
             </div>
           </td>
           <td class="text-right">
@@ -560,8 +541,6 @@ class ClanManagerApp {
       }
 
       const relativeSeen = window.crApi.getRelativeTime(member.lastSeen);
-      const battles = member.recentBattles7d || 0;
-      const battleText = `${battles}회`;
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
@@ -579,8 +558,8 @@ class ClanManagerApp {
             </span>
           </div>
 
-          <!-- 하단: 3대 지표 한눈에 (모바일 3분할 그리드) -->
-          <div class="grid grid-cols-3 gap-1 pt-2 mt-2 border-t border-white/[0.03] text-center">
+          <!-- 하단: 핵심 2대 지표 한눈에 (모바일 2분할 그리드) -->
+          <div class="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-white/[0.03]">
             <!-- 1. 마지막 접속 -->
             <div class="text-left">
               <div class="text-[10px] text-slate-500">마지막 접속</div>
@@ -590,15 +569,7 @@ class ClanManagerApp {
               </div>
             </div>
 
-            <!-- 2. 최근 7일 1v1 -->
-            <div>
-              <div class="text-[10px] text-slate-500">최근 7일 1v1</div>
-              <div class="text-xs font-semibold ${battles >= 15 ? 'text-indigo-400' : battles === 0 ? 'text-rose-400' : 'text-slate-200'} mt-0.5">
-                ${battleText} ${battles >= 15 ? '🔥' : ''}
-              </div>
-            </div>
-
-            <!-- 3. 주간 지원량 -->
+            <!-- 2. 주간 지원량 -->
             <div class="text-right">
               <div class="text-[10px] text-slate-500">주간 지원량</div>
               <div class="text-xs font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5">

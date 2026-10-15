@@ -297,49 +297,14 @@ class ClashRoyaleAPI {
     };
   }
 
-  // 클랜 전체 정보 실시간 동기화
+  // 클랜 전체 정보 실시간 동기화 (초고속 단일 요청)
   async fetchClanFullData(clanTag, onProgress = () => {}) {
-    // 1. 클랜 기본 정보(멤버, 직책, 지원량, 마지막 접속) 초고속 조회
+    // 클랜 정보(멤버, 직책, 지원량, 트로피, 마지막 접속) 초고속 조회
     const clanData = await this.fetchClan(clanTag);
 
     if (!clanData || !clanData.memberList) {
       throw new Error("클랜원 목록을 불러오지 못했습니다.");
     }
-
-    const members = clanData.memberList;
-    const totalMembers = members.length;
-
-    // 초기 배틀값 설정 (기본값)
-    members.forEach(m => {
-      m.recentBattles7d = m.recentBattles7d ?? 0;
-    });
-
-    // 2. 백그라운드에서 최근 7일 배틀로그 보강 (동시 4개씩 병렬 조회)
-    const concurrency = 4;
-    let currentIndex = 0;
-
-    const worker = async () => {
-      while (currentIndex < members.length) {
-        const index = currentIndex++;
-        const member = members[index];
-        try {
-          const battlelog = await this.fetchPlayerBattlelog(member.tag);
-          const analysis = this.analyzeBattlelog(battlelog, member.tag);
-          member.recentBattles7d = analysis.recentBattles7d;
-          member.isBattleMaxed = analysis.isMaxed;
-        } catch (err) {
-          // 비공개 프로필 등 오류 시 통과
-        }
-      }
-    };
-
-    const workers = [];
-    for (let i = 0; i < concurrency; i++) {
-      workers.push(worker());
-    }
-
-    // 배틀로그 병렬 조회 완료 대기
-    await Promise.all(workers);
 
     // 캐시에 저장
     this.saveCache(clanTag, clanData);
