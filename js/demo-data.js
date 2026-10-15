@@ -1,6 +1,5 @@
 /**
  * Good Fellas (#G890J9JC) 실제 클랜 실시간 로스터 데이터
- * Source: RoyaleAPI Live Scrape
  */
 window.DEMO_CLAN_DATA = {
   "tag": "#G890J9JC",
@@ -22,7 +21,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 1,
       "donations": 700,
       "donationsReceived": 489,
-      "recentBattles7d": 25,
+      "recentBattles7d": 74,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -36,7 +35,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 2,
       "donations": 686,
       "donationsReceived": 480,
-      "recentBattles7d": 25,
+      "recentBattles7d": 68,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -50,7 +49,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 3,
       "donations": 672,
       "donationsReceived": 470,
-      "recentBattles7d": 24,
+      "recentBattles7d": 62,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -64,7 +63,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 4,
       "donations": 658,
       "donationsReceived": 460,
-      "recentBattles7d": 24,
+      "recentBattles7d": 59,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -78,7 +77,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 5,
       "donations": 644,
       "donationsReceived": 450,
-      "recentBattles7d": 23,
+      "recentBattles7d": 54,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -92,7 +91,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 6,
       "donations": 630,
       "donationsReceived": 441,
-      "recentBattles7d": 23,
+      "recentBattles7d": 49,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -106,7 +105,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 7,
       "donations": 616,
       "donationsReceived": 431,
-      "recentBattles7d": 22,
+      "recentBattles7d": 45,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -120,7 +119,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 8,
       "donations": 602,
       "donationsReceived": 421,
-      "recentBattles7d": 22,
+      "recentBattles7d": 42,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -134,7 +133,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 9,
       "donations": 588,
       "donationsReceived": 411,
-      "recentBattles7d": 21,
+      "recentBattles7d": 39,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -148,7 +147,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 10,
       "donations": 574,
       "donationsReceived": 401,
-      "recentBattles7d": 21,
+      "recentBattles7d": 36,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -162,7 +161,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 11,
       "donations": 560,
       "donationsReceived": 392,
-      "recentBattles7d": 20,
+      "recentBattles7d": 34,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -176,7 +175,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 12,
       "donations": 546,
       "donationsReceived": 382,
-      "recentBattles7d": 20,
+      "recentBattles7d": 31,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -190,7 +189,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 13,
       "donations": 532,
       "donationsReceived": 372,
-      "recentBattles7d": 19,
+      "recentBattles7d": 28,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -204,7 +203,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 14,
       "donations": 518,
       "donationsReceived": 362,
-      "recentBattles7d": 19,
+      "recentBattles7d": 26,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -218,7 +217,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 15,
       "donations": 504,
       "donationsReceived": 352,
-      "recentBattles7d": 18,
+      "recentBattles7d": 24,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -232,7 +231,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 16,
       "donations": 490,
       "donationsReceived": 343,
-      "recentBattles7d": 18,
+      "recentBattles7d": 22,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -246,7 +245,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 17,
       "donations": 476,
       "donationsReceived": 333,
-      "recentBattles7d": 17,
+      "recentBattles7d": 20,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -260,7 +259,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 18,
       "donations": 462,
       "donationsReceived": 323,
-      "recentBattles7d": 17,
+      "recentBattles7d": 19,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -274,7 +273,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 19,
       "donations": 448,
       "donationsReceived": 313,
-      "recentBattles7d": 16,
+      "recentBattles7d": 18,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -288,7 +287,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 20,
       "donations": 434,
       "donationsReceived": 303,
-      "recentBattles7d": 16,
+      "recentBattles7d": 17,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -302,7 +301,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 21,
       "donations": 420,
       "donationsReceived": 294,
-      "recentBattles7d": 15,
+      "recentBattles7d": 16,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -344,7 +343,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 24,
       "donations": 378,
       "donationsReceived": 264,
-      "recentBattles7d": 14,
+      "recentBattles7d": 13,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -358,7 +357,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 25,
       "donations": 364,
       "donationsReceived": 254,
-      "recentBattles7d": 13,
+      "recentBattles7d": 12,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -372,7 +371,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 26,
       "donations": 350,
       "donationsReceived": 244,
-      "recentBattles7d": 13,
+      "recentBattles7d": 11,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -386,7 +385,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 27,
       "donations": 336,
       "donationsReceived": 235,
-      "recentBattles7d": 12,
+      "recentBattles7d": 10,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -400,7 +399,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 28,
       "donations": 322,
       "donationsReceived": 225,
-      "recentBattles7d": 12,
+      "recentBattles7d": 9,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -414,7 +413,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 29,
       "donations": 308,
       "donationsReceived": 215,
-      "recentBattles7d": 11,
+      "recentBattles7d": 8,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -428,7 +427,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 30,
       "donations": 294,
       "donationsReceived": 205,
-      "recentBattles7d": 11,
+      "recentBattles7d": 7,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -442,7 +441,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 31,
       "donations": 280,
       "donationsReceived": 196,
-      "recentBattles7d": 10,
+      "recentBattles7d": 6,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -456,7 +455,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 32,
       "donations": 266,
       "donationsReceived": 186,
-      "recentBattles7d": 10,
+      "recentBattles7d": 5,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -470,7 +469,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 33,
       "donations": 252,
       "donationsReceived": 176,
-      "recentBattles7d": 9,
+      "recentBattles7d": 4,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -484,7 +483,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 34,
       "donations": 238,
       "donationsReceived": 166,
-      "recentBattles7d": 9,
+      "recentBattles7d": 3,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -498,7 +497,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 35,
       "donations": 224,
       "donationsReceived": 156,
-      "recentBattles7d": 8,
+      "recentBattles7d": 2,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -512,7 +511,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 36,
       "donations": 210,
       "donationsReceived": 147,
-      "recentBattles7d": 8,
+      "recentBattles7d": 1,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -526,7 +525,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 37,
       "donations": 40,
       "donationsReceived": 28,
-      "recentBattles7d": 2,
+      "recentBattles7d": 0,
       "warDecksUsed7d": 8,
       "memo": "주의 필요"
     },
@@ -540,7 +539,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 38,
       "donations": 0,
       "donationsReceived": 0,
-      "recentBattles7d": 0,
+      "recentBattles7d": 10,
       "warDecksUsed7d": 0,
       "memo": "🚨 3일 이상 미접속"
     },
@@ -554,7 +553,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 39,
       "donations": 168,
       "donationsReceived": 117,
-      "recentBattles7d": 6,
+      "recentBattles7d": 9,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -568,7 +567,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 40,
       "donations": 154,
       "donationsReceived": 107,
-      "recentBattles7d": 6,
+      "recentBattles7d": 8,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -582,7 +581,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 41,
       "donations": 140,
       "donationsReceived": 98,
-      "recentBattles7d": 5,
+      "recentBattles7d": 7,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -596,7 +595,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 42,
       "donations": 126,
       "donationsReceived": 88,
-      "recentBattles7d": 5,
+      "recentBattles7d": 6,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -610,7 +609,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 43,
       "donations": 112,
       "donationsReceived": 78,
-      "recentBattles7d": 4,
+      "recentBattles7d": 5,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -652,7 +651,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 46,
       "donations": 70,
       "donationsReceived": 49,
-      "recentBattles7d": 3,
+      "recentBattles7d": 2,
       "warDecksUsed7d": 16,
       "memo": ""
     },
@@ -666,7 +665,7 @@ window.DEMO_CLAN_DATA = {
       "clanRank": 47,
       "donations": 56,
       "donationsReceived": 39,
-      "recentBattles7d": 3,
+      "recentBattles7d": 1,
       "warDecksUsed7d": 16,
       "memo": ""
     }

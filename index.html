@@ -85,16 +85,26 @@
       </div>
     </section>
 
-    <!-- 3. 시각화 그래프 섹션 (모바일 반응형 2열 차트) -->
+    <!-- 3. 시각화 섹션: 올림픽 시상대 단상 (Top 7) & 접속 분포 도넛 -->
     <section class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 sm:mt-6">
-      <!-- 차트 1: 주간 지원량 Top 7 -->
-      <div class="md:col-span-2 surface-card p-3.5 sm:p-4">
+      <!-- 시상대 단상: 주간 지원 기여도 Top 7 -->
+      <div class="md:col-span-2 surface-card p-3.5 sm:p-4 flex flex-col justify-between">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-semibold text-slate-300">주간 지원 기여도 Top 7</span>
-          <span class="text-[10px] text-slate-500">기여 랭킹</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-semibold text-slate-200">주간 지원 기여도 Top 7</span>
+            <span class="text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">시상대</span>
+          </div>
+          <span class="text-[10px] text-slate-500">실시간 랭킹</span>
         </div>
-        <div class="chart-container-bar">
-          <canvas id="chart-donations"></canvas>
+
+        <!-- 올림픽 3인 포디움 (단상) -->
+        <div id="podium-container" class="flex items-end justify-center gap-2 sm:gap-4 pt-4 pb-0 px-1">
+          <!-- JS 렌더링: 2등 은메달 (좌) | 1등 금메달 (중) | 3등 동메달 (우) -->
+        </div>
+
+        <!-- 4위 ~ 7위 러너 리스트 -->
+        <div id="podium-runners-container" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-3 mt-3 border-t border-white/[0.04]">
+          <!-- JS 렌더링: 4위, 5위, 6위, 7위 -->
         </div>
       </div>
 

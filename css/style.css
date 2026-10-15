@@ -159,15 +159,42 @@ body {
   color: #94a3b8;
 }
 
-/* 차트 래퍼 높이 */
-.chart-container-bar {
+/* 올림픽 시상대 단상 (Podium) */
+.podium-step {
   position: relative;
-  height: 190px;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  border-radius: 8px 8px 0 0;
+  border-top-width: 2px;
+  border-left-width: 1px;
+  border-right-width: 1px;
+  border-bottom-width: 0;
+  transition: transform 0.2s ease, filter 0.2s ease;
 }
+.podium-step:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+.podium-1st {
+  border-color: #fbbf24 rgba(251, 191, 36, 0.2) transparent rgba(251, 191, 36, 0.2);
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.15) 0%, rgba(15, 18, 26, 0.95) 100%);
+  box-shadow: 0 -4px 20px rgba(245, 158, 11, 0.15);
+}
+.podium-2nd {
+  border-color: #cbd5e1 rgba(203, 213, 225, 0.15) transparent rgba(203, 213, 225, 0.15);
+  background: linear-gradient(180deg, rgba(203, 213, 225, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+}
+.podium-3rd {
+  border-color: #d97706 rgba(217, 119, 6, 0.15) transparent rgba(217, 119, 6, 0.15);
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+}
+
+/* 차트 래퍼 높이 */
 .chart-container-donut {
   position: relative;
-  height: 190px;
+  height: 200px;
   width: 100%;
   display: flex;
   align-items: center;

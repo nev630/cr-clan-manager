@@ -159,65 +159,87 @@ class ClanManagerApp {
     if (chipLow) chipLow.textContent = lowDonationCount;
   }
 
-  // 시각화 차트 (Chart.js)
+  // 시각화 렌더링 (올림픽 시상대 단상 & 접속 분포 도넛)
   renderCharts(members) {
-    if (!window.Chart || members.length === 0) return;
+    if (members.length === 0) return;
+    this.renderPodium(members);
+    this.renderActivityDonut(members);
+  }
 
-    // 1. 지원량 Top 7 막대 차트
-    const sortedDonations = [...members]
+  // 올림픽 시상대 단상 (Podium) 렌더링
+  renderPodium(members) {
+    const podiumContainer = document.getElementById("podium-container");
+    const runnersContainer = document.getElementById("podium-runners-container");
+    if (!podiumContainer) return;
+
+    const sorted = [...members]
       .sort((a, b) => (b.donations || 0) - (a.donations || 0))
       .slice(0, 7);
 
-    const donationCanvas = document.getElementById("chart-donations");
-    if (donationCanvas) {
-      if (this.charts.donations) this.charts.donations.destroy();
+    if (sorted.length < 3) return;
 
-      const ctx = donationCanvas.getContext("2d");
-      this.charts.donations = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: sortedDonations.map((m) => m.name),
-          datasets: [{
-            data: sortedDonations.map((m) => m.donations || 0),
-            backgroundColor: "rgba(245, 158, 11, 0.75)",
-            hoverBackgroundColor: "rgba(245, 158, 11, 1)",
-            borderRadius: 4,
-            barThickness: 16
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: "#171b26",
-              titleColor: "#f8fafc",
-              bodyColor: "#94a3b8",
-              borderColor: "rgba(255,255,255,0.1)",
-              borderWidth: 1,
-              padding: 8,
-              displayColors: false,
-              callbacks: {
-                label: (c) => `지원량: ${c.raw.toLocaleString()}개`
-              }
-            }
-          },
-          scales: {
-            x: {
-              ticks: { color: "#64748b", font: { size: 10 } },
-              grid: { display: false }
-            },
-            y: {
-              ticks: { color: "#64748b", font: { size: 9 }, maxTicksLimit: 4 },
-              grid: { color: "rgba(255, 255, 255, 0.04)" }
-            }
-          }
-        }
-      });
+    const first = sorted[0];
+    const second = sorted[1];
+    const third = sorted[2];
+    const runners = sorted.slice(3);
+
+    // 2등(은), 1등(금), 3등(동) 배치
+    podiumContainer.innerHTML = `
+      <!-- 2등 은메달 (좌측) -->
+      <div class="flex-1 max-w-[130px] flex flex-col items-center">
+        <div class="text-center mb-1 w-full px-1">
+          <div class="text-xs text-slate-300 font-semibold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
+          <div class="text-[11px] font-bold text-slate-300">${(second.donations || 0).toLocaleString()}개</div>
+        </div>
+        <div class="podium-step podium-2nd w-full h-20 sm:h-24">
+          <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
+        </div>
+      </div>
+
+      <!-- 1등 금메달 (중앙 / 최고 높이) -->
+      <div class="flex-1 max-w-[145px] flex flex-col items-center">
+        <div class="text-center mb-1 w-full px-1">
+          <div class="inline-flex items-center gap-1 text-[11px] text-amber-400 font-semibold mb-0.5">
+            <span>👑 1위</span>
+          </div>
+          <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
+          <div class="text-xs font-black text-amber-400">${(first.donations || 0).toLocaleString()}개</div>
+        </div>
+        <div class="podium-step podium-1st w-full h-28 sm:h-32">
+          <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
+        </div>
+      </div>
+
+      <!-- 3등 동메달 (우측) -->
+      <div class="flex-1 max-w-[130px] flex flex-col items-center">
+        <div class="text-center mb-1 w-full px-1">
+          <div class="text-xs text-amber-600/90 font-semibold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
+          <div class="text-[11px] font-bold text-amber-600">${(third.donations || 0).toLocaleString()}개</div>
+        </div>
+        <div class="podium-step podium-3rd w-full h-14 sm:h-16">
+          <span class="text-lg sm:text-xl font-black text-amber-600/80 font-mono mb-1">3</span>
+        </div>
+      </div>
+    `;
+
+    // 4위 ~ 7위 러너 리스트
+    if (runnersContainer) {
+      runnersContainer.innerHTML = runners.map((m, idx) => `
+        <div class="flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]">
+          <div class="flex items-center gap-1 min-w-0">
+            <span class="text-[10px] font-mono text-slate-500 w-3">${idx + 4}</span>
+            <span class="text-[11px] text-slate-300 font-medium truncate">${this.escapeHtml(m.name)}</span>
+          </div>
+          <span class="text-[11px] font-bold text-slate-400 shrink-0 ml-1">${(m.donations || 0).toLocaleString()}</span>
+        </div>
+      `).join("");
     }
+  }
 
-    // 2. 접속 상태 도넛 차트 (오늘 / 1~2일 / 3일+ 미접속)
+  // 접속 분포 도넛 차트
+  renderActivityDonut(members) {
+    if (!window.Chart) return;
+
     let seenToday = 0;
     let seen1to2d = 0;
     let seenDormant = 0;
@@ -265,7 +287,7 @@ class ClanManagerApp {
               labels: {
                 color: "#94a3b8",
                 boxWidth: 8,
-                padding: 12,
+                padding: 10,
                 font: { size: 10 }
               }
             },
@@ -425,9 +447,10 @@ class ClanManagerApp {
       const exactSeen = lastSeenDate?.toLocaleString("ko-KR") || "기록 없음";
 
       const battles = member.recentBattles7d || 0;
-      const battlePercent = Math.min(100, Math.round((battles / 25) * 100));
+      const battlePercent = Math.min(100, Math.round((battles / 70) * 100));
       let battleBarColor = "bg-blue-500";
-      if (battles >= 15) battleBarColor = "bg-indigo-400";
+      if (battles >= 30) battleBarColor = "bg-indigo-400";
+      else if (battles >= 15) battleBarColor = "bg-sky-400";
       else if (battles === 0) battleBarColor = "bg-rose-500/80";
 
       const donations = member.donations || 0;
@@ -458,7 +481,7 @@ class ClanManagerApp {
             <div class="w-28 mx-auto">
               <div class="flex justify-between text-xs mb-1">
                 <span class="font-semibold text-slate-200">${battles}회</span>
-                <span class="text-[10px] text-slate-400">${battles >= 15 ? "활발" : battles === 0 ? "0회" : "보통"}</span>
+                <span class="text-[10px] text-slate-400">${battles >= 30 ? "초활발" : (battles >= 15 ? "활발" : (battles === 0 ? "0회" : "보통"))}</span>
               </div>
               <div class="w-full bg-white/[0.06] rounded-full h-1 overflow-hidden">
                 <div class="${battleBarColor} h-1 rounded-full transition-all" style="width: ${battlePercent}%"></div>
