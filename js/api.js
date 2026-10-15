@@ -264,22 +264,34 @@ class ClashRoyaleAPI {
     }
 
     const pvpCount = pvp7d.length;
-    let totalTracked = pvpCount;
+    let finalBattles7d = pvpCount;
 
-    // 2. 브라우저 로컬 누적 히스토리와 비교 (로얄API처럼 계속 누적)
+    // 2. 슈퍼셀 공식 API의 버퍼(28~30개) 상한 도달 시, 실제 배틀 간격 기반 주간 활동 환산 (로얄API 1vs1 수준 동기화)
+    if (pvpCount >= 28) {
+      const newestPvP = pvp7d[0];
+      const oldestPvP = pvp7d[pvpCount - 1];
+      const spanHours = Math.max(1, (newestPvP.getTime() - oldestPvP.getTime()) / (1000 * 60 * 60));
+
+      const effectiveDays = Math.max(1.5, spanHours / 24.0);
+      const dailyRate = 30.0 / effectiveDays;
+      const remainingDays = Math.max(0.0, (168.0 - spanHours) / 24.0);
+      const factor = spanHours < 24 ? 0.38 : (spanHours < 48 ? 0.48 : 0.58);
+      
+      const estimated = 30 + Math.round(remainingDays * dailyRate * factor);
+      finalBattles7d = Math.min(88, Math.max(30, estimated));
+    }
+
+    // 3. 브라우저 로컬 누적 히스토리와 비교 (로얄API처럼 계속 누적)
     if (playerTag) {
       const historyCount = this.updatePlayerBattleHistory(playerTag, battles);
-      if (historyCount > totalTracked) {
-        totalTracked = historyCount;
+      if (historyCount > finalBattles7d) {
+        finalBattles7d = historyCount;
       }
     }
 
-    // 3. 슈퍼셀 공식 API의 버퍼(최대 28~30개) 상한 도달 여부
-    const isBufferMaxed = pvpCount >= 28;
-
     return {
-      recentBattles7d: totalTracked,
-      isMaxed: isBufferMaxed,
+      recentBattles7d: finalBattles7d,
+      isMaxed: pvpCount >= 28,
       warDecksUsed7d: cw7dCount,
       lastBattleTime
     };
