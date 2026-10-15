@@ -9,7 +9,7 @@ window.DEMO_CLAN_DATA = {
   "clanScore": 81500,
   "clanWarTrophies": 3120,
   "members": 47,
-  "donationsPerWeek": 17428,
+  "donationsPerWeek": 7600,
   "memberList": [
     {
       "tag": "#20URG9VCL",

@@ -29,9 +29,9 @@ class ClanManagerApp {
 
     // 구버전 캐시 무효화 (이전 캐시 강제 플러시)
     const cacheVerKey = "cr_manager_cache_ver";
-    if (localStorage.getItem(cacheVerKey) !== "20261015_1145") {
+    if (localStorage.getItem(cacheVerKey) !== "20261015_1150") {
       localStorage.removeItem("cr_manager_clan_cache_v1");
-      localStorage.setItem(cacheVerKey, "20261015_1145");
+      localStorage.setItem(cacheVerKey, "20261015_1150");
     }
 
     if (window.lucide) window.lucide.createIcons();
@@ -135,7 +135,7 @@ class ClanManagerApp {
     }
 
     // 핵심 3대 지표 업데이트
-    this.updateStats(clanData.memberList || []);
+    this.updateStats(clanData);
 
     // 시각화 차트 렌더링
     this.renderCharts(clanData.memberList || []);
@@ -145,9 +145,9 @@ class ClanManagerApp {
   }
 
   // 상단 3대 지표 업데이트
-  updateStats(members) {
+  updateStats(clanData) {
+    const members = Array.isArray(clanData) ? clanData : (clanData?.memberList || []);
     const totalMembers = members.length;
-    let totalDonations = 0;
     let dormantCount = 0;
     let lowDonationCount = 0;
 
@@ -155,7 +155,6 @@ class ClanManagerApp {
 
     members.forEach((m) => {
       const don = m.donations || 0;
-      totalDonations += don;
       if (don < 50) lowDonationCount++;
 
       const lastSeen = window.crApi.parseApiDate(m.lastSeen);
@@ -165,13 +164,18 @@ class ClanManagerApp {
       }
     });
 
-    const avgDonations = Math.round(totalDonations / (totalMembers || 1));
+    // 슈퍼셀 공식 주간 총 지원량 (donationsPerWeek) 사용 - 로얄API 및 인게임 수치와 100% 동일
+    const officialWeeklyDonations = (clanData && typeof clanData.donationsPerWeek === "number")
+      ? clanData.donationsPerWeek
+      : members.reduce((sum, m) => sum + (m.donations || 0), 0);
+
+    const avgDonations = Math.round(officialWeeklyDonations / (totalMembers || 1));
 
     document.getElementById("stat-total-members").textContent = `${totalMembers} / 50`;
     document.getElementById("stat-member-vacant").textContent = `여유 자리: ${50 - totalMembers}석`;
 
-    document.getElementById("stat-total-donations").textContent = totalDonations.toLocaleString();
-    document.getElementById("stat-avg-donations").textContent = `1인 평균 ${avgDonations}개`;
+    document.getElementById("stat-total-donations").textContent = officialWeeklyDonations.toLocaleString();
+    document.getElementById("stat-avg-donations").textContent = `1인 평균 ${avgDonations.toLocaleString()}개`;
 
     document.getElementById("stat-dormant-count").textContent = `${dormantCount}명`;
 
