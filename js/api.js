@@ -274,8 +274,8 @@ class ClashRoyaleAPI {
       }
     }
 
-    // 3. 슈퍼셀 공식 API의 버퍼(최대 30개) 상한 도달 여부
-    const isBufferMaxed = pvpCount >= 30;
+    // 3. 슈퍼셀 공식 API의 버퍼(최대 28~30개) 상한 도달 여부
+    const isBufferMaxed = pvpCount >= 28;
 
     return {
       recentBattles7d: totalTracked,
@@ -311,6 +311,7 @@ class ClashRoyaleAPI {
         const index = currentIndex++;
         const member = members[index];
         try {
+          const battlelog = await this.fetchPlayerBattlelog(member.tag);
           const analysis = this.analyzeBattlelog(battlelog, member.tag);
           member.recentBattles7d = analysis.recentBattles7d;
           member.isBattleMaxed = analysis.isMaxed;
