@@ -27,6 +27,13 @@ class ClanManagerApp {
   init() {
     this.bindEvents();
 
+    // 구버전 캐시 무효화 (이전 25~30회 캐시 강제 플러시)
+    const cacheVerKey = "cr_manager_cache_ver";
+    if (localStorage.getItem(cacheVerKey) !== "20261015_0955") {
+      localStorage.removeItem("cr_manager_clan_cache_v1");
+      localStorage.setItem(cacheVerKey, "20261015_0955");
+    }
+
     // 1. 초기 렌더링: 캐시 또는 기본 데이터 즉시 표시
     if (window.DEMO_CLAN_DATA) {
       this.renderClan(window.DEMO_CLAN_DATA);

@@ -211,21 +211,26 @@ class ClashRoyaleAPI {
       const diff = now - bDate.getTime();
       if (diff <= sevenDaysMs) {
         count7d++;
-        // 클랜전 타입 감지 (riverRacePvP, riverRaceDuel 등)
-        if (b.type && b.type.toLowerCase().includes("riverrace")) {
-          // 듀얼(Duel)은 1회 매칭에 2~3개 덱을 소모할 수 있음
-          if (b.type.toLowerCase().includes("duel") || (b.boatBattleSide)) {
-            warDecks7d += 2;
-          } else {
-            warDecks7d += 1;
-          }
+      }
+    }
+
+    // 슈퍼셀 API가 최대 25개까지만 반환하는 서버 한계 극복:
+    // 만약 25개가 모두 7일 이내에 있고, 25번째 배틀이 며칠 안 되었다면 실제 7일 환산 플레이 수 계산
+    let finalBattles7d = count7d;
+    if (count7d >= 25 && battles.length >= 25) {
+      const oldestValidDate = this.parseApiDate(battles[battles.length - 1].battleTime);
+      if (oldestValidDate) {
+        const timeSpanHours = Math.max(1, (now - oldestValidDate.getTime()) / (1000 * 60 * 60));
+        // 최근 25판을 소화한 시간(timeSpanHours)을 기준으로 7일(168시간) 총 배틀 수 추정
+        if (timeSpanHours < 160) {
+          const battlesPerHour = count7d / timeSpanHours;
+          finalBattles7d = Math.min(120, Math.max(25, Math.round(battlesPerHour * 168 * 0.85)));
         }
       }
     }
 
     return {
-      recentBattles7d: count7d,
-      warDecksUsed7d: warDecks7d,
+      recentBattles7d: finalBattles7d,
       lastBattleTime
     };
   }
