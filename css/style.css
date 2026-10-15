@@ -1,0 +1,198 @@
+@charset "UTF-8";
+
+/* Pretendard Web Font */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+:root {
+  --bg-base: #090b10;
+  --bg-surface: #0f121a;
+  --bg-surface-hover: #151924;
+  --bg-elevated: #1a1f2c;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-focus: rgba(99, 102, 241, 0.4);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-blue: #3b82f6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  letter-spacing: -0.015em;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 2rem;
+}
+
+/* 정교한 서피스 카드 */
+.surface-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+
+/* 미니멀 상태 점 (Status Dot) */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.green {
+  background-color: var(--accent-green);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+.status-dot.amber {
+  background-color: var(--accent-amber);
+}
+.status-dot.rose {
+  background-color: var(--accent-rose);
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.4);
+}
+.status-dot.gray {
+  background-color: var(--text-muted);
+}
+
+/* 펄스 애니메이션 (라이브 동기화용) */
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+.live-pulse {
+  animation: pulseDot 2.4s infinite ease-in-out;
+}
+
+/* 필터 칩 버튼 */
+.filter-chip {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.filter-chip:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+.filter-chip.active {
+  color: #ffffff;
+  background: var(--bg-elevated);
+  border-color: rgba(255, 255, 255, 0.12);
+  font-weight: 600;
+}
+
+/* 테이블 미니멀 스타일 (PC용) */
+.data-table th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  transition: background 0.12s ease;
+}
+.data-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* 모바일 전용 멤버 아이템 카드 */
+.mobile-member-card {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface);
+  transition: background 0.12s ease;
+}
+.mobile-member-card:last-child {
+  border-bottom: none;
+}
+.mobile-member-card:active {
+  background: var(--bg-surface-hover);
+}
+
+/* 직책 뱃지 미니멀 */
+.badge-role {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+.badge-leader {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.badge-coleader {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+.badge-elder {
+  background: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.badge-member {
+  background: rgba(148, 163, 184, 0.08);
+  color: #94a3b8;
+}
+
+/* 차트 래퍼 높이 */
+.chart-container-bar {
+  position: relative;
+  height: 190px;
+  width: 100%;
+}
+.chart-container-donut {
+  position: relative;
+  height: 190px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 미니멀 스크롤바 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 모바일 전용 레이아웃 미세 조정 */
+@media (max-width: 640px) {
+  .chart-container-bar, .chart-container-donut {
+    height: 170px;
+  }
+}
