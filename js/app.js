@@ -29,9 +29,9 @@ class ClanManagerApp {
 
     // 구버전 캐시 무효화 (이전 캐시 강제 플러시)
     const cacheVerKey = "cr_manager_cache_ver";
-    if (localStorage.getItem(cacheVerKey) !== "20261015_1150") {
+    if (localStorage.getItem(cacheVerKey) !== "20261015_1638") {
       localStorage.removeItem("cr_manager_clan_cache_v1");
-      localStorage.setItem(cacheVerKey, "20261015_1150");
+      localStorage.setItem(cacheVerKey, "20261015_1638");
     }
 
     if (window.lucide) window.lucide.createIcons();
@@ -489,7 +489,7 @@ class ClanManagerApp {
               ${this.getRoleBadge(member.role)}
             </div>
             <div class="flex items-center gap-2 text-[11px] text-slate-400 font-mono mt-0.5">
-              <span>${member.tag}</span>
+              <span>${this.escapeHtml(member.tag)}</span>
               <span class="text-amber-400/90 font-sans">🏆 ${(member.trophies || 0).toLocaleString()}</span>
             </div>
           </td>
@@ -589,8 +589,8 @@ class ClanManagerApp {
   }
 
   escapeHtml(str) {
-    if (!str) return "";
-    return str
+    if (str === null || str === undefined) return "";
+    return String(str)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
