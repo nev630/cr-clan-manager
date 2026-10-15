@@ -186,7 +186,7 @@ class ClashRoyaleAPI {
     return await this.fetchWithAuth(endpoint);
   }
 
-  // 배틀로그 로컬 누적 캐시 업데이트 (여러 날에 걸쳐 방문 시 30개 한계를 넘어 실제 배틀 누적)
+  // 배틀로그 로컬 누적 캐시 업데이트 (여러 날에 걸쳐 방문 시 30개 한계를 넘어 실제 1vs1 배틀 누적)
   updatePlayerBattleHistory(playerTag, battles) {
     if (!playerTag || !Array.isArray(battles)) return 0;
     try {
@@ -202,7 +202,11 @@ class ClashRoyaleAPI {
 
       const playerHistory = new Set(historyMap[playerTag] || []);
       battles.forEach(b => {
-        if (b.battleTime) {
+        if (!b.battleTime) return;
+        // 로얄API Decks 탭 '7 days 1vs1 battle' 기준: 순수 1vs1 배틀만 누적
+        const is2v2 = b.type && b.type.toLowerCase().includes("2v2");
+        const isCW = b.type === "boatBattle" || b.type === "riverRacePvP" || b.type === "riverRaceDuel";
+        if (!is2v2 && !isCW) {
           playerHistory.add(b.battleTime);
         }
       });
@@ -221,16 +225,16 @@ class ClashRoyaleAPI {
     }
   }
 
-  // 배틀로그 분석: 최근 7일 내 배틀 수 및 클랜전 덱 사용 수 집계 (슈퍼셀 30개 FIFO 버퍼 한계 보정)
+  // 배틀로그 분석: 최근 7일 내 순수 1vs1 대전 수 집계 (로얄API Decks 탭의 '7 days 1vs1 battle' 기준)
   analyzeBattlelog(battles, playerTag = "") {
     if (!Array.isArray(battles) || battles.length === 0) {
-      return { recentBattles7d: 0, warDecksUsed7d: 0, lastBattleTime: null };
+      return { recentBattles7d: 0, isMaxed: false, warDecksUsed7d: 0, lastBattleTime: null };
     }
 
     const now = Date.now();
     const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
     
-    // 1. 배틀 유형별(PvP vs 클랜전 boatBattle/riverRace) 분류 및 7일 이내 필터링
+    // 1. 순수 1vs1 대전(Path of Legend, Trophy Road, 1v1 Challenge/Tournament) 분류 및 7일 이내 필터링
     const pvp7d = [];
     let cw7dCount = 0;
     let lastBattleTime = null;
@@ -250,45 +254,32 @@ class ClashRoyaleAPI {
         if (b.type === "boatBattle" || b.type === "riverRacePvP" || b.type === "riverRaceDuel") {
           cw7dCount++;
         } else {
-          pvp7d.push({
-            date: bDate,
-            diffHours: diff / (1000 * 60 * 60)
-          });
+          // 2v2 모드 제외 -> 순수 1vs1만 집계
+          const is2v2 = b.type && b.type.toLowerCase().includes("2v2");
+          if (!is2v2) {
+            pvp7d.push(bDate);
+          }
         }
       }
     }
 
     const pvpCount = pvp7d.length;
-    let finalBattles7d = pvpCount + cw7dCount;
+    let totalTracked = pvpCount;
 
-    // 2. 슈퍼셀 공식 API의 PvP 배틀로그 최대 30개 제한 보정:
-    // 슈퍼셀 API는 28~30판의 PvP 배틀이 차면 오래된 배틀을 삭제합니다.
-    // 7일 이내에 28개 이상의 PvP가 존재한다면 과거 기록이 잘려나간 상태이므로,
-    // 최신 PvP와 가장 오래된 PvP 사이의 활동 기간(spanHours)을 바탕으로 7일(168시간) 실제 활동량을 환산합니다.
-    if (pvpCount >= 28) {
-      const newestPvP = pvp7d[0].date;
-      const oldestPvP = pvp7d[pvpCount - 1].date;
-      const spanHours = Math.max(1, (newestPvP.getTime() - oldestPvP.getTime()) / (1000 * 60 * 60));
-
-      if (spanHours < 160) {
-        const days = spanHours / 24.0;
-        const effectiveDays = days + 1.53;
-        const pvpEst = Math.round(pvpCount * (7.0 / effectiveDays));
-        const cappedPvp = Math.min(120, Math.max(pvpCount, pvpEst));
-        finalBattles7d = cappedPvp + cw7dCount;
-      }
-    }
-
-    // 3. 브라우저 로컬 누적 히스토리와 비교하여 더 높은 값 채택
+    // 2. 브라우저 로컬 누적 히스토리와 비교 (로얄API처럼 계속 누적)
     if (playerTag) {
       const historyCount = this.updatePlayerBattleHistory(playerTag, battles);
-      if (historyCount > finalBattles7d) {
-        finalBattles7d = historyCount;
+      if (historyCount > totalTracked) {
+        totalTracked = historyCount;
       }
     }
 
+    // 3. 슈퍼셀 공식 API의 버퍼(최대 30개) 상한 도달 여부
+    const isBufferMaxed = pvpCount >= 30;
+
     return {
-      recentBattles7d: finalBattles7d,
+      recentBattles7d: totalTracked,
+      isMaxed: isBufferMaxed,
       warDecksUsed7d: cw7dCount,
       lastBattleTime
     };
@@ -320,9 +311,9 @@ class ClashRoyaleAPI {
         const index = currentIndex++;
         const member = members[index];
         try {
-          const battlelog = await this.fetchPlayerBattlelog(member.tag);
           const analysis = this.analyzeBattlelog(battlelog, member.tag);
           member.recentBattles7d = analysis.recentBattles7d;
+          member.isBattleMaxed = analysis.isMaxed;
         } catch (err) {
           // 비공개 프로필 등 오류 시 통과
         }

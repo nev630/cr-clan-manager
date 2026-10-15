@@ -29,9 +29,9 @@ class ClanManagerApp {
 
     // 구버전 캐시 무효화 (이전 25~30회 캐시 강제 플러시)
     const cacheVerKey = "cr_manager_cache_ver";
-    if (localStorage.getItem(cacheVerKey) !== "20261015_1025") {
+    if (localStorage.getItem(cacheVerKey) !== "20261015_1105") {
       localStorage.removeItem("cr_manager_clan_cache_v1");
-      localStorage.setItem(cacheVerKey, "20261015_1025");
+      localStorage.setItem(cacheVerKey, "20261015_1105");
     }
 
     if (window.lucide) window.lucide.createIcons();
@@ -472,9 +472,11 @@ class ClanManagerApp {
       const exactSeen = lastSeenDate?.toLocaleString("ko-KR") || "기록 없음";
 
       const battles = member.recentBattles7d || 0;
-      const battlePercent = Math.min(100, Math.round((battles / 70) * 100));
+      const isMaxed = member.isBattleMaxed && battles <= 30;
+      const battleText = isMaxed ? "30+회" : `${battles}회`;
+      const battlePercent = Math.min(100, Math.round((Math.max(battles, isMaxed ? 30 : battles) / 35) * 100));
       let battleBarColor = "bg-blue-500";
-      if (battles >= 30) battleBarColor = "bg-indigo-400";
+      if (battles >= 30 || isMaxed) battleBarColor = "bg-indigo-400";
       else if (battles >= 15) battleBarColor = "bg-sky-400";
       else if (battles === 0) battleBarColor = "bg-rose-500/80";
 
@@ -503,10 +505,10 @@ class ClanManagerApp {
             </div>
           </td>
           <td>
-            <div class="w-28 mx-auto">
+            <div class="w-28 mx-auto" title="${isMaxed ? '슈퍼셀 공식 API 30회 상한 도달 (30회 이상 플레이한 최상위 활성 유저)' : '로얄API Decks 기준 최근 7일 1vs1 대전'}">
               <div class="flex justify-between text-xs mb-1">
-                <span class="font-semibold text-slate-200">${battles}회</span>
-                <span class="text-[10px] text-slate-400">${battles >= 30 ? "초활발" : (battles >= 15 ? "활발" : (battles === 0 ? "0회" : "보통"))}</span>
+                <span class="font-semibold text-slate-200">${battleText}</span>
+                <span class="text-[10px] text-slate-400">${battles >= 30 || isMaxed ? "초활발" : (battles >= 15 ? "활발" : (battles === 0 ? "0회" : "보통"))}</span>
               </div>
               <div class="w-full bg-white/[0.06] rounded-full h-1 overflow-hidden">
                 <div class="${battleBarColor} h-1 rounded-full transition-all" style="width: ${battlePercent}%"></div>
@@ -560,6 +562,8 @@ class ClanManagerApp {
 
       const relativeSeen = window.crApi.getRelativeTime(member.lastSeen);
       const battles = member.recentBattles7d || 0;
+      const isMaxed = member.isBattleMaxed && battles <= 30;
+      const battleText = isMaxed ? "30+회" : `${battles}회`;
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
@@ -588,11 +592,11 @@ class ClanManagerApp {
               </div>
             </div>
 
-            <!-- 2. 최근 7일 배틀 -->
+            <!-- 2. 최근 7일 1v1 -->
             <div>
-              <div class="text-[10px] text-slate-500">최근 7일 게임</div>
-              <div class="text-xs font-semibold ${battles >= 15 ? 'text-indigo-400' : battles === 0 ? 'text-rose-400' : 'text-slate-200'} mt-0.5">
-                ${battles}회 ${battles >= 15 ? '🔥' : ''}
+              <div class="text-[10px] text-slate-500">최근 7일 1v1</div>
+              <div class="text-xs font-semibold ${battles >= 15 || isMaxed ? 'text-indigo-400' : battles === 0 ? 'text-rose-400' : 'text-slate-200'} mt-0.5" title="${isMaxed ? '슈퍼셀 API 30회 상한 도달 (30회 이상 플레이)' : ''}">
+                ${battleText} ${battles >= 15 || isMaxed ? '🔥' : ''}
               </div>
             </div>
 
