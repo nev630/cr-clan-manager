@@ -29,12 +29,14 @@ class ClanManagerApp {
 
     // 구버전 캐시 무효화 (이전 25~30회 캐시 강제 플러시)
     const cacheVerKey = "cr_manager_cache_ver";
-    if (localStorage.getItem(cacheVerKey) !== "20261015_0955") {
+    if (localStorage.getItem(cacheVerKey) !== "20261015_1000") {
       localStorage.removeItem("cr_manager_clan_cache_v1");
-      localStorage.setItem(cacheVerKey, "20261015_0955");
+      localStorage.setItem(cacheVerKey, "20261015_1000");
     }
 
-    // 1. 초기 렌더링: 캐시 또는 기본 데이터 즉시 표시
+    if (window.lucide) window.lucide.createIcons();
+
+    // 1. 초기 렌더링: 오버레이 뒤에 기본 골격 렌더링
     if (window.DEMO_CLAN_DATA) {
       this.renderClan(window.DEMO_CLAN_DATA);
     }
@@ -42,8 +44,23 @@ class ClanManagerApp {
     // 2. 접속 즉시 백그라운드 실시간 자동 동기화
     this.autoSyncLive();
 
-    // 3. 3분 주기 자동 동기화 타이머
+    // 3. 만약 네트워크 지연 시 최대 6초 후 강제 모달 닫기 (안전장치)
+    setTimeout(() => this.hideInitialSyncModal(), 6500);
+
+    // 4. 3분 주기 자동 동기화 타이머
     setInterval(() => this.autoSyncLive(), 1000 * 60 * 3);
+  }
+
+  // 초기 동기화 완료 오버레이 팝업 닫기
+  hideInitialSyncModal() {
+    const modal = document.getElementById("initial-sync-modal");
+    if (!modal || modal.dataset.dismissed) return;
+    modal.dataset.dismissed = "true";
+    modal.style.opacity = "0";
+    modal.style.pointerEvents = "none";
+    setTimeout(() => {
+      modal.classList.add("hidden");
+    }, 350);
   }
 
   bindEvents() {
@@ -102,6 +119,7 @@ class ClanManagerApp {
       if (statusText) statusText.textContent = "캐시 사용";
     } finally {
       if (spinIcon) spinIcon.classList.remove("animate-spin");
+      this.hideInitialSyncModal();
     }
   }
 
