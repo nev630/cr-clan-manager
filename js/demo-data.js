@@ -14,7 +14,7 @@ window.DEMO_CLAN_DATA = {
     {
       "tag": "#20URG9VCL",
       "name": "Show★",
-      "role": "leader",
+      "role": "coLeader",
       "lastSeen": "2026-10-14T23:34:57.507548+00:00",
       "expLevel": 50,
       "trophies": 9000,
@@ -168,14 +168,14 @@ window.DEMO_CLAN_DATA = {
     {
       "tag": "#2Y9JGG8R",
       "name": "땽묭이뚁땽해",
-      "role": "elder",
+      "role": "leader",
       "lastSeen": "2026-10-14T22:16:57.507793+00:00",
       "expLevel": 48,
       "trophies": 8505,
       "clanRank": 12,
       "donations": 546,
       "donationsReceived": 382,
-      "recentBattles7d": 31,
+      "recentBattles7d": 58,
       "warDecksUsed7d": 16,
       "memo": ""
     },
