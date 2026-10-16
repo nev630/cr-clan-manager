@@ -48,15 +48,17 @@ class ClashRoyaleAPI {
     localStorage.setItem(this.storageKeySettings, JSON.stringify(this.settings));
   }
 
-  // 태그 포맷팅 (# 처리)
+  // 태그 포맷팅 (# 처리 및 슈퍼셀 공식 태그 검증)
   normalizeTag(tag) {
     if (!tag) return "";
-    let clean = tag.trim().toUpperCase();
+    let clean = String(tag).trim().toUpperCase();
     if (!clean.startsWith("#")) {
       clean = "#" + clean;
     }
     // O(오)를 0(영)으로 자동 치환 (슈퍼셀 태그 특성)
     clean = clean.replace(/O/g, "0");
+    // 슈퍼셀 공식 문자 [0289PYLQGRJCUV] 외 특수문자 및 경로 조작(../) 방지
+    clean = "#" + clean.slice(1).replace(/[^0289PYLQGRJCUV]/g, "");
     return clean;
   }
 
@@ -216,18 +218,22 @@ class ClashRoyaleAPI {
   // 배틀로그 로컬 누적 캐시 업데이트 (여러 날에 걸쳐 방문 시 30개 한계를 넘어 실제 1vs1 배틀 누적)
   updatePlayerBattleHistory(playerTag, battles) {
     if (!playerTag || !Array.isArray(battles)) return 0;
+    const safeTag = String(playerTag).trim();
+    if (safeTag === "__proto__" || safeTag === "constructor" || safeTag === "prototype") {
+      return 0;
+    }
     try {
       const key = "cr_manager_battle_history_v2";
-      let historyMap = {};
+      let historyMap = Object.create(null);
       const saved = localStorage.getItem(key);
       if (saved) {
-        historyMap = JSON.parse(saved);
+        Object.assign(historyMap, JSON.parse(saved));
       }
 
       const now = Date.now();
       const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
 
-      const playerHistory = new Set(historyMap[playerTag] || []);
+      const playerHistory = new Set(historyMap[safeTag] || []);
       battles.forEach(b => {
         if (!b.battleTime) return;
         // 로얄API Decks 탭 '7 days 1vs1 battle' 기준: 순수 1vs1 배틀만 누적
@@ -244,7 +250,7 @@ class ClashRoyaleAPI {
         return d && (now - d.getTime() <= sevenDaysMs);
       });
 
-      historyMap[playerTag] = validBattles;
+      historyMap[safeTag] = validBattles;
       localStorage.setItem(key, JSON.stringify(historyMap));
       return validBattles.length;
     } catch (e) {

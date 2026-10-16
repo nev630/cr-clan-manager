@@ -29,9 +29,9 @@ class ClanManagerApp {
 
     // 구버전 캐시 무효화 (이전 캐시 강제 플러시)
     const cacheVerKey = "cr_manager_cache_ver";
-    if (localStorage.getItem(cacheVerKey) !== "20261016_1205") {
+    if (localStorage.getItem(cacheVerKey) !== "20261016_1508") {
       localStorage.removeItem("cr_manager_clan_cache_v1");
-      localStorage.setItem(cacheVerKey, "20261016_1205");
+      localStorage.setItem(cacheVerKey, "20261016_1508");
     }
 
     if (window.lucide) window.lucide.createIcons();

@@ -19,20 +19,47 @@
 
 export default {
   async fetch(request, env, ctx) {
+    const origin = request.headers.get("Origin");
+    const allowedOrigin = env.ALLOWED_ORIGIN || "*";
+    const corsOrigin = (allowedOrigin === "*" || origin === allowedOrigin) ? (origin || "*") : allowedOrigin;
+
     // 1. CORS Preflight 요청 처리
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
         headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+          "Access-Control-Allow-Origin": corsOrigin,
+          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key",
           "Access-Control-Max-Age": "86400",
         },
       });
     }
 
+    // 허용 HTTP 메서드 검증 (GET, HEAD만 허용)
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
+        status: 405,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": corsOrigin,
+          "Allow": "GET, HEAD, OPTIONS"
+        }
+      });
+    }
+
     const url = new URL(request.url);
+
+    // 경로 조작(Path Traversal) 방지
+    if (url.pathname.includes("..")) {
+      return new Response(JSON.stringify({ error: "Invalid path traversal" }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": corsOrigin
+        }
+      });
+    }
     
     // IP 확인용 진단 엔드포인트
     if (url.pathname === "/ip") {
@@ -91,7 +118,7 @@ export default {
         status: 401,
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+          "Access-Control-Allow-Origin": corsOrigin
         }
       });
     }
@@ -113,8 +140,8 @@ export default {
         status: apiResponse.status,
         headers: {
           "Content-Type": "application/json; charset=utf-8",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+          "Access-Control-Allow-Origin": corsOrigin,
+          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key",
           "Cache-Control": "public, max-age=60" // 1분 캐시
         }
@@ -127,7 +154,7 @@ export default {
         status: 500,
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+          "Access-Control-Allow-Origin": corsOrigin
         }
       });
     }
