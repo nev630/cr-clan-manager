@@ -33,7 +33,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=20261015_1638" />
+  <link rel="stylesheet" href="css/style.css?v=20261016_1205" />
 </head>
 <body class="bg-[#090b10] text-slate-100 min-h-screen">
 
@@ -210,6 +210,7 @@
           <option value="lastSeen-desc">접속 최근 순</option>
           <option value="lastSeen-asc">접속 오래된 순</option>
           <option value="trophies-desc">트로피 높은 순</option>
+          <option value="trophies-asc">트로피 낮은 순</option>
         </select>
       </div>
     </section>
@@ -223,7 +224,7 @@
           <thead>
             <tr>
               <th class="w-12 text-center">#</th>
-              <th>클랜원</th>
+              <th class="cursor-pointer hover:text-white" onclick="window.app.toggleSort('trophies')" title="클릭 시 트로피 순 정렬">클랜원 (트로피 ↕)</th>
               <th class="text-center cursor-pointer hover:text-white" onclick="window.app.toggleSort('lastSeen')">
                 마지막 접속
               </th>
@@ -268,7 +269,7 @@
       </div>
       <h3 class="text-sm font-bold text-white tracking-tight">클랜 실시간 동기화 중</h3>
       <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
-        슈퍼셀 공식 서버에서 <span class="text-emerald-400 font-semibold">Good Fellas</span> 클랜의 최신 지원량과 접속 정보를 가져오고 있습니다.
+        슈퍼셀 공식 서버에서 <span class="text-emerald-400 font-semibold">Good Fellas</span> 클랜의 지원량, 접속 현황, 시즌 트로피를 동기화하고 있습니다.
       </p>
       <div class="w-full bg-white/[0.06] rounded-full h-1.5 overflow-hidden mt-4">
         <div class="bg-gradient-to-r from-emerald-500 via-indigo-500 to-amber-400 h-full rounded-full animate-pulse" style="width: 85%"></div>
@@ -278,8 +279,8 @@
   </div>
 
   <!-- Scripts with Cache Busting -->
-  <script src="js/demo-data.js?v=20261015_1638"></script>
-  <script src="js/api.js?v=20261015_1638"></script>
-  <script src="js/app.js?v=20261015_1638"></script>
+  <script src="js/demo-data.js?v=20261016_1205"></script>
+  <script src="js/api.js?v=20261016_1205"></script>
+  <script src="js/app.js?v=20261016_1205"></script>
 </body>
 </html>

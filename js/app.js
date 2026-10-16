@@ -29,9 +29,9 @@ class ClanManagerApp {
 
     // 구버전 캐시 무효화 (이전 캐시 강제 플러시)
     const cacheVerKey = "cr_manager_cache_ver";
-    if (localStorage.getItem(cacheVerKey) !== "20261015_1638") {
+    if (localStorage.getItem(cacheVerKey) !== "20261016_1205") {
       localStorage.removeItem("cr_manager_clan_cache_v1");
-      localStorage.setItem(cacheVerKey, "20261015_1638");
+      localStorage.setItem(cacheVerKey, "20261016_1205");
     }
 
     if (window.lucide) window.lucide.createIcons();
@@ -44,8 +44,8 @@ class ClanManagerApp {
     // 2. 접속 즉시 백그라운드 실시간 자동 동기화
     this.autoSyncLive();
 
-    // 3. 만약 네트워크 지연 시 최대 6초 후 강제 모달 닫기 (안전장치)
-    setTimeout(() => this.hideInitialSyncModal(), 6500);
+    // 3. 만약 네트워크 지연 시 최대 7.5초 후 강제 모달 닫기 (안전장치)
+    setTimeout(() => this.hideInitialSyncModal(), 7500);
 
     // 4. 3분 주기 자동 동기화 타이머
     setInterval(() => this.autoSyncLive(), 1000 * 60 * 3);

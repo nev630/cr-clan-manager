@@ -179,6 +179,33 @@ class ClashRoyaleAPI {
     return await this.fetchWithAuth(endpoint);
   }
 
+  // 특정 플레이어의 상세 프로필 조회 (시즌 트로피 로드 등 상세 데이터)
+  async fetchPlayer(playerTag) {
+    const encoded = this.encodeTag(playerTag);
+    const endpoint = `/v1/players/${encoded}`;
+    return await this.fetchWithAuth(endpoint);
+  }
+
+  // 플레이어의 실제 트로피(14000 상한선 도달 시 시즌 트로피 로드 14000~15000+ 반영) 추출
+  extractSeasonalTrophies(playerProfile) {
+    if (!playerProfile) return 0;
+    let maxTrophies = typeof playerProfile.trophies === "number" ? playerProfile.trophies : 0;
+
+    // progress 객체 내의 시즌 트로피 로드 (Seasonal Trophy Road) 확인
+    const progress = playerProfile.progress;
+    if (progress && typeof progress === "object") {
+      for (const key of Object.keys(progress)) {
+        if (key.toLowerCase().includes("seasonal")) {
+          const s = progress[key];
+          if (s && typeof s.trophies === "number" && s.trophies > maxTrophies) {
+            maxTrophies = s.trophies;
+          }
+        }
+      }
+    }
+    return maxTrophies;
+  }
+
   // 특정 플레이어의 배틀로그 조회
   async fetchPlayerBattlelog(playerTag) {
     const encoded = this.encodeTag(playerTag);
@@ -297,13 +324,44 @@ class ClashRoyaleAPI {
     };
   }
 
-  // 클랜 전체 정보 실시간 동기화 (초고속 단일 요청)
+  // 클랜 전체 정보 실시간 동기화 (기본 정보 초고속 조회 + 14000 상한 도달자 시즌 트로피 보강)
   async fetchClanFullData(clanTag, onProgress = () => {}) {
-    // 클랜 정보(멤버, 직책, 지원량, 트로피, 마지막 접속) 초고속 조회
+    // 1. 클랜 기본 정보(멤버, 직책, 지원량, 기본 트로피, 마지막 접속) 초고속 조회
     const clanData = await this.fetchClan(clanTag);
 
     if (!clanData || !clanData.memberList) {
       throw new Error("클랜원 목록을 불러오지 못했습니다.");
+    }
+
+    const members = clanData.memberList;
+
+    // 2. 14000 트로피 상한선에 도달한 멤버들의 실제 시즌 트로피(14000~15000+) 병렬 보강
+    const cappedMembers = members.filter(m => (m.trophies || 0) >= 14000);
+
+    if (cappedMembers.length > 0) {
+      const concurrency = 8;
+      let currentIndex = 0;
+
+      const worker = async () => {
+        while (currentIndex < cappedMembers.length) {
+          const member = cappedMembers[currentIndex++];
+          try {
+            const profile = await this.fetchPlayer(member.tag);
+            const trueTrophies = this.extractSeasonalTrophies(profile);
+            if (trueTrophies > member.trophies) {
+              member.trophies = trueTrophies;
+            }
+          } catch (e) {
+            // 프로필 조회 실패 시 기존 14000 유지
+          }
+        }
+      };
+
+      const workers = [];
+      for (let i = 0; i < concurrency; i++) {
+        workers.push(worker());
+      }
+      await Promise.all(workers);
     }
 
     // 캐시에 저장
