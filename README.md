@@ -1,6 +1,6 @@
-# 👑 Good Fellas 클랜 관리 대시보드
+# 👑 굿펠 클랜 관리 대시보드
 
-클래시 로얄(Clash Royale) 클랜 **Good Fellas (`#G890J9JC`)**의 클랜원 활동성 모니터링 및 운영을 위한 실시간 웹 대시보드입니다.
+클래시 로얄(Clash Royale) 클랜 Good Fellas (`#G890J9JC`)의 클랜원 활동성 모니터링 및 운영을 위한 실시간 웹 대시보드입니다.
 
 🔗 **웹사이트 바로가기**: [https://nev630.github.io/cr-clan-manager/](https://nev630.github.io/cr-clan-manager/)
 
