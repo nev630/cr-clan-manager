@@ -107,13 +107,11 @@ class ClashRoyaleAPI {
     return `${workerUrl}${endpoint}${separator}${cacheBuster}`;
   }
 
-  // 공통 fetch 래퍼 (무조건 브라우저 캐시 우회 no-store)
+  // 공통 fetch 래퍼
   async fetchWithAuth(endpoint) {
     const url = this.buildUrl(endpoint);
     const headers = {
-      "Accept": "application/json",
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-      "Pragma": "no-cache"
+      "Accept": "application/json"
     };
 
     if (this.settings.apiKey) {
@@ -122,8 +120,7 @@ class ClashRoyaleAPI {
 
     const response = await fetch(url, {
       method: "GET",
-      headers,
-      cache: "no-store"
+      headers
     });
 
     if (!response.ok) {
@@ -312,35 +309,30 @@ class ClashRoyaleAPI {
 
     const members = clanData.memberList;
 
-    // 2. 14000 트로피 상한선에 도달한 멤버들의 실제 시즌 트로피(14000~15000+) 병렬 보강
+    // 2. 14000 트로피 상한선에 도달한 멤버들의 실제 시즌 트로피(14000~15000+) 백그라운드 비동기 보강
     const cappedMembers = members.filter(m => (m.trophies || 0) >= 14000);
 
     if (cappedMembers.length > 0) {
-      const concurrency = 6;
-      let currentIndex = 0;
-
-      const worker = async () => {
-        while (currentIndex < cappedMembers.length) {
-          const idx = currentIndex++;
-          const member = cappedMembers[idx];
+      setTimeout(async () => {
+        let hasChanges = false;
+        for (let i = 0; i < Math.min(cappedMembers.length, 15); i++) {
+          const member = cappedMembers[i];
           if (!member || !member.tag) continue;
           try {
             const profile = await this.fetchPlayer(member.tag);
             const trueTrophies = this.extractSeasonalTrophies(profile);
             if (trueTrophies > member.trophies) {
               member.trophies = trueTrophies;
+              hasChanges = true;
             }
           } catch (e) {
-            // 프로필 조회 실패 시 기존 14000 유지
+            // 실패 시 기존 14000 유지
           }
         }
-      };
-
-      const workers = [];
-      for (let i = 0; i < concurrency; i++) {
-        workers.push(worker());
-      }
-      await Promise.all(workers);
+        if (hasChanges && typeof onPartialData === "function") {
+          onPartialData(clanData);
+        }
+      }, 50);
     }
 
     return clanData;

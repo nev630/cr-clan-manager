@@ -30,7 +30,7 @@ export default {
         headers: {
           "Access-Control-Allow-Origin": corsOrigin,
           "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key, Cache-Control, Pragma",
           "Access-Control-Max-Age": "86400",
         },
       });
