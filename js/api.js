@@ -13,39 +13,23 @@ class ClashRoyaleAPI {
     this.settings = this.loadSettings();
   }
 
-  // 기본 설정 로드
+  // 기본 설정 로드 (항상 신뢰할 수 있는 전용 Cloudflare Worker 실시간 동기화 강제)
   loadSettings() {
-    const saved = localStorage.getItem(this.storageKeySettings);
     const defaultWorkerUrl = "https://green-disk-88a6.marble593812345.workers.dev";
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (!parsed.workerUrl) {
-          parsed.workerUrl = defaultWorkerUrl;
-        }
-        if (!parsed.clanTag || parsed.clanTag === "#2Y9PQ8V0") {
-          parsed.clanTag = "#G890J9JC";
-        }
-        return parsed;
-      } catch (e) {
-        console.error("Failed to parse settings", e);
-      }
-    }
     return {
       apiKey: "",
       clanTag: "#G890J9JC",
-      proxyMode: "worker", // 'worker' | 'corsproxy' | 'allorigins' | 'direct'
-      workerUrl: defaultWorkerUrl, // 사용자가 배포한 Cloudflare Worker 주소
-      autoFetchBattles: true, // 클랜원 배틀로그 자동 조회 여부
-      batchConcurrency: 4, // 동시 요청 수 (429 방지)
-      cacheDurationMinutes: 15 // 캐시 유지 시간
+      proxyMode: "worker",
+      workerUrl: defaultWorkerUrl,
+      autoFetchBattles: false,
+      batchConcurrency: 4,
+      cacheDurationMinutes: 0 // 캐시 완전 비활성화
     };
   }
 
   // 설정 저장
   saveSettings(newSettings) {
     this.settings = { ...this.settings, ...newSettings };
-    localStorage.setItem(this.storageKeySettings, JSON.stringify(this.settings));
   }
 
   // 태그 포맷팅 (# 처리 및 슈퍼셀 공식 태그 검증)
@@ -114,50 +98,32 @@ class ClashRoyaleAPI {
     return `${diffMonths}달 전`;
   }
 
-  // 프록시 URL 구성
+  // 프록시 URL 구성 (캐시 방지 타임스탬프 쿼리 항상 추가)
   buildUrl(endpoint) {
-    // endpoint 예: /v1/clans/%232Y9PQ8V0
-    const mode = this.settings.proxyMode;
-    const workerUrl = (this.settings.workerUrl || "").trim().replace(/\/$/, "");
-
-    if (mode === "worker" && workerUrl) {
-      // Cloudflare Worker 프록시
-      return `${workerUrl}${endpoint}`;
-    }
-
-    if (mode === "royaleapi") {
-      return `https://proxy.royaleapi.dev${endpoint}`;
-    }
-
-    const officialUrl = `https://api.clashroyale.com${endpoint}`;
-
-    if (mode === "corsproxy") {
-      // corsproxy.io
-      return `https://corsproxy.io/?${encodeURIComponent(officialUrl)}`;
-    } else if (mode === "allorigins") {
-      // allorigins.win raw
-      return `https://api.allorigins.win/raw?url=${encodeURIComponent(officialUrl)}`;
-    }
-
-    // Direct 또는 fallback
-    return officialUrl;
+    const defaultWorkerUrl = "https://green-disk-88a6.marble593812345.workers.dev";
+    const workerUrl = (this.settings.workerUrl || defaultWorkerUrl).trim().replace(/\/$/, "");
+    const separator = endpoint.includes("?") ? "&" : "?";
+    const cacheBuster = `_t=${Date.now()}`;
+    return `${workerUrl}${endpoint}${separator}${cacheBuster}`;
   }
 
-  // 공통 fetch 래퍼
+  // 공통 fetch 래퍼 (무조건 브라우저 캐시 우회 no-store)
   async fetchWithAuth(endpoint) {
     const url = this.buildUrl(endpoint);
     const headers = {
-      "Accept": "application/json"
+      "Accept": "application/json",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Pragma": "no-cache"
     };
 
-    // API Key가 설정되어 있고, Worker에 하드코딩되지 않았거나 다른 프록시인 경우 헤더 첨부
     if (this.settings.apiKey) {
       headers["Authorization"] = `Bearer ${this.settings.apiKey.trim()}`;
     }
 
     const response = await fetch(url, {
       method: "GET",
-      headers
+      headers,
+      cache: "no-store"
     });
 
     if (!response.ok) {
@@ -331,12 +297,17 @@ class ClashRoyaleAPI {
   }
 
   // 클랜 전체 정보 실시간 동기화 (기본 정보 초고속 조회 + 14000 상한 도달자 시즌 트로피 보강)
-  async fetchClanFullData(clanTag, onProgress = () => {}) {
-    // 1. 클랜 기본 정보(멤버, 직책, 지원량, 기본 트로피, 마지막 접속) 초고속 조회
+  async fetchClanFullData(clanTag, onPartialData = null) {
+    // 1. 클랜 기본 정보(멤버, 직책, 지원량, 기본 트로피, 마지막 접속) 초고속 조회 (0.3초)
     const clanData = await this.fetchClan(clanTag);
 
     if (!clanData || !clanData.memberList) {
       throw new Error("클랜원 목록을 불러오지 못했습니다.");
+    }
+
+    // 기본 데이터 수신 즉시 UI에 선반영하여 0.3초 만에 최신 정보를 보도록 콜백 호출
+    if (typeof onPartialData === "function") {
+      onPartialData(clanData);
     }
 
     const members = clanData.memberList;
@@ -345,12 +316,14 @@ class ClashRoyaleAPI {
     const cappedMembers = members.filter(m => (m.trophies || 0) >= 14000);
 
     if (cappedMembers.length > 0) {
-      const concurrency = 8;
+      const concurrency = 6;
       let currentIndex = 0;
 
       const worker = async () => {
         while (currentIndex < cappedMembers.length) {
-          const member = cappedMembers[currentIndex++];
+          const idx = currentIndex++;
+          const member = cappedMembers[idx];
+          if (!member || !member.tag) continue;
           try {
             const profile = await this.fetchPlayer(member.tag);
             const trueTrophies = this.extractSeasonalTrophies(profile);
@@ -370,42 +343,17 @@ class ClashRoyaleAPI {
       await Promise.all(workers);
     }
 
-    // 캐시에 저장
-    this.saveCache(clanTag, clanData);
-
     return clanData;
   }
 
-  // 캐시 저장
+  // 캐시 저장 (무조건 최신 정보 실시간 동기화를 위해 로컬 저장 비활성화)
   saveCache(clanTag, data) {
-    try {
-      const cacheObj = {
-        clanTag: this.normalizeTag(clanTag),
-        timestamp: Date.now(),
-        data
-      };
-      localStorage.setItem(this.storageKeyCache, JSON.stringify(cacheObj));
-    } catch (e) {
-      console.warn("캐시 저장 실패 (용량 초과 등):", e);
-    }
+    // 최신 정보 유지를 위해 캐시 저장 생략
   }
 
-  // 캐시 로드
+  // 캐시 로드 (무조건 최신 정보 실시간 동기화를 위해 항상 null 반환)
   loadCache(clanTag) {
-    try {
-      const raw = localStorage.getItem(this.storageKeyCache);
-      if (!raw) return null;
-      const cacheObj = JSON.parse(raw);
-      if (cacheObj.clanTag !== this.normalizeTag(clanTag)) return null;
-
-      const durationMs = (this.settings.cacheDurationMinutes || 15) * 60 * 1000;
-      if (Date.now() - cacheObj.timestamp > durationMs) {
-        return null; // 만료됨
-      }
-      return cacheObj.data;
-    } catch (e) {
-      return null;
-    }
+    return null;
   }
 }
 

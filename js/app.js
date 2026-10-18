@@ -27,28 +27,20 @@ class ClanManagerApp {
   init() {
     this.bindEvents();
 
-    // 구버전 캐시 무효화 (이전 캐시 강제 플러시)
-    const cacheVerKey = "cr_manager_cache_ver";
-    if (localStorage.getItem(cacheVerKey) !== "20261016_1508") {
+    // 이전 로컬스토리지 캐시 및 구버전 세팅 완전 정리 (캐시 잔류 원천 방지)
+    try {
       localStorage.removeItem("cr_manager_clan_cache_v1");
-      localStorage.setItem(cacheVerKey, "20261016_1508");
-    }
+      localStorage.removeItem("cr_manager_settings_v1");
+      localStorage.removeItem("cr_manager_cache_ver");
+    } catch (e) {}
 
     if (window.lucide) window.lucide.createIcons();
 
-    // 1. 초기 렌더링: 오버레이 뒤에 기본 골격 렌더링
-    if (window.DEMO_CLAN_DATA) {
-      this.renderClan(window.DEMO_CLAN_DATA);
-    }
+    // 접속 즉시 무조건 실시간 최신 정보 동기화 실행
+    this.autoSyncLive(false);
 
-    // 2. 접속 즉시 백그라운드 실시간 자동 동기화
-    this.autoSyncLive();
-
-    // 3. 만약 네트워크 지연 시 최대 7.5초 후 강제 모달 닫기 (안전장치)
-    setTimeout(() => this.hideInitialSyncModal(), 7500);
-
-    // 4. 3분 주기 자동 동기화 타이머
-    setInterval(() => this.autoSyncLive(), 1000 * 60 * 3);
+    // 1분 주기 자동 최신 동기화 타이머 (무조건 실시간 유지)
+    setInterval(() => this.autoSyncLive(false), 1000 * 60);
   }
 
   // 초기 동기화 완료 오버레이 팝업 닫기
@@ -91,7 +83,7 @@ class ClanManagerApp {
     }
   }
 
-  // 백그라운드 실시간 자동 동기화
+  // 무조건 실시간 최신 정보 동기화
   async autoSyncLive(isManual = false) {
     const dot = document.getElementById("sync-dot");
     const statusText = document.getElementById("sync-status-text");
@@ -104,7 +96,14 @@ class ClanManagerApp {
     const tag = window.crApi.settings.clanTag || "#G890J9JC";
 
     try {
-      const liveData = await window.crApi.fetchClanFullData(tag);
+      // 1. 0.3초 만에 기본 데이터가 도착하면 즉시 선반영 렌더링하고 모달을 닫음
+      const liveData = await window.crApi.fetchClanFullData(tag, (partialData) => {
+        this.renderClan(partialData);
+        this.lastSyncTime = new Date();
+        this.hideInitialSyncModal();
+        if (dot) dot.className = "status-dot green live-pulse";
+        if (statusText) statusText.textContent = "실시간";
+      });
 
       if (liveData && liveData.memberList) {
         this.renderClan(liveData);
@@ -114,9 +113,11 @@ class ClanManagerApp {
         if (statusText) statusText.textContent = "실시간";
       }
     } catch (err) {
-      console.warn("실시간 동기화 대기 중:", err.message);
-      if (dot) dot.className = "status-dot gray";
-      if (statusText) statusText.textContent = "캐시 사용";
+      console.warn("실시간 최신 동기화 오류:", err.message);
+      if (dot) dot.className = "status-dot rose";
+      if (statusText) statusText.textContent = "재시도 중";
+      // 통신 에러 발생 시 3초 후 자동 재시도
+      setTimeout(() => this.autoSyncLive(false), 3000);
     } finally {
       if (spinIcon) spinIcon.classList.remove("animate-spin");
       this.hideInitialSyncModal();

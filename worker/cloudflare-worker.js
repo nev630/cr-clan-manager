@@ -143,7 +143,9 @@ export default {
           "Access-Control-Allow-Origin": corsOrigin,
           "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key",
-          "Cache-Control": "public, max-age=60" // 1분 캐시
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          "Pragma": "no-cache",
+          "Expires": "0"
         }
       });
     } catch (err) {
