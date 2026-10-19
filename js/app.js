@@ -25,7 +25,6 @@ class ClanManagerApp {
     // Chart.js 인스턴스
     this.charts = {
       activity: null,
-      compareMembers: null,
       compareDonations: null
     };
 
@@ -649,12 +648,11 @@ class ClanManagerApp {
     container.innerHTML = cardsHtml;
   }
 
-  // B. Chart.js 인원수 및 지원량 비교 차트 렌더링 (상단 수치 표기 플러그인 탑재)
+  // B. Chart.js 주간 지원량 및 1인 평균 지원량 비교 차트 렌더링
   renderCompareCharts(clans) {
     if (!window.Chart) return;
 
     const labels = clans.map((c) => c.name);
-    const memberData = clans.map((c) => c.membersCount);
     const donationData = clans.map((c) => c.donationsWeekly);
     const avgDonationData = clans.map((c) => c.avgDonation);
 
@@ -666,13 +664,16 @@ class ClanManagerApp {
       c.isHome ? "#6366f1" : c.name.includes("Vandros") ? "#10b981" : "#f43f5e"
     );
 
-    // 차트 상단 수치(숫자) 직접 표시 플러그인 (Data Labels Plugin)
+    // 주간 총 지원량(막대) 상단에만 수치 표출 (1인 평균 지원량 꺾은선 라벨은 제외)
     const barDataLabelsPlugin = {
       id: "barDataLabels",
       afterDatasetsDraw(chart, args, options) {
         const { ctx } = chart;
         ctx.save();
         chart.data.datasets.forEach((dataset, i) => {
+          // 1인 평균 지원량 라인에는 숫자 표기 안 함 (막대 그래프에만 표기)
+          if (dataset.type === "line") return;
+
           const meta = chart.getDatasetMeta(i);
           if (meta.hidden) return;
 
@@ -680,87 +681,20 @@ class ClanManagerApp {
             const rawVal = dataset.data[index];
             if (rawVal === undefined || rawVal === null) return;
 
-            const isLine = dataset.type === "line";
-
-            ctx.font = isLine
-              ? "bold 11px Pretendard, -apple-system, sans-serif"
-              : "bold 12px Pretendard, -apple-system, sans-serif";
+            ctx.font = "bold 12px Pretendard, -apple-system, sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "bottom";
-
-            if (isLine) {
-              ctx.fillStyle = "#fbbf24";
-              const text = `${typeof rawVal === "number" ? rawVal.toLocaleString() : rawVal}개`;
-              ctx.fillText(text, element.x, element.y - 7);
-            } else {
-              ctx.fillStyle = "#ffffff";
-              const suffix = options?.suffix || "";
-              const text = `${typeof rawVal === "number" ? rawVal.toLocaleString() : rawVal}${suffix}`;
-              ctx.fillText(text, element.x, element.y - 5);
-            }
+            ctx.fillStyle = "#ffffff";
+            const suffix = options?.suffix || "";
+            const text = `${typeof rawVal === "number" ? rawVal.toLocaleString() : rawVal}${suffix}`;
+            ctx.fillText(text, element.x, element.y - 6);
           });
         });
         ctx.restore();
       }
     };
 
-    // 1. 인원수 바 차트 (정원 50명 기준 + 상단 수치 표기)
-    const memberCanvas = document.getElementById("chart-compare-members");
-    if (memberCanvas) {
-      if (this.charts.compareMembers) this.charts.compareMembers.destroy();
-      const ctx = memberCanvas.getContext("2d");
-      this.charts.compareMembers = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "클랜 인원수",
-            data: memberData,
-            backgroundColor: backgroundColors,
-            borderColor: borderColors,
-            borderWidth: 1.5,
-            borderRadius: 6
-          }]
-        },
-        plugins: [barDataLabelsPlugin],
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          layout: {
-            padding: { top: 18 }
-          },
-          scales: {
-            y: {
-              min: 0,
-              max: 58,
-              ticks: { color: "#94a3b8", font: { size: 10 }, stepSize: 10 },
-              grid: { color: "rgba(255,255,255,0.05)" },
-              title: { display: true, text: "인원수 (명)", color: "#94a3b8", font: { size: 10 } }
-            },
-            x: {
-              ticks: { color: "#f8fafc", font: { size: 11, weight: "bold" } },
-              grid: { display: false }
-            }
-          },
-          plugins: {
-            barDataLabels: { suffix: "명" },
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: "#171b26",
-              titleColor: "#f8fafc",
-              bodyColor: "#94a3b8",
-              borderColor: "rgba(255,255,255,0.1)",
-              borderWidth: 1,
-              callbacks: {
-                label: (ctx) => ` 현재 ${ctx.raw}명 / 50명 (여유: ${50 - ctx.raw}석)`
-              }
-            }
-          }
-        }
-      });
-    }
-
-    // 2. 주간 총 지원량 및 1인 평균 지원량 복합 차트 (+ 상단 수치 표기)
+    // 주간 총 지원량 및 1인 평균 지원량 복합 차트
     const donationCanvas = document.getElementById("chart-compare-donations");
     if (donationCanvas) {
       if (this.charts.compareDonations) this.charts.compareDonations.destroy();
@@ -863,11 +797,11 @@ class ClanManagerApp {
         let diffBadge = `<span class="text-slate-500 font-mono text-[11px]">기준</span>`;
         if (!isHome) {
           if (diffDonations > 0) {
-            diffBadge = `<span class="text-emerald-400 font-bold font-mono text-[11px]">+${diffDonations.toLocaleString()} (▲)</span>`;
+            diffBadge = `<span class="text-emerald-400 font-bold font-mono text-[11px]">+${diffDonations.toLocaleString()}개</span>`;
           } else if (diffDonations < 0) {
-            diffBadge = `<span class="text-rose-400 font-bold font-mono text-[11px]">${diffDonations.toLocaleString()} (▼)</span>`;
+            diffBadge = `<span class="text-rose-400 font-bold font-mono text-[11px]">${diffDonations.toLocaleString()}개</span>`;
           } else {
-            diffBadge = `<span class="text-slate-400 font-mono text-[11px]">동일</span>`;
+            diffBadge = `<span class="text-slate-400 font-mono text-[11px]">0개</span>`;
           }
         }
 
@@ -922,9 +856,11 @@ class ClanManagerApp {
         let diffBadge = "";
         if (!isHome) {
           if (diffDonations > 0) {
-            diffBadge = `<span class="text-emerald-400 text-[10px] font-bold">+${diffDonations.toLocaleString()}개 vs 우리 클랜</span>`;
+            diffBadge = `<span class="text-emerald-400 text-[11px] font-bold font-mono">+${diffDonations.toLocaleString()}개</span>`;
           } else if (diffDonations < 0) {
-            diffBadge = `<span class="text-rose-400 text-[10px] font-bold">${diffDonations.toLocaleString()}개 vs 우리 클랜</span>`;
+            diffBadge = `<span class="text-rose-400 text-[11px] font-bold font-mono">${diffDonations.toLocaleString()}개</span>`;
+          } else {
+            diffBadge = `<span class="text-slate-400 text-[11px] font-bold font-mono">0개</span>`;
           }
         }
 
