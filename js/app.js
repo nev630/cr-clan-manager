@@ -50,23 +50,59 @@ class ClanManagerApp {
 
     if (window.lucide) window.lucide.createIcons();
 
+    // 초기 로딩바 서서히 차오르는 프로그레시브 애니메이션 시작
+    this.initialProgress = 5;
+    this.updateInitialProgress(this.initialProgress, "서버 연결 및 데이터 동기화 중...");
+    this.progressInterval = setInterval(() => {
+      if (this.initialProgress < 88) {
+        const step = Math.max(2, Math.round((90 - this.initialProgress) / 4));
+        this.initialProgress += step;
+        let msg = "클랜원 지원량 및 접속 기록 동기화 중...";
+        if (this.initialProgress > 60) msg = "시즌 트로피 및 랭킹 데이터 집계 중...";
+        this.updateInitialProgress(this.initialProgress, msg);
+      }
+    }, 150);
+
     // 접속 즉시 무조건 실시간 최신 정보 동기화 실행
     this.autoSyncLive(false);
 
-    // 1분 주기 자동 최신 동기화 타이머
-    setInterval(() => this.autoSyncLive(false), 1000 * 60);
+    // 5분 주기 자동 최신 동기화 타이머 (처음 접속 시 1회 즉시 동기화 후 5분 주기 유지)
+    setInterval(() => this.autoSyncLive(false), 1000 * 60 * 5);
   }
 
-  // 초기 동기화 완료 오버레이 팝업 닫기
+  // 초기 동기화 프로그레스 바 수치 갱신 헬퍼
+  updateInitialProgress(percent, msg) {
+    const bar = document.getElementById("initial-sync-progress-bar");
+    const percentEl = document.getElementById("initial-sync-percent");
+    const msgEl = document.getElementById("initial-sync-status-msg");
+    const clamped = Math.min(100, Math.max(0, percent));
+    if (bar) bar.style.width = `${clamped}%`;
+    if (percentEl) percentEl.textContent = `${clamped}%`;
+    if (msgEl && msg) msgEl.textContent = msg;
+  }
+
+  // 초기 동기화 완료 오버레이 팝업 (100% 도달 후 부드럽게 닫기)
   hideInitialSyncModal() {
     const modal = document.getElementById("initial-sync-modal");
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
-    modal.style.opacity = "0";
-    modal.style.pointerEvents = "none";
+
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = null;
+    }
+
+    // 완전히 100%로 채우고 완료 메시지 표시
+    this.updateInitialProgress(100, "동기화 완료!");
+
+    // 100% 도달 확인을 위해 300ms 대기 후 부드럽게 페이드아웃
     setTimeout(() => {
-      modal.classList.add("hidden");
-    }, 350);
+      modal.style.opacity = "0";
+      modal.style.pointerEvents = "none";
+      setTimeout(() => {
+        modal.classList.add("hidden");
+      }, 400);
+    }, 300);
   }
 
   bindEvents() {
@@ -681,14 +717,11 @@ class ClanManagerApp {
 
           <!-- 우측: 인원수, 트로피, 지원량 & 격차 -->
           <div class="flex items-center gap-3 sm:gap-6 shrink-0">
-            <!-- 인원수 -->
+            <!-- 인원수 (만석, 1석 등 부가 텍스트 제거하고 깔끔하게 인원수만 표출) -->
             <div class="text-right">
               <div class="text-[10px] text-slate-500">인원수</div>
-              <div class="text-xs font-bold text-slate-200 font-mono mt-0.5">
+              <div class="text-xs sm:text-sm font-bold text-slate-200 font-mono mt-0.5">
                 ${c.membersCount}<span class="text-slate-500 font-normal">/50</span>
-                <span class="text-[10px] font-medium ml-1 ${vacant === 0 ? 'text-amber-400' : 'text-emerald-400'}">
-                  ${vacant === 0 ? '만석' : `${vacant}석`}
-                </span>
               </div>
             </div>
 
