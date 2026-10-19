@@ -180,7 +180,7 @@ class ClanManagerApp {
 
     if (dot) dot.className = "status-dot amber live-pulse";
     if (statusText) statusText.textContent = "동기화 중";
-    if (spinIcon) spinIcon.classList.add("animate-spin");
+    // spin animation disabled per user request
 
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
 
@@ -463,7 +463,7 @@ class ClanManagerApp {
   // 타 갤클 실시간 정보 병렬 동기화
   async syncCompareLive(isManual = false) {
     const icon = document.getElementById("compare-refresh-icon");
-    if (icon) icon.classList.add("animate-spin");
+    // spin animation disabled per user request
 
     try {
       if (window.crApi && typeof window.crApi.fetchMultipleClans === "function") {
