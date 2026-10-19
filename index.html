@@ -6,7 +6,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: https://api-assets.clashroyale.com; connect-src 'self' https://green-disk-88a6.marble593812345.workers.dev https://api.clashroyale.com https://proxy.royaleapi.dev https://corsproxy.io https://api.allorigins.win;" />
-  <title>Good Fellas | 클랜 관리 대시보드</title>
+  <title>Good Fellas | 클랜 관리 및 타 갤클 비교 대시보드</title>
   
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%2310b981%22/></svg>">
   
@@ -36,13 +36,13 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=20261018_1908" />
+  <link rel="stylesheet" href="css/style.css?v=20261019_1030" />
 </head>
 <body class="bg-[#090b10] text-slate-100 min-h-screen">
 
   <div class="max-w-5xl mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">
 
-    <!-- 1. 헤더: 클랜명 & 실시간 상태 -->
+    <!-- 1. 헤더: 클랜명 & 실시간 상태 & 빠른 비교 버튼 -->
     <header class="flex items-center justify-between pb-4 sm:pb-6 border-b border-white/[0.06]">
       <div>
         <div class="flex items-center gap-2">
@@ -54,8 +54,13 @@
         </p>
       </div>
 
-      <!-- 우측: 실시간 동기화 상태 인디케이터 -->
+      <!-- 우측: 실시간 동기화 상태 인디케이터 & '타 갤클과 비교' 바로가기 버튼 -->
       <div class="flex items-center gap-2">
+        <button id="btn-quick-compare" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 transition shadow-sm" onclick="window.app.switchMainTab('compare')">
+          <i data-lucide="scale" class="w-3.5 h-3.5"></i>
+          <span>타 갤클과 비교</span>
+        </button>
+
         <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-[11px] sm:text-xs">
           <span class="status-dot green live-pulse" id="sync-dot"></span>
           <span class="text-slate-300 font-medium" id="sync-status-text">실시간</span>
@@ -67,133 +72,278 @@
       </div>
     </header>
 
-    <!-- 2. 핵심 3대 지표 스트립 -->
-    <section class="grid grid-cols-3 gap-2 sm:gap-3 mt-4 sm:mt-6">
-      <div class="surface-card p-3 sm:p-4">
-        <div class="text-[10px] sm:text-[11px] font-medium text-slate-400 uppercase tracking-wider">전체 클랜원</div>
-        <div class="text-lg sm:text-2xl font-bold text-white mt-0.5 sm:mt-1" id="stat-total-members">- / 50</div>
-        <div class="text-[10px] sm:text-[11px] text-emerald-400 mt-0.5 truncate" id="stat-member-vacant">실시간 집계 중...</div>
+    <!-- 1-B. 상단 메인 탭 네비게이션 -->
+    <nav class="flex items-center justify-between gap-2 mt-4 pb-2 border-b border-white/[0.06]">
+      <div class="flex items-center gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
+        <button id="tab-btn-dashboard" class="main-nav-btn active" onclick="window.app.switchMainTab('dashboard')">
+          <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+          <span>내 클랜 대시보드</span>
+        </button>
+        <button id="tab-btn-compare" class="main-nav-btn" onclick="window.app.switchMainTab('compare')">
+          <i data-lucide="scale" class="w-3.5 h-3.5"></i>
+          <span>타 갤클과 비교</span>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 ml-0.5">NEW</span>
+        </button>
       </div>
 
-      <div class="surface-card p-3 sm:p-4">
-        <div class="text-[10px] sm:text-[11px] font-medium text-slate-400 uppercase tracking-wider">주간 총 지원량</div>
-        <div class="text-lg sm:text-2xl font-bold text-amber-400 mt-0.5 sm:mt-1" id="stat-total-donations">-</div>
-        <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate" id="stat-avg-donations">1인 평균 계산 중...</div>
+      <div class="text-[11px] text-slate-400 hidden sm:flex items-center gap-1.5" id="tab-context-hint">
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        <span>Good Fellas 단독 뷰</span>
       </div>
+    </nav>
 
-      <div class="surface-card p-3 sm:p-4 cursor-pointer hover:border-rose-500/30 transition group" onclick="window.app.setQuickFilter('dormant')">
-        <div class="text-[10px] sm:text-[11px] font-medium text-slate-400 group-hover:text-rose-400 transition uppercase tracking-wider">3일+ 미접속</div>
-        <div class="text-lg sm:text-2xl font-bold text-rose-400 mt-0.5 sm:mt-1" id="stat-dormant-count">-</div>
-        <div class="text-[10px] sm:text-[11px] text-slate-500 group-hover:text-rose-400/80 transition mt-0.5 truncate underline">대상자 보기</div>
-      </div>
-    </section>
+    <!-- ========================================== -->
+    <!-- VIEW A: 내 클랜 대시보드 (Good Fellas 전용) -->
+    <!-- ========================================== -->
+    <div id="view-dashboard" class="tab-view block space-y-4 sm:space-y-6">
 
-    <!-- 3. 시각화 섹션: 올림픽 시상대 단상 (Top 7) & 접속 분포 도넛 -->
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 sm:mt-6">
-      <!-- 시상대 단상: 주간 지원 기여도 Top 7 -->
-      <div class="md:col-span-2 surface-card p-3.5 sm:p-4 flex flex-col justify-between">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-semibold text-slate-200">주간 지원 기여도 Top 7</span>
-            <span class="text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">시상대</span>
+      <!-- 2. 핵심 3대 지표 스트립 -->
+      <section class="grid grid-cols-3 gap-2 sm:gap-3 mt-4 sm:mt-6">
+        <div class="surface-card p-3 sm:p-4">
+          <div class="text-[10px] sm:text-[11px] font-medium text-slate-400 uppercase tracking-wider">전체 클랜원</div>
+          <div class="text-lg sm:text-2xl font-bold text-white mt-0.5 sm:mt-1" id="stat-total-members">- / 50</div>
+          <div class="text-[10px] sm:text-[11px] text-emerald-400 mt-0.5 truncate" id="stat-member-vacant">실시간 집계 중...</div>
+        </div>
+
+        <div class="surface-card p-3 sm:p-4">
+          <div class="text-[10px] sm:text-[11px] font-medium text-slate-400 uppercase tracking-wider">주간 총 지원량</div>
+          <div class="text-lg sm:text-2xl font-bold text-amber-400 mt-0.5 sm:mt-1" id="stat-total-donations">-</div>
+          <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate" id="stat-avg-donations">1인 평균 계산 중...</div>
+        </div>
+
+        <div class="surface-card p-3 sm:p-4 cursor-pointer hover:border-rose-500/30 transition group" onclick="window.app.setQuickFilter('dormant')">
+          <div class="text-[10px] sm:text-[11px] font-medium text-slate-400 group-hover:text-rose-400 transition uppercase tracking-wider">3일+ 미접속</div>
+          <div class="text-lg sm:text-2xl font-bold text-rose-400 mt-0.5 sm:mt-1" id="stat-dormant-count">-</div>
+          <div class="text-[10px] sm:text-[11px] text-slate-500 group-hover:text-rose-400/80 transition mt-0.5 truncate underline">대상자 보기</div>
+        </div>
+      </section>
+
+      <!-- 3. 시각화 섹션: 올림픽 시상대 단상 (Top 7) & 접속 분포 도넛 -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <!-- 시상대 단상: 주간 지원 기여도 Top 7 -->
+        <div class="md:col-span-2 surface-card p-3.5 sm:p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-semibold text-slate-200">주간 지원 기여도 Top 7</span>
+              <span class="text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">시상대</span>
+            </div>
+            <span class="text-[10px] text-slate-500">실시간 랭킹</span>
           </div>
-          <span class="text-[10px] text-slate-500">실시간 랭킹</span>
+
+          <!-- 올림픽 3인 포디움 (단상) - 실시간 렌더링 -->
+          <div id="podium-container" class="flex items-end justify-center gap-2 sm:gap-4 pt-4 pb-0 px-1 min-h-[140px]">
+            <div class="text-center py-10 text-xs text-slate-500 animate-pulse">실시간 단상 랭킹 집계 중...</div>
+          </div>
+
+          <!-- 4위 ~ 7위 러너 리스트 -->
+          <div id="podium-runners-container" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-3 mt-3 border-t border-white/[0.04]">
+          </div>
         </div>
 
-        <!-- 올림픽 3인 포디움 (단상) - 실시간 렌더링 -->
-        <div id="podium-container" class="flex items-end justify-center gap-2 sm:gap-4 pt-4 pb-0 px-1 min-h-[140px]">
-          <div class="text-center py-10 text-xs text-slate-500 animate-pulse">실시간 단상 랭킹 집계 중...</div>
+        <!-- 차트 2: 접속 상태 분포 도넛 -->
+        <div class="surface-card p-3.5 sm:p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-300">클랜원 접속 분포</span>
+            <span class="text-[10px] text-slate-500">활동성 진단</span>
+          </div>
+          <div class="chart-container-donut">
+            <canvas id="chart-activity"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. 컨트롤 바: 필터 칩 (3개 칩) & 검색 & 정렬 -->
+      <section class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <!-- 좌측: 필터 칩 -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <button class="filter-chip active text-xs" data-filter="all" onclick="window.app.setFilterTab('all', this)">
+            전체 <span class="text-slate-400 ml-1 font-mono text-[11px]" id="chip-count-all">47</span>
+          </button>
+          <button class="filter-chip text-xs" data-filter="dormant" onclick="window.app.setFilterTab('dormant', this)">
+            미접속 3일+ <span class="text-rose-400 ml-1 font-mono text-[11px]" id="chip-count-dormant">1</span>
+          </button>
+          <button class="filter-chip text-xs" data-filter="low-donations" onclick="window.app.setFilterTab('low-donations', this)">
+            지원 저조 (50 미만) <span class="text-amber-400 ml-1 font-mono text-[11px]" id="chip-count-low">0</span>
+          </button>
         </div>
 
-        <!-- 4위 ~ 7위 러너 리스트 -->
-        <div id="podium-runners-container" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-3 mt-3 border-t border-white/[0.04]">
+        <!-- 우측: 검색창 & 정렬 선택 -->
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1 sm:w-52">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+            <input type="text" id="search-input" placeholder="클랜원 검색..."
+              class="w-full pl-8 pr-3 py-1.5 bg-[#0f121a] border border-white/[0.06] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition" />
+          </div>
+
+          <select id="sort-select" class="bg-[#0f121a] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer">
+            <option value="donations-desc">지원량 많은 순</option>
+            <option value="donations-asc">지원량 적은 순</option>
+            <option value="lastSeen-desc">접속 최근 순</option>
+            <option value="lastSeen-asc">접속 오래된 순</option>
+            <option value="trophies-desc">트로피 높은 순</option>
+            <option value="trophies-asc">트로피 낮은 순</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- 5. 클랜원 목록: PC 테이블 뷰 + 모바일 카드 리스트 뷰 -->
+      <div class="surface-card mt-3 overflow-hidden">
+        <!-- A. 데스크톱 테이블 뷰 (sm 이상 표시) -->
+        <div class="hidden sm:block overflow-x-auto">
+          <table class="w-full text-left data-table">
+            <thead>
+              <tr>
+                <th class="w-12 text-center">#</th>
+                <th class="cursor-pointer hover:text-white" onclick="window.app.toggleSort('trophies')" title="클릭 시 트로피 순 정렬">클랜원 (트로피 ↕)</th>
+                <th class="text-center cursor-pointer hover:text-white" onclick="window.app.toggleSort('lastSeen')">
+                  마지막 접속
+                </th>
+                <th class="text-right cursor-pointer hover:text-white" onclick="window.app.toggleSort('donations')">
+                  주간 지원량
+                </th>
+              </tr>
+            </thead>
+            <tbody id="member-table-body">
+              <!-- JavaScript 렌더링 -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- B. 모바일 전용 고밀도 카드 리스트 (sm 미만 표시) -->
+        <div class="block sm:hidden divide-y divide-white/[0.04]" id="member-mobile-list">
+          <!-- JavaScript 렌더링 -->
+        </div>
+
+        <!-- 빈 검색 결과 안내 -->
+        <div id="empty-state" class="hidden py-14 text-center text-slate-500">
+          <p class="text-xs font-medium">일치하는 클랜원이 없습니다.</p>
         </div>
       </div>
 
-      <!-- 차트 2: 접속 상태 분포 도넛 -->
-      <div class="surface-card p-3.5 sm:p-4">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-semibold text-slate-300">클랜원 접속 분포</span>
-          <span class="text-[10px] text-slate-500">활동성 진단</span>
-        </div>
-        <div class="chart-container-donut">
-          <canvas id="chart-activity"></canvas>
-        </div>
-      </div>
-    </section>
+    </div>
 
-    <!-- 4. 컨트롤 바: 필터 칩 (3개 칩) & 검색 & 정렬 -->
-    <section class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mt-6">
-      <!-- 좌측: 필터 칩 -->
-      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-        <button class="filter-chip active text-xs" data-filter="all" onclick="window.app.setFilterTab('all', this)">
-          전체 <span class="text-slate-400 ml-1 font-mono text-[11px]" id="chip-count-all">47</span>
-        </button>
-        <button class="filter-chip text-xs" data-filter="dormant" onclick="window.app.setFilterTab('dormant', this)">
-          미접속 3일+ <span class="text-rose-400 ml-1 font-mono text-[11px]" id="chip-count-dormant">1</span>
-        </button>
-        <button class="filter-chip text-xs" data-filter="low-donations" onclick="window.app.setFilterTab('low-donations', this)">
-          지원 저조 (50 미만) <span class="text-amber-400 ml-1 font-mono text-[11px]" id="chip-count-low">0</span>
-        </button>
-      </div>
+    <!-- ========================================== -->
+    <!-- VIEW B: 타 갤클과 비교 (비교 분석 전용 탭) -->
+    <!-- ========================================== -->
+    <div id="view-compare" class="tab-view hidden space-y-4 sm:space-y-6">
 
-      <!-- 우측: 검색창 & 정렬 선택 -->
-      <div class="flex items-center gap-2">
-        <div class="relative flex-1 sm:w-52">
-          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
-          <input type="text" id="search-input" placeholder="클랜원 검색..."
-            class="w-full pl-8 pr-3 py-1.5 bg-[#0f121a] border border-white/[0.06] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition" />
+      <!-- 1. 비교 상단 서브헤더 및 컨트롤 -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">갤클 3자 비교</span>
+            <h2 class="text-base sm:text-lg font-bold text-white tracking-tight">디시 갤러리 클랜 활동성 및 규모 비교</h2>
+          </div>
+          <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+            <span class="text-indigo-400 font-semibold">Good Fellas</span> vs <span class="text-emerald-400 font-semibold">Vandros</span> vs <span class="text-rose-400 font-semibold">딜넣는 도둑</span> 인원수 및 주간 지원량 실시간 분석
+          </p>
         </div>
 
-        <select id="sort-select" class="bg-[#0f121a] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer">
-          <option value="donations-desc">지원량 많은 순</option>
-          <option value="donations-asc">지원량 적은 순</option>
-          <option value="lastSeen-desc">접속 최근 순</option>
-          <option value="lastSeen-asc">접속 오래된 순</option>
-          <option value="trophies-desc">트로피 높은 순</option>
-          <option value="trophies-asc">트로피 낮은 순</option>
-        </select>
-      </div>
-    </section>
-
-    <!-- 5. 클랜원 목록: PC 테이블 뷰 + 모바일 카드 리스트 뷰 -->
-    <div class="surface-card mt-3 overflow-hidden">
-      
-      <!-- A. 데스크톱 테이블 뷰 (sm 이상 표시) -->
-      <div class="hidden sm:block overflow-x-auto">
-        <table class="w-full text-left data-table">
-          <thead>
-            <tr>
-              <th class="w-12 text-center">#</th>
-              <th class="cursor-pointer hover:text-white" onclick="window.app.toggleSort('trophies')" title="클릭 시 트로피 순 정렬">클랜원 (트로피 ↕)</th>
-              <th class="text-center cursor-pointer hover:text-white" onclick="window.app.toggleSort('lastSeen')">
-                마지막 접속
-              </th>
-              <th class="text-right cursor-pointer hover:text-white" onclick="window.app.toggleSort('donations')">
-                주간 지원량
-              </th>
-            </tr>
-          </thead>
-          <tbody id="member-table-body">
-            <!-- JavaScript 렌더링 -->
-          </tbody>
-        </table>
+        <div class="flex items-center gap-2 self-start sm:self-auto">
+          <button id="btn-refresh-compare" class="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/[0.08] text-xs font-medium flex items-center gap-1.5 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="compare-refresh-icon"></i>
+            <span>실시간 갱신</span>
+          </button>
+          <button class="px-2.5 py-1.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 border border-white/[0.06] text-xs font-medium transition" onclick="window.app.switchMainTab('dashboard')">
+            ← 내 클랜
+          </button>
+        </div>
       </div>
 
-      <!-- B. 모바일 전용 고밀도 카드 리스트 (sm 미만 표시) -->
-      <div class="block sm:hidden divide-y divide-white/[0.04]" id="member-mobile-list">
-        <!-- JavaScript 렌더링 -->
-      </div>
+      <!-- 2. 핵심 3대 갤클 비교 요약 카드 그리드 (인원수 & 주간 지원량 직관 비교) -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4" id="compare-cards-container">
+        <!-- JavaScript 동적 렌더링 -->
+      </section>
 
-      <!-- 빈 검색 결과 안내 -->
-      <div id="empty-state" class="hidden py-14 text-center text-slate-500">
-        <p class="text-xs font-medium">일치하는 클랜원이 없습니다.</p>
-      </div>
+      <!-- 3. 시각화 비교 섹션: Chart.js 차트 (인원수 바 차트 + 주간 지원량 바 차트) -->
+      <section class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        <!-- 차트 A: 인원수 현황 비교 (정원 50명 기준) -->
+        <div class="surface-card p-3.5 sm:p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-semibold text-slate-200">클랜 인원수 비교</span>
+              <span class="text-[10px] text-slate-400 font-mono">(정원 50명 기준)</span>
+            </div>
+            <span class="text-[10px] text-emerald-400 font-medium">여유 슬롯 진단</span>
+          </div>
+          <div class="chart-container-compare">
+            <canvas id="chart-compare-members"></canvas>
+          </div>
+        </div>
+
+        <!-- 차트 B: 주간 총 지원량 및 1인당 평균 지원량 비교 -->
+        <div class="surface-card p-3.5 sm:p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-semibold text-slate-200">주간 총 지원량 및 1인 평균 지원량</span>
+              <span class="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">기여도</span>
+            </div>
+            <span class="text-[10px] text-slate-400">단위: 개</span>
+          </div>
+          <div class="chart-container-compare">
+            <canvas id="chart-compare-donations"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. 상세 비교 매트릭스 표 (PC 테이블 & 모바일 카드 뷰) -->
+      <section class="surface-card overflow-hidden">
+        <div class="p-3.5 sm:p-4 border-b border-white/[0.04] flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="table-properties" class="w-4 h-4 text-indigo-400"></i>
+            <h3 class="text-xs sm:text-sm font-semibold text-white">클랜 지표 종합 비교 매트릭스</h3>
+          </div>
+          <span class="text-[11px] text-slate-400">Good Fellas 기준 격차 비교</span>
+        </div>
+
+        <!-- PC 데스크톱 테이블 뷰 (sm 이상) -->
+        <div class="hidden sm:block overflow-x-auto">
+          <table class="w-full text-left data-table">
+            <thead>
+              <tr>
+                <th class="w-12 text-center">순위</th>
+                <th>클랜명 (태그)</th>
+                <th class="text-center">인원수 (정원 대비)</th>
+                <th class="text-right">주간 총 지원량</th>
+                <th class="text-right">1인 평균 지원량</th>
+                <th class="text-right">클랜 점수(트로피)</th>
+                <th class="text-right">가입 조건</th>
+              </tr>
+            </thead>
+            <tbody id="compare-table-body">
+              <!-- JavaScript 동적 렌더링 -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 모바일 전용 매트릭스 리스트 (sm 미만) -->
+        <div class="block sm:hidden divide-y divide-white/[0.04]" id="compare-mobile-cards">
+          <!-- JavaScript 동적 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 5. 타 갤러리 클랜 태그 간편 추가 / 커스텀 비교 섹션 -->
+      <section class="surface-card p-3.5 sm:p-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-semibold text-slate-200">다른 갤클 추가 비교</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">클래시 로얄 클랜 태그를 입력해 비교 대상에 추가할 수 있습니다.</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="input-custom-clan-tag" placeholder="예: #JYQRP2C2"
+              class="w-36 sm:w-44 px-2.5 py-1.5 bg-[#090b10] border border-white/[0.08] rounded-lg text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 uppercase" />
+            <button id="btn-add-compare-clan" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition shrink-0">
+              클랜 추가
+            </button>
+          </div>
+        </div>
+      </section>
+
     </div>
 
     <!-- 6. 하단 미니멀 푸터 -->
     <footer class="mt-6 pt-4 border-t border-white/[0.04] flex items-center justify-between text-[11px] text-slate-500">
-      <div>Good Fellas Clan Dashboard</div>
+      <div>Good Fellas Clan Dashboard & Gallery Clan Comparison</div>
       <div>Real-time sync</div>
     </footer>
 
@@ -220,7 +370,8 @@
   </div>
 
   <!-- Scripts with Cache Busting -->
-  <script src="js/api.js?v=20261018_1908"></script>
-  <script src="js/app.js?v=20261018_1908"></script>
+  <script src="js/demo-data.js?v=20261019_1030"></script>
+  <script src="js/api.js?v=20261019_1030"></script>
+  <script src="js/app.js?v=20261019_1030"></script>
 </body>
 </html>
