@@ -36,53 +36,53 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=20261019_1030" />
+  <link rel="stylesheet" href="css/style.css?v=20261019_1100" />
 </head>
 <body class="bg-[#090b10] text-slate-100 min-h-screen">
 
   <div class="max-w-5xl mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">
 
-    <!-- 1. 헤더: 클랜명 & 실시간 상태 & 빠른 비교 버튼 -->
-    <header class="flex items-center justify-between pb-4 sm:pb-6 border-b border-white/[0.06]">
-      <div>
-        <div class="flex items-center gap-2">
-          <h1 class="text-lg sm:text-2xl font-bold tracking-tight text-white" id="clan-name">Good Fellas</h1>
-          <span class="text-[11px] sm:text-xs font-mono text-slate-400 bg-white/[0.04] px-1.5 sm:px-2 py-0.5 rounded border border-white/[0.06]" id="clan-tag">#G890J9JC</span>
+    <!-- 1. 헤더: 클랜명 & 실시간 상태 (모바일 줄바꿈 방지 및 비율 최적화) -->
+    <header class="flex items-center justify-between pb-3 sm:pb-6 border-b border-white/[0.06] gap-2">
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5 flex-nowrap">
+          <h1 class="text-base sm:text-2xl font-bold tracking-tight text-white whitespace-nowrap" id="clan-name">Good Fellas</h1>
+          <span class="text-[10px] sm:text-xs font-mono text-slate-400 bg-white/[0.04] px-1.5 sm:px-2 py-0.5 rounded border border-white/[0.06] whitespace-nowrap" id="clan-tag">#G890J9JC</span>
         </div>
-        <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5" id="clan-desc">
+        <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate max-w-[190px] sm:max-w-none" id="clan-desc">
           클랜원 주간 지원량 · 마지막 접속 실시간 모니터링
         </p>
       </div>
 
-      <!-- 우측: 실시간 동기화 상태 인디케이터 & '타 갤클과 비교' 바로가기 버튼 -->
-      <div class="flex items-center gap-2">
-        <button id="btn-quick-compare" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 transition shadow-sm" onclick="window.app.switchMainTab('compare')">
+      <!-- 우측: 실시간 동기화 상태 인디케이터 (데스크톱에선 빠른 비교 버튼 노출, 모바일에선 하단 50:50 탭에 집중) -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <button id="btn-quick-compare" class="hidden sm:inline-flex px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] sm:text-xs font-semibold items-center gap-1.5 transition shadow-sm whitespace-nowrap" onclick="window.app.switchMainTab('compare')">
           <i data-lucide="scale" class="w-3.5 h-3.5"></i>
           <span>타 갤클과 비교</span>
         </button>
 
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-[11px] sm:text-xs">
+        <div class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-[10px] sm:text-xs whitespace-nowrap shrink-0">
           <span class="status-dot green live-pulse" id="sync-dot"></span>
-          <span class="text-slate-300 font-medium" id="sync-status-text">실시간</span>
+          <span class="text-slate-300 font-medium whitespace-nowrap" id="sync-status-text">실시간</span>
         </div>
         
-        <button id="btn-manual-sync" class="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition" title="수동 갱신">
+        <button id="btn-manual-sync" class="p-1 sm:p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition shrink-0" title="수동 갱신">
           <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="sync-spin-icon"></i>
         </button>
       </div>
     </header>
 
-    <!-- 1-B. 상단 메인 탭 네비게이션 -->
-    <nav class="flex items-center justify-between gap-2 mt-4 pb-2 border-b border-white/[0.06]">
-      <div class="flex items-center gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
-        <button id="tab-btn-dashboard" class="main-nav-btn active" onclick="window.app.switchMainTab('dashboard')">
+    <!-- 1-B. 상단 메인 탭 네비게이션: 모바일 균등 50:50 2열 그리드 배치 -->
+    <nav class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-3 sm:mt-4 pb-2 border-b border-white/[0.06]">
+      <div class="grid grid-cols-2 sm:flex sm:items-center gap-1 sm:gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06] w-full sm:w-auto">
+        <button id="tab-btn-dashboard" class="main-nav-btn active justify-center whitespace-nowrap py-2 sm:py-1.5 text-center text-xs sm:text-sm" onclick="window.app.switchMainTab('dashboard')">
           <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
           <span>내 클랜 대시보드</span>
         </button>
-        <button id="tab-btn-compare" class="main-nav-btn" onclick="window.app.switchMainTab('compare')">
+        <button id="tab-btn-compare" class="main-nav-btn justify-center whitespace-nowrap py-2 sm:py-1.5 text-center text-xs sm:text-sm" onclick="window.app.switchMainTab('compare')">
           <i data-lucide="scale" class="w-3.5 h-3.5"></i>
           <span>타 갤클과 비교</span>
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 ml-0.5">NEW</span>
+          <span class="inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] sm:text-[10px] font-bold bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 ml-0.5">NEW</span>
         </button>
       </div>
 
@@ -370,8 +370,8 @@
   </div>
 
   <!-- Scripts with Cache Busting -->
-  <script src="js/demo-data.js?v=20261019_1030"></script>
-  <script src="js/api.js?v=20261019_1030"></script>
-  <script src="js/app.js?v=20261019_1030"></script>
+  <script src="js/demo-data.js?v=20261019_1100"></script>
+  <script src="js/api.js?v=20261019_1100"></script>
+  <script src="js/app.js?v=20261019_1100"></script>
 </body>
 </html>
