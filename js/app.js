@@ -648,13 +648,12 @@ class ClanManagerApp {
     container.innerHTML = cardsHtml;
   }
 
-  // B. Chart.js 주간 지원량 및 1인 평균 지원량 비교 차트 렌더링
+  // B. Chart.js 주간 지원량 비교 차트 렌더링 (순수 막대 + 상단 지원량 수치)
   renderCompareCharts(clans) {
     if (!window.Chart) return;
 
     const labels = clans.map((c) => c.name);
     const donationData = clans.map((c) => c.donationsWeekly);
-    const avgDonationData = clans.map((c) => c.avgDonation);
 
     // 차트 컬러 팔레트 (Good Fellas: Indigo, Vandros: Emerald, 딜넣는 도둑: Rose)
     const backgroundColors = clans.map((c) =>
@@ -664,16 +663,13 @@ class ClanManagerApp {
       c.isHome ? "#6366f1" : c.name.includes("Vandros") ? "#10b981" : "#f43f5e"
     );
 
-    // 주간 총 지원량(막대) 상단에만 수치 표출 (1인 평균 지원량 꺾은선 라벨은 제외)
+    // 주간 총 지원량(막대) 상단에만 수치 표출
     const barDataLabelsPlugin = {
       id: "barDataLabels",
       afterDatasetsDraw(chart, args, options) {
         const { ctx } = chart;
         ctx.save();
         chart.data.datasets.forEach((dataset, i) => {
-          // 1인 평균 지원량 라인에는 숫자 표기 안 함 (막대 그래프에만 표기)
-          if (dataset.type === "line") return;
-
           const meta = chart.getDatasetMeta(i);
           if (meta.hidden) return;
 
@@ -694,7 +690,7 @@ class ClanManagerApp {
       }
     };
 
-    // 주간 총 지원량 및 1인 평균 지원량 복합 차트
+    // 주간 총 지원량 단독 바 차트
     const donationCanvas = document.getElementById("chart-compare-donations");
     if (donationCanvas) {
       if (this.charts.compareDonations) this.charts.compareDonations.destroy();
@@ -705,26 +701,12 @@ class ClanManagerApp {
           labels,
           datasets: [
             {
-              label: "주간 총 지원량 (개)",
+              label: "주간 총 지원량",
               data: donationData,
               backgroundColor: backgroundColors,
               borderColor: borderColors,
               borderWidth: 1.5,
-              borderRadius: 6,
-              yAxisID: "y"
-            },
-            {
-              label: "1인 평균 지원량 (개)",
-              data: avgDonationData,
-              type: "line",
-              borderColor: "#fbbf24",
-              backgroundColor: "#fbbf24",
-              pointBackgroundColor: "#fbbf24",
-              pointBorderColor: "#ffffff",
-              pointRadius: 5,
-              pointHoverRadius: 7,
-              borderWidth: 2,
-              yAxisID: "y1"
+              borderRadius: 6
             }
           ]
         },
@@ -733,22 +715,15 @@ class ClanManagerApp {
           responsive: true,
           maintainAspectRatio: false,
           layout: {
-            padding: { top: 22 }
+            padding: { top: 24 }
           },
           scales: {
             y: {
-              position: "left",
+              beginAtZero: true,
               ticks: { color: "#94a3b8", font: { size: 10 } },
               grid: { color: "rgba(255,255,255,0.05)" },
               title: { display: true, text: "주간 총 지원량 (개)", color: "#94a3b8", font: { size: 10 } },
               grace: "18%"
-            },
-            y1: {
-              position: "right",
-              ticks: { color: "#fbbf24", font: { size: 10 } },
-              grid: { drawOnChartArea: false },
-              title: { display: true, text: "1인 평균 (개)", color: "#fbbf24", font: { size: 10 } },
-              grace: "25%"
             },
             x: {
               ticks: { color: "#f8fafc", font: { size: 11, weight: "bold" } },
@@ -757,16 +732,16 @@ class ClanManagerApp {
           },
           plugins: {
             barDataLabels: { suffix: "개" },
-            legend: {
-              position: "top",
-              labels: { color: "#94a3b8", boxWidth: 10, font: { size: 10 } }
-            },
+            legend: { display: false },
             tooltip: {
               backgroundColor: "#171b26",
               titleColor: "#f8fafc",
               bodyColor: "#94a3b8",
               borderColor: "rgba(255,255,255,0.1)",
-              borderWidth: 1
+              borderWidth: 1,
+              callbacks: {
+                label: (ctx) => ` 주간 총 지원량: ${ctx.raw.toLocaleString()}개`
+              }
             }
           }
         }
