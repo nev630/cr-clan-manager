@@ -347,6 +347,54 @@ class ClashRoyaleAPI {
   loadCache(clanTag) {
     return null;
   }
+
+  // 갤러리 클랜(갤클) 프리셋 데이터 반환
+  getGalleryClansPreset() {
+    return Array.isArray(window.GALLERY_CLANS_DATA) ? JSON.parse(JSON.stringify(window.GALLERY_CLANS_DATA)) : [];
+  }
+
+  // 복수 클랜 정보 실시간 병렬 조회 (타 갤클 비교용)
+  async fetchMultipleClans(clanTags = ["#G890J9JC", "#JYQRP2C2", "#Q0U22YGQ"]) {
+    const presets = this.getGalleryClansPreset();
+    const presetMap = new Map();
+    presets.forEach(p => {
+      presetMap.set(this.normalizeTag(p.tag), p);
+    });
+
+    const promises = clanTags.map(async (rawTag) => {
+      const tag = this.normalizeTag(rawTag);
+      const fallback = presetMap.get(tag) || {
+        tag,
+        name: tag,
+        members: 0,
+        donationsPerWeek: 0,
+        clanScore: 0,
+        clanWarTrophies: 0,
+        requiredTrophies: 0,
+        description: "",
+        isHome: tag === "#G890J9JC"
+      };
+
+      try {
+        const clan = await this.fetchClan(tag);
+        if (clan && clan.name) {
+          return {
+            ...fallback,
+            ...clan,
+            tag: clan.tag || tag,
+            isHome: tag === "#G890J9JC",
+            _isLive: true
+          };
+        }
+        return { ...fallback, _isLive: false };
+      } catch (err) {
+        console.warn(`클랜 ${tag} 실시간 조회 실패, 프리셋 적용:`, err.message);
+        return { ...fallback, _isLive: false, _fetchError: err.message };
+      }
+    });
+
+    return await Promise.all(promises);
+  }
 }
 
 // 전역 인스턴스 생성

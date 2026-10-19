@@ -671,3 +671,49 @@ window.DEMO_CLAN_DATA = {
     }
   ]
 };
+
+
+/**
+ * 디시인사이드 클래시 로얄 갤러리 클랜(갤클) 비교 프리셋 데이터
+ * - Good Fellas (#G890J9JC): 기준 클랜 (내 클랜)
+ * - Vandros (#JYQRP2C2): 인원수 50/50, 주간 지원량 13,785개, 트로피 135,336
+ * - 딜넣는 도둑 (#Q0U22YGQ): 인원수 46/50, 주간 지원량 10,308개, 트로피 137,440
+ */
+window.GALLERY_CLANS_DATA = [
+  {
+    tag: "#G890J9JC",
+    name: "Good Fellas",
+    type: "inviteOnly",
+    description: "👑 좋은 친구들 갤러리 - Good Fellas 클랜 실시간 현황",
+    clanScore: 81500,
+    clanWarTrophies: 3120,
+    requiredTrophies: 0,
+    members: 47,
+    donationsPerWeek: 7600,
+    isHome: true
+  },
+  {
+    tag: "#JYQRP2C2",
+    name: "Vandros",
+    type: "inviteOnly",
+    description: "갤세자리들다어디로흩어졋노?",
+    clanScore: 135336,
+    clanWarTrophies: 240,
+    requiredTrophies: 10000,
+    members: 50,
+    donationsPerWeek: 13785,
+    isHome: false
+  },
+  {
+    tag: "#Q0U22YGQ",
+    name: "딜넣는 도둑",
+    type: "inviteOnly",
+    description: "나댈 시 사형",
+    clanScore: 137440,
+    clanWarTrophies: 1564,
+    requiredTrophies: 14000,
+    members: 46,
+    donationsPerWeek: 10308,
+    isHome: false
+  }
+];

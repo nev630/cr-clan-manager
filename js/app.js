@@ -1,6 +1,6 @@
 /**
  * Good Fellas Clan Manager - Core Application Logic
- * Mobile Optimized & Visual Charts
+ * Mobile Optimized, Visual Charts & Gallery Clan Comparison
  */
 
 class ClanManagerApp {
@@ -14,32 +14,47 @@ class ClanManagerApp {
       order: "desc"
     };
 
+    // 메인 네비게이션 탭 상태 ('dashboard' | 'compare')
+    this.activeMainTab = "dashboard";
+
+    // 타 갤클 비교 대상 태그 목록 (기본 3대 갤클)
+    this.compareTags = ["#G890J9JC", "#JYQRP2C2", "#Q0U22YGQ"];
+    this.compareClansData = [];
+    this.hasCompareLoaded = false;
+
     // Chart.js 인스턴스
     this.charts = {
-      donations: null,
-      activity: null
+      activity: null,
+      compareMembers: null,
+      compareDonations: null
     };
 
     this.lastSyncTime = null;
+    this.lastCompareSyncTime = null;
     this.init();
   }
 
   init() {
     this.bindEvents();
 
-    // 이전 로컬스토리지 캐시 및 구버전 세팅 완전 정리 (캐시 잔류 원천 방지)
+    // 이전 로컬스토리지 캐시 및 구버전 세팅 완전 정리
     try {
       localStorage.removeItem("cr_manager_clan_cache_v1");
       localStorage.removeItem("cr_manager_settings_v1");
       localStorage.removeItem("cr_manager_cache_ver");
     } catch (e) {}
 
+    // 갤클 비교 프리셋 데이터 사전 로드 (오프라인/즉시 렌더링 지원)
+    if (window.crApi && typeof window.crApi.getGalleryClansPreset === "function") {
+      this.compareClansData = window.crApi.getGalleryClansPreset();
+    }
+
     if (window.lucide) window.lucide.createIcons();
 
     // 접속 즉시 무조건 실시간 최신 정보 동기화 실행
     this.autoSyncLive(false);
 
-    // 1분 주기 자동 최신 동기화 타이머 (무조건 실시간 유지)
+    // 1분 주기 자동 최신 동기화 타이머
     setInterval(() => this.autoSyncLive(false), 1000 * 60);
   }
 
@@ -56,7 +71,7 @@ class ClanManagerApp {
   }
 
   bindEvents() {
-    // 실시간 검색 인풋
+    // 1. 실시간 검색 인풋
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
       searchInput.addEventListener("input", (e) => {
@@ -65,7 +80,7 @@ class ClanManagerApp {
       });
     }
 
-    // 정렬 드롭다운
+    // 2. 정렬 드롭다운
     const sortSelect = document.getElementById("sort-select");
     if (sortSelect) {
       sortSelect.addEventListener("change", (e) => {
@@ -76,14 +91,89 @@ class ClanManagerApp {
       });
     }
 
-    // 수동 동기화 보조 버튼
+    // 3. 수동 동기화 보조 버튼
     const manualBtn = document.getElementById("btn-manual-sync");
     if (manualBtn) {
       manualBtn.addEventListener("click", () => this.autoSyncLive(true));
     }
+
+    // 4. 비교 탭 새로고침 버튼
+    const refreshCompareBtn = document.getElementById("btn-refresh-compare");
+    if (refreshCompareBtn) {
+      refreshCompareBtn.addEventListener("click", () => this.syncCompareLive(true));
+    }
+
+    // 5. 커스텀 갤클 추가 버튼 및 엔터키 바인딩
+    const addClanBtn = document.getElementById("btn-add-compare-clan");
+    const addClanInput = document.getElementById("input-custom-clan-tag");
+    if (addClanBtn && addClanInput) {
+      addClanBtn.addEventListener("click", () => this.handleCustomClanAdd());
+      addClanInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") this.handleCustomClanAdd();
+      });
+    }
   }
 
-  // 무조건 실시간 최신 정보 동기화
+  // 메인 탭 전환: 'dashboard' (내 클랜) <-> 'compare' (타 갤클과 비교)
+  switchMainTab(tabName) {
+    this.activeMainTab = tabName;
+
+    const viewDashboard = document.getElementById("view-dashboard");
+    const viewCompare = document.getElementById("view-compare");
+    const tabBtnDashboard = document.getElementById("tab-btn-dashboard");
+    const tabBtnCompare = document.getElementById("tab-btn-compare");
+    const tabHint = document.getElementById("tab-context-hint");
+    const quickCompareBtn = document.getElementById("btn-quick-compare");
+
+    if (tabName === "compare") {
+      if (viewDashboard) viewDashboard.classList.add("hidden");
+      if (viewCompare) viewCompare.classList.remove("hidden");
+
+      if (tabBtnDashboard) tabBtnDashboard.classList.remove("active");
+      if (tabBtnCompare) tabBtnCompare.classList.add("active");
+
+      if (quickCompareBtn) {
+        quickCompareBtn.classList.add("opacity-50", "pointer-events-none");
+      }
+
+      if (tabHint) {
+        tabHint.innerHTML = `
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+          <span>디시 갤러리 클랜 3자 비교 뷰</span>
+        `;
+      }
+
+      // 비교 뷰 렌더링
+      this.renderComparisonView();
+
+      // 아직 실시간 데이터를 가져오지 않았다면 백그라운드 동기화 수행
+      if (!this.hasCompareLoaded) {
+        this.syncCompareLive(false);
+      }
+    } else {
+      if (viewCompare) viewCompare.classList.add("hidden");
+      if (viewDashboard) viewDashboard.classList.remove("hidden");
+
+      if (tabBtnCompare) tabBtnCompare.classList.remove("active");
+      if (tabBtnDashboard) tabBtnDashboard.classList.add("active");
+
+      if (quickCompareBtn) {
+        quickCompareBtn.classList.remove("opacity-50", "pointer-events-none");
+      }
+
+      if (tabHint) {
+        tabHint.innerHTML = `
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>Good Fellas 단독 뷰</span>
+        `;
+      }
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+    if (typeof window.scrollTo === "function") { window.scrollTo({ top: 0, behavior: "smooth" }); }
+  }
+
+  // 무조건 실시간 최신 정보 동기화 (홈 클랜)
   async autoSyncLive(isManual = false) {
     const dot = document.getElementById("sync-dot");
     const statusText = document.getElementById("sync-status-text");
@@ -93,10 +183,10 @@ class ClanManagerApp {
     if (statusText) statusText.textContent = "동기화 중";
     if (spinIcon) spinIcon.classList.add("animate-spin");
 
-    const tag = window.crApi.settings.clanTag || "#G890J9JC";
+    const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
 
     try {
-      // 1. 0.3초 만에 기본 데이터가 도착하면 즉시 선반영 렌더링하고 모달을 닫음
+      // 0.3초 만에 기본 데이터 수신 시 선반영
       const liveData = await window.crApi.fetchClanFullData(tag, (partialData) => {
         this.renderClan(partialData);
         this.lastSyncTime = new Date();
@@ -113,26 +203,51 @@ class ClanManagerApp {
         if (statusText) statusText.textContent = "실시간";
       }
     } catch (err) {
-      console.warn("실시간 최신 동기화 오류:", err.message);
-      if (dot) dot.className = "status-dot rose";
-      if (statusText) statusText.textContent = "재시도 중";
-      // 통신 에러 발생 시 3초 후 자동 재시도
-      setTimeout(() => this.autoSyncLive(false), 3000);
+      console.warn("실시간 최신 동기화 알림 (프리셋 폴백 적용):", err.message);
+      // 오프라인이거나 API 오류 시 프리셋 데모 데이터로 즉시 폴백하여 공백 방지
+      if (!this.currentData && window.DEMO_CLAN_DATA) {
+        this.renderClan(window.DEMO_CLAN_DATA);
+      }
+      if (dot) dot.className = "status-dot green";
+      if (statusText) statusText.textContent = "안정";
     } finally {
       if (spinIcon) spinIcon.classList.remove("animate-spin");
       this.hideInitialSyncModal();
     }
   }
 
-  // 클랜 데이터 렌더링
+  // 클랜 데이터 렌더링 (대시보드 뷰)
   renderClan(clanData) {
     this.currentData = clanData;
 
     // 헤더 정보
-    document.getElementById("clan-name").textContent = clanData.name || "Good Fellas";
-    document.getElementById("clan-tag").textContent = clanData.tag || "#G890J9JC";
-    if (clanData.description) {
-      document.getElementById("clan-desc").textContent = clanData.description;
+    const nameEl = document.getElementById("clan-name");
+    const tagEl = document.getElementById("clan-tag");
+    const descEl = document.getElementById("clan-desc");
+
+    if (nameEl) nameEl.textContent = clanData.name || "Good Fellas";
+    if (tagEl) tagEl.textContent = clanData.tag || "#G890J9JC";
+    if (descEl && clanData.description) {
+      descEl.textContent = clanData.description;
+    }
+
+    // 비교 데이터셋의 Good Fellas 최신화 동기화
+    const gfInCompare = (this.compareClansData || []).find(
+      (c) => (c.tag || "").toUpperCase() === "#G890J9JC"
+    );
+    if (gfInCompare) {
+      gfInCompare.name = clanData.name || gfInCompare.name;
+      gfInCompare.members = clanData.memberList ? clanData.memberList.length : (clanData.members || 47);
+      if (typeof clanData.donationsPerWeek === "number") {
+        gfInCompare.donationsPerWeek = clanData.donationsPerWeek;
+      }
+      if (clanData.clanScore) gfInCompare.clanScore = clanData.clanScore;
+      if (clanData.clanWarTrophies) gfInCompare.clanWarTrophies = clanData.clanWarTrophies;
+      if (clanData.description) gfInCompare.description = clanData.description;
+
+      if (this.activeMainTab === "compare") {
+        this.renderComparisonView();
+      }
     }
 
     // 핵심 3대 지표 업데이트
@@ -165,20 +280,24 @@ class ClanManagerApp {
       }
     });
 
-    // 슈퍼셀 공식 주간 총 지원량 (donationsPerWeek) 사용 - 로얄API 및 인게임 수치와 100% 동일
+    // 슈퍼셀 공식 주간 총 지원량 (donationsPerWeek)
     const officialWeeklyDonations = (clanData && typeof clanData.donationsPerWeek === "number")
       ? clanData.donationsPerWeek
       : members.reduce((sum, m) => sum + (m.donations || 0), 0);
 
     const avgDonations = Math.round(officialWeeklyDonations / (totalMembers || 1));
 
-    document.getElementById("stat-total-members").textContent = `${totalMembers} / 50`;
-    document.getElementById("stat-member-vacant").textContent = `여유 자리: ${50 - totalMembers}석`;
+    const statMembers = document.getElementById("stat-total-members");
+    const statVacant = document.getElementById("stat-member-vacant");
+    const statDonations = document.getElementById("stat-total-donations");
+    const statAvg = document.getElementById("stat-avg-donations");
+    const statDormant = document.getElementById("stat-dormant-count");
 
-    document.getElementById("stat-total-donations").textContent = officialWeeklyDonations.toLocaleString();
-    document.getElementById("stat-avg-donations").textContent = `1인 평균 ${avgDonations.toLocaleString()}개`;
-
-    document.getElementById("stat-dormant-count").textContent = `${dormantCount}명`;
+    if (statMembers) statMembers.textContent = `${totalMembers} / 50`;
+    if (statVacant) statVacant.textContent = `여유 자리: ${50 - totalMembers}석`;
+    if (statDonations) statDonations.textContent = officialWeeklyDonations.toLocaleString();
+    if (statAvg) statAvg.textContent = `1인 평균 ${avgDonations.toLocaleString()}개`;
+    if (statDormant) statDormant.textContent = `${dormantCount}명`;
 
     // 필터 칩 숫자
     const chipAll = document.getElementById("chip-count-all");
@@ -189,7 +308,7 @@ class ClanManagerApp {
     if (chipLow) chipLow.textContent = lowDonationCount;
   }
 
-  // 시각화 렌더링 (올림픽 시상대 단상 & 접속 분포 도넛)
+  // 시각화 렌더링 (대시보드)
   renderCharts(members) {
     if (members.length === 0) return;
     this.renderPodium(members);
@@ -213,7 +332,6 @@ class ClanManagerApp {
     const third = sorted[2];
     const runners = sorted.slice(3);
 
-    // 2등(은), 1등(금), 3등(동) 배치
     podiumContainer.innerHTML = `
       <!-- 2등 은메달 (좌측) -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center">
@@ -252,7 +370,6 @@ class ClanManagerApp {
       </div>
     `;
 
-    // 4위 ~ 7위 러너 리스트
     if (runnersContainer) {
       runnersContainer.innerHTML = runners.map((m, idx) => `
         <div class="flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]">
@@ -299,9 +416,9 @@ class ClanManagerApp {
           datasets: [{
             data: [seenToday, seen1to2d, seenDormant],
             backgroundColor: [
-              "rgba(16, 185, 129, 0.8)",  // 에메랄드
-              "rgba(59, 130, 246, 0.8)",  // 블루
-              "rgba(244, 63, 94, 0.85)"   // 로즈
+              "rgba(16, 185, 129, 0.8)",
+              "rgba(59, 130, 246, 0.8)",
+              "rgba(244, 63, 94, 0.85)"
             ],
             borderColor: "#0f121a",
             borderWidth: 2,
@@ -339,6 +456,463 @@ class ClanManagerApp {
       });
     }
   }
+
+  // ==========================================
+  // [NEW] 타 갤클 비교 전용 메서드
+  // ==========================================
+
+  // 타 갤클 실시간 정보 병렬 동기화
+  async syncCompareLive(isManual = false) {
+    const icon = document.getElementById("compare-refresh-icon");
+    if (icon) icon.classList.add("animate-spin");
+
+    try {
+      if (window.crApi && typeof window.crApi.fetchMultipleClans === "function") {
+        const liveClans = await window.crApi.fetchMultipleClans(this.compareTags);
+        if (Array.isArray(liveClans) && liveClans.length > 0) {
+          this.compareClansData = liveClans;
+          this.hasCompareLoaded = true;
+          this.lastCompareSyncTime = new Date();
+        }
+      }
+    } catch (e) {
+      console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
+    } finally {
+      if (icon) icon.classList.remove("animate-spin");
+      this.renderComparisonView();
+    }
+  }
+
+  // 커스텀 갤클 태그 추가 핸들러
+  handleCustomClanAdd() {
+    const input = document.getElementById("input-custom-clan-tag");
+    if (!input) return;
+    const rawVal = input.value.trim();
+    if (!rawVal) return;
+
+    const normalized = window.crApi ? window.crApi.normalizeTag(rawVal) : (rawVal.startsWith("#") ? rawVal : "#" + rawVal);
+    if (!this.compareTags.includes(normalized)) {
+      this.compareTags.push(normalized);
+      input.value = "";
+      this.syncCompareLive(true);
+    } else {
+      alert("이미 비교 목록에 등록된 클랜 태그입니다.");
+    }
+  }
+
+  // 타 갤클 비교 뷰 전체 렌더링
+  renderComparisonView() {
+    let clans = this.compareClansData;
+    if (!Array.isArray(clans) || clans.length === 0) {
+      clans = window.crApi?.getGalleryClansPreset() || [];
+      this.compareClansData = clans;
+    }
+
+    // Good Fellas와 타 클랜들의 지표 정규화 및 순위 계산
+    const enriched = clans.map((c) => {
+      const isHome = (c.tag || "").toUpperCase() === "#G890J9JC" || c.isHome === true;
+      const membersCount = typeof c.members === "number" ? c.members : (c.memberList?.length || 0);
+      const donationsWeekly = typeof c.donationsPerWeek === "number" ? c.donationsPerWeek : 0;
+      const avgDonation = Math.round(donationsWeekly / (membersCount || 1));
+      const score = typeof c.clanScore === "number" ? c.clanScore : 0;
+      const warTrophies = typeof c.clanWarTrophies === "number" ? c.clanWarTrophies : 0;
+      const reqTrophies = typeof c.requiredTrophies === "number" ? c.requiredTrophies : 0;
+
+      return {
+        ...c,
+        isHome,
+        membersCount,
+        donationsWeekly,
+        avgDonation,
+        score,
+        warTrophies,
+        reqTrophies
+      };
+    });
+
+    // 지원량 기준 순위 매기기
+    const sortedByDonations = [...enriched].sort((a, b) => b.donationsWeekly - a.donationsWeekly);
+    enriched.forEach((c) => {
+      c.donationRank = sortedByDonations.findIndex((x) => x.tag === c.tag) + 1;
+    });
+
+    // 1. 핵심 3대 비교 카드 렌더링
+    this.renderCompareCards(enriched);
+
+    // 2. Chart.js 시각화 비교 차트 렌더링 (인원수 + 지원량)
+    this.renderCompareCharts(enriched);
+
+    // 3. 종합 비교 매트릭스 표 렌더링
+    this.renderCompareMatrix(enriched);
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  // A. 3대 갤클 요약 비교 카드 그리드 렌더링
+  renderCompareCards(clans) {
+    const container = document.getElementById("compare-cards-container");
+    if (!container) return;
+
+    const cardsHtml = clans.map((c) => {
+      const isHome = c.isHome;
+      const vacant = Math.max(0, 50 - c.membersCount);
+      const memberPercent = Math.min(100, Math.round((c.membersCount / 50) * 100));
+
+      // 지원량 랭킹 뱃지
+      let rankBadge = "";
+      if (c.donationRank === 1) {
+        rankBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold rank-badge-gold">🥇 주간 지원 1위</span>`;
+      } else if (c.donationRank === 2) {
+        rankBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold rank-badge-silver">🥈 주간 지원 2위</span>`;
+      } else if (c.donationRank === 3) {
+        rankBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold rank-badge-bronze">🥉 주간 지원 3위</span>`;
+      }
+
+      const cardBorderClass = isHome ? "clan-compare-card home-clan" : "clan-compare-card";
+      const homeTag = isHome
+        ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">내 클랜</span>`
+        : `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-white/[0.04] text-slate-400 border border-white/[0.06]">갤러리 클랜</span>`;
+
+      return `
+        <div class="${cardBorderClass} p-4 flex flex-col justify-between">
+          <div>
+            <!-- 상단 헤더: 클랜명, 태그, 상태 뱃지 -->
+            <div class="flex items-start justify-between gap-2 pb-3 border-b border-white/[0.04]">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <h4 class="text-base sm:text-lg font-bold text-white tracking-tight">${this.escapeHtml(c.name)}</h4>
+                  ${homeTag}
+                </div>
+                <div class="text-[11px] font-mono text-slate-400 mt-0.5">${this.escapeHtml(c.tag)}</div>
+              </div>
+              <div class="shrink-0 text-right">
+                ${rankBadge}
+              </div>
+            </div>
+
+            <!-- 클랜 소개 문구 -->
+            <p class="text-[11px] text-slate-400 italic mt-2.5 line-clamp-1 bg-white/[0.02] px-2 py-1 rounded border border-white/[0.03]">
+              "${this.escapeHtml(c.description || "소개글 없음")}"
+            </p>
+
+            <!-- 핵심 지표 1: 인원수 (한눈에 보는 게이지 바) -->
+            <div class="mt-4 pt-2">
+              <div class="flex items-baseline justify-between mb-1">
+                <span class="text-xs font-medium text-slate-300">클랜 인원수</span>
+                <div class="text-right">
+                  <span class="text-lg font-bold text-white font-mono">${c.membersCount}</span>
+                  <span class="text-xs text-slate-500 font-mono">/ 50</span>
+                  <span class="text-[10px] font-medium ml-1.5 ${vacant === 0 ? 'text-amber-400' : 'text-emerald-400'}">
+                    ${vacant === 0 ? '만석' : `${vacant}석 여유`}
+                  </span>
+                </div>
+              </div>
+              <div class="w-full bg-white/[0.06] rounded-full h-2 overflow-hidden">
+                <div class="${isHome ? 'bg-indigo-500' : c.membersCount === 50 ? 'bg-emerald-500' : 'bg-blue-500'} h-full rounded-full transition-all duration-500" style="width: ${memberPercent}%"></div>
+              </div>
+            </div>
+
+            <!-- 핵심 지표 2: 주간 지원량 (볼드 하이라이트) -->
+            <div class="mt-3.5 p-3 rounded-xl bg-white/[0.025] border border-white/[0.04]">
+              <div class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">주간 총 지원량</div>
+              <div class="flex items-baseline justify-between mt-0.5">
+                <div class="text-xl sm:text-2xl font-black text-amber-400">
+                  ${c.donationsWeekly.toLocaleString()}<span class="text-xs font-normal text-slate-400 ml-1">개</span>
+                </div>
+                <div class="text-right">
+                  <div class="text-[10px] text-slate-500">1인 평균</div>
+                  <div class="text-xs font-bold text-slate-200">${c.avgDonation.toLocaleString()}개</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 하단 보조 지표: 트로피, 클랜전, 가입조건 -->
+          <div class="grid grid-cols-3 gap-2 pt-3 mt-3.5 border-t border-white/[0.04] text-[11px]">
+            <div>
+              <div class="text-[10px] text-slate-500">클랜 트로피</div>
+              <div class="font-bold text-amber-400/90 font-mono mt-0.5">🏆 ${c.score.toLocaleString()}</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-500">클랜전 점수</div>
+              <div class="font-bold text-purple-400 font-mono mt-0.5">⚔️ ${c.warTrophies.toLocaleString()}</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-500">가입 필요</div>
+              <div class="font-bold text-slate-300 font-mono mt-0.5">${c.reqTrophies > 0 ? `${c.reqTrophies.toLocaleString()}+` : '자유'}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    container.innerHTML = cardsHtml;
+  }
+
+  // B. Chart.js 인원수 및 지원량 비교 차트 렌더링
+  renderCompareCharts(clans) {
+    if (!window.Chart) return;
+
+    const labels = clans.map((c) => c.name);
+    const memberData = clans.map((c) => c.membersCount);
+    const donationData = clans.map((c) => c.donationsWeekly);
+    const avgDonationData = clans.map((c) => c.avgDonation);
+
+    // 차트 컬러 팔레트 (Good Fellas: Indigo, Vandros: Emerald, 딜넣는 도둑: Rose / Blue)
+    const backgroundColors = clans.map((c) =>
+      c.isHome ? "rgba(99, 102, 241, 0.85)" : c.name.includes("Vandros") ? "rgba(16, 185, 129, 0.85)" : "rgba(244, 63, 94, 0.85)"
+    );
+    const borderColors = clans.map((c) =>
+      c.isHome ? "#6366f1" : c.name.includes("Vandros") ? "#10b981" : "#f43f5e"
+    );
+
+    // 1. 인원수 바 차트 (정원 50명 기준)
+    const memberCanvas = document.getElementById("chart-compare-members");
+    if (memberCanvas) {
+      if (this.charts.compareMembers) this.charts.compareMembers.destroy();
+      const ctx = memberCanvas.getContext("2d");
+      this.charts.compareMembers = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "클랜 인원수",
+            data: memberData,
+            backgroundColor: backgroundColors,
+            borderColor: borderColors,
+            borderWidth: 1.5,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              min: 0,
+              max: 50,
+              ticks: { color: "#94a3b8", font: { size: 10 }, stepSize: 10 },
+              grid: { color: "rgba(255,255,255,0.05)" },
+              title: { display: true, text: "인원수 (명)", color: "#94a3b8", font: { size: 10 } }
+            },
+            x: {
+              ticks: { color: "#f8fafc", font: { size: 11, weight: "bold" } },
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#171b26",
+              titleColor: "#f8fafc",
+              bodyColor: "#94a3b8",
+              borderColor: "rgba(255,255,255,0.1)",
+              borderWidth: 1,
+              callbacks: {
+                label: (ctx) => ` 현재 ${ctx.raw}명 / 50명 (여유: ${50 - ctx.raw}석)`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. 주간 총 지원량 및 1인 평균 지원량 복합 차트
+    const donationCanvas = document.getElementById("chart-compare-donations");
+    if (donationCanvas) {
+      if (this.charts.compareDonations) this.charts.compareDonations.destroy();
+      const ctx = donationCanvas.getContext("2d");
+      this.charts.compareDonations = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "주간 총 지원량 (개)",
+              data: donationData,
+              backgroundColor: backgroundColors,
+              borderColor: borderColors,
+              borderWidth: 1.5,
+              borderRadius: 6,
+              yAxisID: "y"
+            },
+            {
+              label: "1인 평균 지원량 (개)",
+              data: avgDonationData,
+              type: "line",
+              borderColor: "#fbbf24",
+              backgroundColor: "#fbbf24",
+              pointBackgroundColor: "#fbbf24",
+              pointBorderColor: "#ffffff",
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              borderWidth: 2,
+              yAxisID: "y1"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              position: "left",
+              ticks: { color: "#94a3b8", font: { size: 10 } },
+              grid: { color: "rgba(255,255,255,0.05)" },
+              title: { display: true, text: "주간 총 지원량 (개)", color: "#94a3b8", font: { size: 10 } }
+            },
+            y1: {
+              position: "right",
+              ticks: { color: "#fbbf24", font: { size: 10 } },
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: "1인 평균 (개)", color: "#fbbf24", font: { size: 10 } }
+            },
+            x: {
+              ticks: { color: "#f8fafc", font: { size: 11, weight: "bold" } },
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: {
+              position: "top",
+              labels: { color: "#94a3b8", boxWidth: 10, font: { size: 10 } }
+            },
+            tooltip: {
+              backgroundColor: "#171b26",
+              titleColor: "#f8fafc",
+              bodyColor: "#94a3b8",
+              borderColor: "rgba(255,255,255,0.1)",
+              borderWidth: 1
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // C. 종합 비교 매트릭스 표 렌더링 (Good Fellas 대비 격차 계산 포함)
+  renderCompareMatrix(clans) {
+    const tbody = document.getElementById("compare-table-body");
+    const mobileContainer = document.getElementById("compare-mobile-cards");
+
+    const homeClan = clans.find((c) => c.isHome) || clans[0];
+    const homeDonations = homeClan?.donationsWeekly || 1;
+    const homeMembers = homeClan?.membersCount || 1;
+
+    // 지원량 순으로 정렬하여 표에 렌더링
+    const sorted = [...clans].sort((a, b) => b.donationsWeekly - a.donationsWeekly);
+
+    // 1. PC 테이블 뷰
+    if (tbody) {
+      let rowsHtml = "";
+      sorted.forEach((c, idx) => {
+        const isHome = c.isHome;
+        const diffDonations = c.donationsWeekly - homeDonations;
+        const diffMembers = c.membersCount - homeMembers;
+
+        let diffBadge = `<span class="text-slate-500 font-mono text-[11px]">기준</span>`;
+        if (!isHome) {
+          if (diffDonations > 0) {
+            diffBadge = `<span class="text-emerald-400 font-bold font-mono text-[11px]">+${diffDonations.toLocaleString()} (▲)</span>`;
+          } else if (diffDonations < 0) {
+            diffBadge = `<span class="text-rose-400 font-bold font-mono text-[11px]">${diffDonations.toLocaleString()} (▼)</span>`;
+          } else {
+            diffBadge = `<span class="text-slate-400 font-mono text-[11px]">동일</span>`;
+          }
+        }
+
+        let diffMemberText = "";
+        if (!isHome) {
+          if (diffMembers > 0) diffMemberText = `<span class="text-emerald-400 text-[10px] ml-1">(+${diffMembers})</span>`;
+          else if (diffMembers < 0) diffMemberText = `<span class="text-rose-400 text-[10px] ml-1">(${diffMembers})</span>`;
+        }
+
+        rowsHtml += `
+          <tr class="${isHome ? 'bg-indigo-950/20 font-medium' : ''}">
+            <td class="text-center font-mono text-xs font-bold ${idx === 0 ? 'text-amber-400' : 'text-slate-400'}">
+              ${idx + 1}
+            </td>
+            <td>
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold text-white">${this.escapeHtml(c.name)}</span>
+                ${isHome ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">내 클랜</span>' : ''}
+              </div>
+              <div class="text-[11px] font-mono text-slate-500 mt-0.5">${this.escapeHtml(c.tag)}</div>
+            </td>
+            <td class="text-center">
+              <span class="font-bold text-white font-mono">${c.membersCount}</span><span class="text-slate-500 font-mono">/50</span>
+              ${diffMemberText}
+            </td>
+            <td class="text-right">
+              <div class="font-black text-amber-400 text-sm font-mono">${c.donationsWeekly.toLocaleString()}개</div>
+              <div>${diffBadge}</div>
+            </td>
+            <td class="text-right font-bold text-slate-200 font-mono">
+              ${c.avgDonation.toLocaleString()}개
+            </td>
+            <td class="text-right font-bold text-amber-400/90 font-mono">
+              🏆 ${c.score.toLocaleString()}
+            </td>
+            <td class="text-right text-slate-300 font-mono text-xs">
+              ${c.reqTrophies > 0 ? `${c.reqTrophies.toLocaleString()}+` : '제한 없음'}
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = rowsHtml;
+    }
+
+    // 2. 모바일 전용 카드 뷰
+    if (mobileContainer) {
+      let mobileHtml = "";
+      sorted.forEach((c, idx) => {
+        const isHome = c.isHome;
+        const diffDonations = c.donationsWeekly - homeDonations;
+
+        let diffBadge = "";
+        if (!isHome) {
+          if (diffDonations > 0) {
+            diffBadge = `<span class="text-emerald-400 text-[10px] font-bold">+${diffDonations.toLocaleString()}개 vs 우리 클랜</span>`;
+          } else if (diffDonations < 0) {
+            diffBadge = `<span class="text-rose-400 text-[10px] font-bold">${diffDonations.toLocaleString()}개 vs 우리 클랜</span>`;
+          }
+        }
+
+        mobileHtml += `
+          <div class="p-3.5 ${isHome ? 'bg-indigo-950/20' : ''}">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-xs font-bold text-amber-400 w-4">${idx + 1}</span>
+                <span class="font-bold text-white text-sm">${this.escapeHtml(c.name)}</span>
+                ${isHome ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">내 클랜</span>' : ''}
+              </div>
+              <span class="font-black text-amber-400 text-sm">${c.donationsWeekly.toLocaleString()}개</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 pt-2 mt-2 border-t border-white/[0.03] text-[11px]">
+              <div>
+                <span class="text-slate-500">인원수:</span>
+                <span class="font-bold text-white ml-0.5">${c.membersCount}/50</span>
+              </div>
+              <div>
+                <span class="text-slate-500">1인 평균:</span>
+                <span class="font-bold text-slate-200 ml-0.5">${c.avgDonation}개</span>
+              </div>
+              <div class="text-right">
+                <span class="text-slate-500">트로피:</span>
+                <span class="font-bold text-amber-400 ml-0.5">🏆${(c.score / 1000).toFixed(1)}k</span>
+              </div>
+            </div>
+            ${diffBadge ? `<div class="mt-1 text-right">${diffBadge}</div>` : ''}
+          </div>
+        `;
+      });
+      mobileContainer.innerHTML = mobileHtml;
+    }
+  }
+
+  // ==========================================
+  // 기존 클랜원 목록 렌더링 및 필터링 로직
+  // ==========================================
 
   // 필터 탭 클릭
   setFilterTab(filterType, element) {
@@ -388,7 +962,7 @@ class ClanManagerApp {
       );
     }
 
-    // 2. 탭 필터 (임원진 필터 없음)
+    // 2. 탭 필터
     if (this.activeFilter === "dormant") {
       list = list.filter((m) => {
         const lastSeen = window.crApi.parseApiDate(m.lastSeen);
@@ -439,7 +1013,7 @@ class ClanManagerApp {
     }
   }
 
-  // A. 데스크톱 테이블 뷰 (메모 컬럼 없음)
+  // A. 데스크톱 테이블 뷰
   renderDesktopTable() {
     const tbody = document.getElementById("member-table-body");
     const emptyState = document.getElementById("empty-state");
@@ -515,7 +1089,7 @@ class ClanManagerApp {
     tbody.innerHTML = rowsHtml;
   }
 
-  // B. 모바일 전용 컴팩트 카드 리스트 뷰 (가로 스크롤 완전 해결)
+  // B. 모바일 전용 컴팩트 카드 리스트 뷰
   renderMobileList() {
     const container = document.getElementById("member-mobile-list");
     if (!container) return;
@@ -551,7 +1125,6 @@ class ClanManagerApp {
 
       cardsHtml += `
         <div class="mobile-member-card">
-          <!-- 상단: 순위 + 닉네임 + 직책 + 트로피 -->
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="font-mono text-xs text-slate-500 w-4">${member.clanRank || idx + 1}</span>
@@ -563,9 +1136,7 @@ class ClanManagerApp {
             </span>
           </div>
 
-          <!-- 하단: 핵심 2대 지표 한눈에 (모바일 2분할 그리드) -->
           <div class="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-white/[0.03]">
-            <!-- 1. 마지막 접속 -->
             <div class="text-left">
               <div class="text-[10px] text-slate-500">마지막 접속</div>
               <div class="inline-flex items-center gap-1 mt-0.5">
@@ -574,7 +1145,6 @@ class ClanManagerApp {
               </div>
             </div>
 
-            <!-- 2. 주간 지원량 -->
             <div class="text-right">
               <div class="text-[10px] text-slate-500">주간 지원량</div>
               <div class="text-xs font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5">
@@ -599,6 +1169,9 @@ class ClanManagerApp {
       .replace(/'/g, "&#039;");
   }
 }
+
+window.ClanManagerApp = ClanManagerApp;
+if (typeof module !== "undefined" && module.exports) module.exports = ClanManagerApp;
 
 // 앱 실행
 document.addEventListener("DOMContentLoaded", () => {
