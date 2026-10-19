@@ -36,7 +36,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=20261019_1135" />
+  <link rel="stylesheet" href="css/style.css?v=20261019_1150" />
 </head>
 <body class="bg-[#090b10] text-slate-100 min-h-screen">
 
@@ -225,10 +225,10 @@
     <!-- ========================================== -->
     <!-- VIEW B: 타 갤클과 비교 (비교 분석 전용 탭) -->
     <!-- ========================================== -->
-    <div id="view-compare" class="tab-view hidden space-y-4 sm:space-y-6">
+    <div id="view-compare" class="tab-view hidden space-y-3.5 sm:space-y-5">
 
-      <!-- 1. 비교 상단 서브헤더 및 컨트롤 (간결화) -->
-      <div class="flex items-center justify-between gap-3 pt-2">
+      <!-- 1. 비교 상단 헤더: 타이틀 & '← 내 클랜' 버튼 -->
+      <div class="flex items-center justify-between gap-3 pt-1">
         <div>
           <h2 class="text-base sm:text-lg font-bold text-white tracking-tight">디시 갤러리 클랜 활동성 및 규모 비교</h2>
           <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5 whitespace-nowrap">
@@ -243,17 +243,12 @@
         </div>
       </div>
 
-      <!-- 2. 핵심 3대 갤클 비교 요약 카드 그리드 (인원수 & 주간 지원량 직관 비교) -->
-      <section class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4" id="compare-cards-container">
-        <!-- JavaScript 동적 렌더링 -->
-      </section>
-
-      <!-- 3. 시각화 비교 섹션: 주간 총 지원량 비교 비교 차트 (전체 너비) -->
+      <!-- 2. 시각화: 주간 총 지원량 비교 차트 (상단 숫자 표출) -->
       <section class="surface-card p-3.5 sm:p-4">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-1.5">
             <span class="text-xs font-semibold text-slate-200">주간 총 지원량 비교</span>
-            <span class="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">기여도</span>
+            <span class="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 font-medium">실시간</span>
           </div>
           <span class="text-[10px] text-slate-400">단위: 개</span>
         </div>
@@ -262,54 +257,30 @@
         </div>
       </section>
 
-      <!-- 4. 상세 비교 매트릭스 표 (PC 테이블 & 모바일 카드 뷰) -->
+      <!-- 3. 클랜별 핵심 현황 및 격차 (단일 통합 리스트로 중복 완전 해소) -->
       <section class="surface-card overflow-hidden">
         <div class="p-3.5 sm:p-4 border-b border-white/[0.04] flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <i data-lucide="table-properties" class="w-4 h-4 text-indigo-400"></i>
-            <h3 class="text-xs sm:text-sm font-semibold text-white">클랜 지표 종합 비교 매트릭스</h3>
+            <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+            <h3 class="text-xs sm:text-sm font-semibold text-white">클랜별 핵심 현황 및 지원량 격차</h3>
           </div>
-          <span class="text-[11px] text-slate-400">Good Fellas 기준 격차 비교</span>
+          <span class="text-[10px] sm:text-[11px] text-slate-400 font-mono">Good Fellas 기준</span>
         </div>
 
-        <!-- PC 데스크톱 테이블 뷰 (sm 이상) -->
-        <div class="hidden sm:block overflow-x-auto">
-          <table class="w-full text-left data-table">
-            <thead>
-              <tr>
-                <th class="w-12 text-center">순위</th>
-                <th>클랜명 (태그)</th>
-                <th class="text-center">인원수 (정원 대비)</th>
-                <th class="text-right">주간 총 지원량</th>
-                <th class="text-right">1인 평균 지원량</th>
-                <th class="text-right">클랜 점수(트로피)</th>
-                <th class="text-right">가입 조건</th>
-              </tr>
-            </thead>
-            <tbody id="compare-table-body">
-              <!-- JavaScript 동적 렌더링 -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 모바일 전용 매트릭스 리스트 (sm 미만) -->
-        <div class="block sm:hidden divide-y divide-white/[0.04]" id="compare-mobile-cards">
+        <div class="divide-y divide-white/[0.04]" id="compare-summary-list">
           <!-- JavaScript 동적 렌더링 -->
         </div>
       </section>
 
-      <!-- 5. 타 갤러리 클랜 태그 간편 추가 / 커스텀 비교 섹션 -->
-      <section class="surface-card p-3.5 sm:p-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div class="text-xs font-semibold text-slate-200">다른 갤클 추가 비교</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">클래시 로얄 클랜 태그를 입력해 비교 대상에 추가할 수 있습니다.</div>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="text" id="input-custom-clan-tag" placeholder="예: #JYQRP2C2"
-              class="w-36 sm:w-44 px-2.5 py-1.5 bg-[#090b10] border border-white/[0.08] rounded-lg text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 uppercase" />
-            <button id="btn-add-compare-clan" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition shrink-0">
-              클랜 추가
+      <!-- 4. 다른 갤러리 클랜 태그 간편 추가 -->
+      <section class="surface-card p-3 sm:p-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-xs text-slate-300 font-medium whitespace-nowrap">다른 갤클 추가:</div>
+          <div class="flex items-center gap-1.5 flex-1 max-w-xs">
+            <input type="text" id="input-custom-clan-tag" placeholder="클랜 태그 (예: #JYQRP2C2)"
+              class="w-full px-2.5 py-1.5 bg-[#090b10] border border-white/[0.08] rounded-lg text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 uppercase" />
+            <button id="btn-add-compare-clan" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition shrink-0 whitespace-nowrap">
+              추가
             </button>
           </div>
         </div>
@@ -346,8 +317,8 @@
   </div>
 
   <!-- Scripts with Cache Busting -->
-  <script src="js/demo-data.js?v=20261019_1135"></script>
-  <script src="js/api.js?v=20261019_1135"></script>
-  <script src="js/app.js?v=20261019_1135"></script>
+  <script src="js/demo-data.js?v=20261019_1150"></script>
+  <script src="js/api.js?v=20261019_1150"></script>
+  <script src="js/app.js?v=20261019_1150"></script>
 </body>
 </html>
