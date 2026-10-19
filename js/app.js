@@ -499,7 +499,7 @@ class ClanManagerApp {
     }
   }
 
-  // 타 갤클 비교 뷰 전체 렌더링
+  // 타 갤클 비교 뷰 전체 렌더링 (차트 + 일원화 리스트)
   renderComparisonView() {
     let clans = this.compareClansData;
     if (!Array.isArray(clans) || clans.length === 0) {
@@ -512,140 +512,30 @@ class ClanManagerApp {
       const isHome = (c.tag || "").toUpperCase() === "#G890J9JC" || c.isHome === true;
       const membersCount = typeof c.members === "number" ? c.members : (c.memberList?.length || 0);
       const donationsWeekly = typeof c.donationsPerWeek === "number" ? c.donationsPerWeek : 0;
-      const avgDonation = Math.round(donationsWeekly / (membersCount || 1));
       const score = typeof c.clanScore === "number" ? c.clanScore : 0;
-      const warTrophies = typeof c.clanWarTrophies === "number" ? c.clanWarTrophies : 0;
-      const reqTrophies = typeof c.requiredTrophies === "number" ? c.requiredTrophies : 0;
 
       return {
         ...c,
         isHome,
         membersCount,
         donationsWeekly,
-        avgDonation,
-        score,
-        warTrophies,
-        reqTrophies
+        score
       };
     });
 
     // 지원량 기준 순위 매기기
     const sortedByDonations = [...enriched].sort((a, b) => b.donationsWeekly - a.donationsWeekly);
-    enriched.forEach((c) => {
-      c.donationRank = sortedByDonations.findIndex((x) => x.tag === c.tag) + 1;
+    sortedByDonations.forEach((c, idx) => {
+      c.donationRank = idx + 1;
     });
 
-    // 1. 핵심 3대 비교 카드 렌더링
-    this.renderCompareCards(enriched);
+    // 1. Chart.js 주간 총 지원량 단독 바 차트 렌더링
+    this.renderCompareCharts(sortedByDonations);
 
-    // 2. Chart.js 시각화 비교 차트 렌더링 (인원수 + 지원량)
-    this.renderCompareCharts(enriched);
-
-    // 3. 종합 비교 매트릭스 표 렌더링
-    this.renderCompareMatrix(enriched);
+    // 2. 클랜별 핵심 현황 및 지원량 격차 일원화 리스트 렌더링 (중복 완전 제거)
+    this.renderCompareSummaryList(sortedByDonations);
 
     if (window.lucide) window.lucide.createIcons();
-  }
-
-  // A. 3대 갤클 요약 비교 카드 그리드 렌더링
-  renderCompareCards(clans) {
-    const container = document.getElementById("compare-cards-container");
-    if (!container) return;
-
-    const cardsHtml = clans.map((c) => {
-      const isHome = c.isHome;
-      const vacant = Math.max(0, 50 - c.membersCount);
-      const memberPercent = Math.min(100, Math.round((c.membersCount / 50) * 100));
-
-      // 지원량 랭킹 뱃지
-      let rankBadge = "";
-      if (c.donationRank === 1) {
-        rankBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold rank-badge-gold">🥇 주간 지원 1위</span>`;
-      } else if (c.donationRank === 2) {
-        rankBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold rank-badge-silver">🥈 주간 지원 2위</span>`;
-      } else if (c.donationRank === 3) {
-        rankBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold rank-badge-bronze">🥉 주간 지원 3위</span>`;
-      }
-
-      const cardBorderClass = isHome ? "clan-compare-card home-clan" : "clan-compare-card";
-      const homeTag = isHome
-        ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">내 클랜</span>`
-        : `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-white/[0.04] text-slate-400 border border-white/[0.06]">갤러리 클랜</span>`;
-
-      return `
-        <div class="${cardBorderClass} p-4 flex flex-col justify-between">
-          <div>
-            <!-- 상단 헤더: 클랜명, 태그, 상태 뱃지 -->
-            <div class="flex items-start justify-between gap-2 pb-3 border-b border-white/[0.04]">
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <h4 class="text-base sm:text-lg font-bold text-white tracking-tight">${this.escapeHtml(c.name)}</h4>
-                  ${homeTag}
-                </div>
-                <div class="text-[11px] font-mono text-slate-400 mt-0.5">${this.escapeHtml(c.tag)}</div>
-              </div>
-              <div class="shrink-0 text-right">
-                ${rankBadge}
-              </div>
-            </div>
-
-            <!-- 클랜 소개 문구 -->
-            <p class="text-[11px] text-slate-400 italic mt-2.5 line-clamp-1 bg-white/[0.02] px-2 py-1 rounded border border-white/[0.03]">
-              "${this.escapeHtml(c.description || "소개글 없음")}"
-            </p>
-
-            <!-- 핵심 지표 1: 인원수 (한눈에 보는 게이지 바) -->
-            <div class="mt-4 pt-2">
-              <div class="flex items-baseline justify-between mb-1">
-                <span class="text-xs font-medium text-slate-300">클랜 인원수</span>
-                <div class="text-right">
-                  <span class="text-lg font-bold text-white font-mono">${c.membersCount}</span>
-                  <span class="text-xs text-slate-500 font-mono">/ 50</span>
-                  <span class="text-[10px] font-medium ml-1.5 ${vacant === 0 ? 'text-amber-400' : 'text-emerald-400'}">
-                    ${vacant === 0 ? '만석' : `${vacant}석 여유`}
-                  </span>
-                </div>
-              </div>
-              <div class="w-full bg-white/[0.06] rounded-full h-2 overflow-hidden">
-                <div class="${isHome ? 'bg-indigo-500' : c.membersCount === 50 ? 'bg-emerald-500' : 'bg-blue-500'} h-full rounded-full transition-all duration-500" style="width: ${memberPercent}%"></div>
-              </div>
-            </div>
-
-            <!-- 핵심 지표 2: 주간 지원량 (볼드 하이라이트) -->
-            <div class="mt-3.5 p-3 rounded-xl bg-white/[0.025] border border-white/[0.04]">
-              <div class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">주간 총 지원량</div>
-              <div class="flex items-baseline justify-between mt-0.5">
-                <div class="text-xl sm:text-2xl font-black text-amber-400">
-                  ${c.donationsWeekly.toLocaleString()}<span class="text-xs font-normal text-slate-400 ml-1">개</span>
-                </div>
-                <div class="text-right">
-                  <div class="text-[10px] text-slate-500">1인 평균</div>
-                  <div class="text-xs font-bold text-slate-200">${c.avgDonation.toLocaleString()}개</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 하단 보조 지표: 트로피, 클랜전, 가입조건 -->
-          <div class="grid grid-cols-3 gap-2 pt-3 mt-3.5 border-t border-white/[0.04] text-[11px]">
-            <div>
-              <div class="text-[10px] text-slate-500">클랜 트로피</div>
-              <div class="font-bold text-amber-400/90 font-mono mt-0.5">🏆 ${c.score.toLocaleString()}</div>
-            </div>
-            <div>
-              <div class="text-[10px] text-slate-500">클랜전 점수</div>
-              <div class="font-bold text-purple-400 font-mono mt-0.5">⚔️ ${c.warTrophies.toLocaleString()}</div>
-            </div>
-            <div>
-              <div class="text-[10px] text-slate-500">가입 필요</div>
-              <div class="font-bold text-slate-300 font-mono mt-0.5">${c.reqTrophies > 0 ? `${c.reqTrophies.toLocaleString()}+` : '자유'}</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    container.innerHTML = cardsHtml;
   }
 
   // B. Chart.js 주간 지원량 비교 차트 렌더링 (순수 막대 + 상단 지원량 수치)
@@ -655,7 +545,6 @@ class ClanManagerApp {
     const labels = clans.map((c) => c.name);
     const donationData = clans.map((c) => c.donationsWeekly);
 
-    // 차트 컬러 팔레트 (Good Fellas: Indigo, Vandros: Emerald, 딜넣는 도둑: Rose)
     const backgroundColors = clans.map((c) =>
       c.isHome ? "rgba(99, 102, 241, 0.85)" : c.name.includes("Vandros") ? "rgba(16, 185, 129, 0.85)" : "rgba(244, 63, 94, 0.85)"
     );
@@ -663,7 +552,6 @@ class ClanManagerApp {
       c.isHome ? "#6366f1" : c.name.includes("Vandros") ? "#10b981" : "#f43f5e"
     );
 
-    // 주간 총 지원량(막대) 상단에만 수치 표출
     const barDataLabelsPlugin = {
       id: "barDataLabels",
       afterDatasetsDraw(chart, args, options) {
@@ -690,7 +578,6 @@ class ClanManagerApp {
       }
     };
 
-    // 주간 총 지원량 단독 바 차트
     const donationCanvas = document.getElementById("chart-compare-donations");
     if (donationCanvas) {
       if (this.charts.compareDonations) this.charts.compareDonations.destroy();
@@ -749,126 +636,80 @@ class ClanManagerApp {
     }
   }
 
-    // C. 종합 비교 매트릭스 표 렌더링 (Good Fellas 대비 격차 계산 포함)
-  renderCompareMatrix(clans) {
-    const tbody = document.getElementById("compare-table-body");
-    const mobileContainer = document.getElementById("compare-mobile-cards");
+  // C. 클랜별 핵심 현황 및 지원량 격차 리스트 렌더링 (중복 없는 단일 통합 뷰)
+  renderCompareSummaryList(clans) {
+    const container = document.getElementById("compare-summary-list");
+    if (!container) return;
 
     const homeClan = clans.find((c) => c.isHome) || clans[0];
-    const homeDonations = homeClan?.donationsWeekly || 1;
-    const homeMembers = homeClan?.membersCount || 1;
+    const homeDonations = homeClan?.donationsWeekly || 0;
 
-    // 지원량 순으로 정렬하여 표에 렌더링
-    const sorted = [...clans].sort((a, b) => b.donationsWeekly - a.donationsWeekly);
+    let html = "";
+    clans.forEach((c, idx) => {
+      const isHome = c.isHome;
+      const diffDonations = c.donationsWeekly - homeDonations;
+      const vacant = Math.max(0, 50 - c.membersCount);
 
-    // 1. PC 테이블 뷰
-    if (tbody) {
-      let rowsHtml = "";
-      sorted.forEach((c, idx) => {
-        const isHome = c.isHome;
-        const diffDonations = c.donationsWeekly - homeDonations;
-        const diffMembers = c.membersCount - homeMembers;
-
-        let diffBadge = `<span class="text-slate-500 font-mono text-[11px]">기준</span>`;
-        if (!isHome) {
-          if (diffDonations > 0) {
-            diffBadge = `<span class="text-emerald-400 font-bold font-mono text-[11px]">+${diffDonations.toLocaleString()}개</span>`;
-          } else if (diffDonations < 0) {
-            diffBadge = `<span class="text-rose-400 font-bold font-mono text-[11px]">${diffDonations.toLocaleString()}개</span>`;
-          } else {
-            diffBadge = `<span class="text-slate-400 font-mono text-[11px]">0개</span>`;
-          }
+      // 격차 배지 (순수 숫자만 표기)
+      let diffBadge = `<span class="text-slate-500 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded">기준</span>`;
+      if (!isHome) {
+        if (diffDonations > 0) {
+          diffBadge = `<span class="text-emerald-400 font-mono text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">+${diffDonations.toLocaleString()}개</span>`;
+        } else if (diffDonations < 0) {
+          diffBadge = `<span class="text-rose-400 font-mono text-[11px] font-bold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">${diffDonations.toLocaleString()}개</span>`;
+        } else {
+          diffBadge = `<span class="text-slate-400 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded">0개</span>`;
         }
+      }
 
-        let diffMemberText = "";
-        if (!isHome) {
-          if (diffMembers > 0) diffMemberText = `<span class="text-emerald-400 text-[10px] ml-1">(+${diffMembers})</span>`;
-          else if (diffMembers < 0) diffMemberText = `<span class="text-rose-400 text-[10px] ml-1">(${diffMembers})</span>`;
-        }
+      // 순위 배지 / 이모지
+      const rankEmoji = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}`;
 
-        rowsHtml += `
-          <tr class="${isHome ? 'bg-indigo-950/20 font-medium' : ''}">
-            <td class="text-center font-mono text-xs font-bold ${idx === 0 ? 'text-amber-400' : 'text-slate-400'}">
-              ${idx + 1}
-            </td>
-            <td>
-              <div class="flex items-center gap-1.5">
-                <span class="font-bold text-white">${this.escapeHtml(c.name)}</span>
-                ${isHome ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">내 클랜</span>' : ''}
+      html += `
+        <div class="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition ${isHome ? 'bg-indigo-950/20' : ''}">
+          <!-- 좌측: 순위, 클랜명, 태그 -->
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-sm font-bold w-6 text-center shrink-0 ${idx === 0 ? 'text-amber-400' : 'text-slate-400'}">${rankEmoji}</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-white text-sm sm:text-base tracking-tight truncate">${this.escapeHtml(c.name)}</span>
+                ${isHome ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">내 클랜</span>' : ''}
               </div>
               <div class="text-[11px] font-mono text-slate-500 mt-0.5">${this.escapeHtml(c.tag)}</div>
-            </td>
-            <td class="text-center">
-              <span class="font-bold text-white font-mono">${c.membersCount}</span><span class="text-slate-500 font-mono">/50</span>
-              ${diffMemberText}
-            </td>
-            <td class="text-right">
-              <div class="font-black text-amber-400 text-sm font-mono">${c.donationsWeekly.toLocaleString()}개</div>
-              <div>${diffBadge}</div>
-            </td>
-            <td class="text-right font-bold text-slate-200 font-mono">
-              ${c.avgDonation.toLocaleString()}개
-            </td>
-            <td class="text-right font-bold text-amber-400/90 font-mono">
-              🏆 ${c.score.toLocaleString()}
-            </td>
-            <td class="text-right text-slate-300 font-mono text-xs">
-              ${c.reqTrophies > 0 ? `${c.reqTrophies.toLocaleString()}+` : '제한 없음'}
-            </td>
-          </tr>
-        `;
-      });
-      tbody.innerHTML = rowsHtml;
-    }
-
-    // 2. 모바일 전용 카드 뷰
-    if (mobileContainer) {
-      let mobileHtml = "";
-      sorted.forEach((c, idx) => {
-        const isHome = c.isHome;
-        const diffDonations = c.donationsWeekly - homeDonations;
-
-        let diffBadge = "";
-        if (!isHome) {
-          if (diffDonations > 0) {
-            diffBadge = `<span class="text-emerald-400 text-[11px] font-bold font-mono">+${diffDonations.toLocaleString()}개</span>`;
-          } else if (diffDonations < 0) {
-            diffBadge = `<span class="text-rose-400 text-[11px] font-bold font-mono">${diffDonations.toLocaleString()}개</span>`;
-          } else {
-            diffBadge = `<span class="text-slate-400 text-[11px] font-bold font-mono">0개</span>`;
-          }
-        }
-
-        mobileHtml += `
-          <div class="p-3.5 ${isHome ? 'bg-indigo-950/20' : ''}">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5">
-                <span class="font-mono text-xs font-bold text-amber-400 w-4">${idx + 1}</span>
-                <span class="font-bold text-white text-sm">${this.escapeHtml(c.name)}</span>
-                ${isHome ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">내 클랜</span>' : ''}
-              </div>
-              <span class="font-black text-amber-400 text-sm">${c.donationsWeekly.toLocaleString()}개</span>
             </div>
-            <div class="grid grid-cols-3 gap-2 pt-2 mt-2 border-t border-white/[0.03] text-[11px]">
-              <div>
-                <span class="text-slate-500">인원수:</span>
-                <span class="font-bold text-white ml-0.5">${c.membersCount}/50</span>
-              </div>
-              <div>
-                <span class="text-slate-500">1인 평균:</span>
-                <span class="font-bold text-slate-200 ml-0.5">${c.avgDonation}개</span>
-              </div>
-              <div class="text-right">
-                <span class="text-slate-500">트로피:</span>
-                <span class="font-bold text-amber-400 ml-0.5">🏆${(c.score / 1000).toFixed(1)}k</span>
-              </div>
-            </div>
-            ${diffBadge ? `<div class="mt-1 text-right">${diffBadge}</div>` : ''}
           </div>
-        `;
-      });
-      mobileContainer.innerHTML = mobileHtml;
-    }
+
+          <!-- 우측: 인원수, 트로피, 지원량 & 격차 -->
+          <div class="flex items-center gap-3 sm:gap-6 shrink-0">
+            <!-- 인원수 -->
+            <div class="text-right">
+              <div class="text-[10px] text-slate-500">인원수</div>
+              <div class="text-xs font-bold text-slate-200 font-mono mt-0.5">
+                ${c.membersCount}<span class="text-slate-500 font-normal">/50</span>
+                <span class="text-[10px] font-medium ml-1 ${vacant === 0 ? 'text-amber-400' : 'text-emerald-400'}">
+                  ${vacant === 0 ? '만석' : `${vacant}석`}
+                </span>
+              </div>
+            </div>
+
+            <!-- 트로피 -->
+            <div class="text-right hidden sm:block">
+              <div class="text-[10px] text-slate-500">트로피</div>
+              <div class="text-xs font-bold text-amber-400 font-mono mt-0.5">🏆 ${(c.score / 1000).toFixed(1)}k</div>
+            </div>
+
+            <!-- 주간 지원량 & 격차 -->
+            <div class="text-right min-w-[76px]">
+              <div class="text-[10px] text-slate-500">주간 지원량</div>
+              <div class="text-sm sm:text-base font-black text-amber-400 font-mono mt-0.5">${c.donationsWeekly.toLocaleString()}개</div>
+              <div class="mt-1">${diffBadge}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
   }
 
   // ==========================================
