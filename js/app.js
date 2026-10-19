@@ -441,7 +441,12 @@ class ClanManagerApp {
 
     const activityCanvas = document.getElementById("chart-activity");
     if (activityCanvas) {
-      if (this.charts.activity) this.charts.activity.destroy();
+      if (this.charts.activity) {
+        const chart = this.charts.activity;
+        chart.data.datasets[0].data = [seenToday, seen1to2d, seenDormant];
+        chart.update();
+        return;
+      }
 
       const ctx = activityCanvas.getContext("2d");
       this.charts.activity = new Chart(ctx, {
@@ -616,7 +621,27 @@ class ClanManagerApp {
 
     const donationCanvas = document.getElementById("chart-compare-donations");
     if (donationCanvas) {
-      if (this.charts.compareDonations) this.charts.compareDonations.destroy();
+      // 이미 차트가 생성되어 있다면 차트를 파괴하지 않고 데이터만 부드럽게 갱신 (밑에서 다시 솟구쳐 오르는 재애니메이션 방지)
+      if (this.charts.compareDonations) {
+        const chart = this.charts.compareDonations;
+        const currentData = chart.data.datasets[0]?.data || [];
+
+        const isDataChanged = currentData.length !== donationData.length ||
+          currentData.some((val, idx) => val !== donationData[idx]);
+
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = donationData;
+        chart.data.datasets[0].backgroundColor = backgroundColors;
+        chart.data.datasets[0].borderColor = borderColors;
+
+        if (isDataChanged) {
+          // 수치가 달라졌을 때만 제자리에서 부드럽게 막대 높이 조정 (바닥에서 다시 치솟는 현상 100% 방지)
+          chart.update();
+        }
+        return;
+      }
+
+      // 최초 1회 진입 시에만 차트 신규 생성 및 초기 등장 애니메이션 1회 실행
       const ctx = donationCanvas.getContext("2d");
       this.charts.compareDonations = new Chart(ctx, {
         type: "bar",
@@ -637,6 +662,10 @@ class ClanManagerApp {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: {
+            duration: 750,
+            easing: "easeOutQuart"
+          },
           layout: {
             padding: { top: 24 }
           },
