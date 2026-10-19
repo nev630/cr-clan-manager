@@ -649,7 +649,7 @@ class ClanManagerApp {
     container.innerHTML = cardsHtml;
   }
 
-  // B. Chart.js 인원수 및 지원량 비교 차트 렌더링
+  // B. Chart.js 인원수 및 지원량 비교 차트 렌더링 (상단 수치 표기 플러그인 탑재)
   renderCompareCharts(clans) {
     if (!window.Chart) return;
 
@@ -658,7 +658,7 @@ class ClanManagerApp {
     const donationData = clans.map((c) => c.donationsWeekly);
     const avgDonationData = clans.map((c) => c.avgDonation);
 
-    // 차트 컬러 팔레트 (Good Fellas: Indigo, Vandros: Emerald, 딜넣는 도둑: Rose / Blue)
+    // 차트 컬러 팔레트 (Good Fellas: Indigo, Vandros: Emerald, 딜넣는 도둑: Rose)
     const backgroundColors = clans.map((c) =>
       c.isHome ? "rgba(99, 102, 241, 0.85)" : c.name.includes("Vandros") ? "rgba(16, 185, 129, 0.85)" : "rgba(244, 63, 94, 0.85)"
     );
@@ -666,7 +666,45 @@ class ClanManagerApp {
       c.isHome ? "#6366f1" : c.name.includes("Vandros") ? "#10b981" : "#f43f5e"
     );
 
-    // 1. 인원수 바 차트 (정원 50명 기준)
+    // 차트 상단 수치(숫자) 직접 표시 플러그인 (Data Labels Plugin)
+    const barDataLabelsPlugin = {
+      id: "barDataLabels",
+      afterDatasetsDraw(chart, args, options) {
+        const { ctx } = chart;
+        ctx.save();
+        chart.data.datasets.forEach((dataset, i) => {
+          const meta = chart.getDatasetMeta(i);
+          if (meta.hidden) return;
+
+          meta.data.forEach((element, index) => {
+            const rawVal = dataset.data[index];
+            if (rawVal === undefined || rawVal === null) return;
+
+            const isLine = dataset.type === "line";
+
+            ctx.font = isLine
+              ? "bold 11px Pretendard, -apple-system, sans-serif"
+              : "bold 12px Pretendard, -apple-system, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "bottom";
+
+            if (isLine) {
+              ctx.fillStyle = "#fbbf24";
+              const text = `${typeof rawVal === "number" ? rawVal.toLocaleString() : rawVal}개`;
+              ctx.fillText(text, element.x, element.y - 7);
+            } else {
+              ctx.fillStyle = "#ffffff";
+              const suffix = options?.suffix || "";
+              const text = `${typeof rawVal === "number" ? rawVal.toLocaleString() : rawVal}${suffix}`;
+              ctx.fillText(text, element.x, element.y - 5);
+            }
+          });
+        });
+        ctx.restore();
+      }
+    };
+
+    // 1. 인원수 바 차트 (정원 50명 기준 + 상단 수치 표기)
     const memberCanvas = document.getElementById("chart-compare-members");
     if (memberCanvas) {
       if (this.charts.compareMembers) this.charts.compareMembers.destroy();
@@ -684,13 +722,17 @@ class ClanManagerApp {
             borderRadius: 6
           }]
         },
+        plugins: [barDataLabelsPlugin],
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          layout: {
+            padding: { top: 18 }
+          },
           scales: {
             y: {
               min: 0,
-              max: 50,
+              max: 58,
               ticks: { color: "#94a3b8", font: { size: 10 }, stepSize: 10 },
               grid: { color: "rgba(255,255,255,0.05)" },
               title: { display: true, text: "인원수 (명)", color: "#94a3b8", font: { size: 10 } }
@@ -701,6 +743,7 @@ class ClanManagerApp {
             }
           },
           plugins: {
+            barDataLabels: { suffix: "명" },
             legend: { display: false },
             tooltip: {
               backgroundColor: "#171b26",
@@ -717,7 +760,7 @@ class ClanManagerApp {
       });
     }
 
-    // 2. 주간 총 지원량 및 1인 평균 지원량 복합 차트
+    // 2. 주간 총 지원량 및 1인 평균 지원량 복합 차트 (+ 상단 수치 표기)
     const donationCanvas = document.getElementById("chart-compare-donations");
     if (donationCanvas) {
       if (this.charts.compareDonations) this.charts.compareDonations.destroy();
@@ -751,21 +794,27 @@ class ClanManagerApp {
             }
           ]
         },
+        plugins: [barDataLabelsPlugin],
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          layout: {
+            padding: { top: 22 }
+          },
           scales: {
             y: {
               position: "left",
               ticks: { color: "#94a3b8", font: { size: 10 } },
               grid: { color: "rgba(255,255,255,0.05)" },
-              title: { display: true, text: "주간 총 지원량 (개)", color: "#94a3b8", font: { size: 10 } }
+              title: { display: true, text: "주간 총 지원량 (개)", color: "#94a3b8", font: { size: 10 } },
+              grace: "18%"
             },
             y1: {
               position: "right",
               ticks: { color: "#fbbf24", font: { size: 10 } },
               grid: { drawOnChartArea: false },
-              title: { display: true, text: "1인 평균 (개)", color: "#fbbf24", font: { size: 10 } }
+              title: { display: true, text: "1인 평균 (개)", color: "#fbbf24", font: { size: 10 } },
+              grace: "25%"
             },
             x: {
               ticks: { color: "#f8fafc", font: { size: 11, weight: "bold" } },
@@ -773,6 +822,7 @@ class ClanManagerApp {
             }
           },
           plugins: {
+            barDataLabels: { suffix: "개" },
             legend: {
               position: "top",
               labels: { color: "#94a3b8", boxWidth: 10, font: { size: 10 } }
@@ -790,7 +840,7 @@ class ClanManagerApp {
     }
   }
 
-  // C. 종합 비교 매트릭스 표 렌더링 (Good Fellas 대비 격차 계산 포함)
+    // C. 종합 비교 매트릭스 표 렌더링 (Good Fellas 대비 격차 계산 포함)
   renderCompareMatrix(clans) {
     const tbody = document.getElementById("compare-table-body");
     const mobileContainer = document.getElementById("compare-mobile-cards");
