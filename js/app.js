@@ -178,8 +178,10 @@ class ClanManagerApp {
         `;
       }
 
-      // 비교 뷰 렌더링
-      this.renderComparisonView();
+      // 탭이 화면에 표시된 후 브라우저 레이아웃(캔버스 실제 너비)이 완전히 측정된 다음 렌더링
+      setTimeout(() => {
+        this.renderComparisonView();
+      }, 40);
 
       // 아직 실시간 데이터를 가져오지 않았다면 백그라운드 동기화 수행
       if (!this.hasCompareLoaded) {
@@ -538,7 +540,9 @@ class ClanManagerApp {
       console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
     } finally {
       if (icon) icon.classList.remove("animate-spin");
-      this.renderComparisonView();
+      if (this.activeMainTab === "compare") {
+        this.renderComparisonView();
+      }
     }
   }
 
@@ -611,7 +615,7 @@ class ClanManagerApp {
     if (window.lucide) window.lucide.createIcons();
   }
 
-  // B. Chart.js 주간 지원량 비교 차트 렌더링 (바닥 0에서 서서히 위로 늘어나는 순수 수직 애니메이션)
+  // B. Chart.js 주간 지원량 비교 차트 렌더링 (바닥선에서부터 위로 곧게 솟구쳐 오르는 수직 애니메이션)
   renderCompareCharts(clans) {
     if (!window.Chart) return;
 
@@ -625,7 +629,7 @@ class ClanManagerApp {
       c.isHome ? "#6366f1" : c.name.includes("Vandros") ? "#10b981" : "#f43f5e"
     );
 
-    // 주간 총 지원량(막대) 상단에만 수치 표출 플러그인 (막대가 위로 솟아오르면 숫자가 따라 올라감)
+    // 막대 상단 지원량 숫자 표출 플러그인 (막대가 위로 솟구치면 머리 위에 숫자가 함께 나타남)
     const barDataLabelsPlugin = {
       id: "barDataLabels",
       afterDatasetsDraw(chart, args, options) {
@@ -640,8 +644,8 @@ class ClanManagerApp {
             const rawVal = dataset.data[index];
             if (rawVal === undefined || rawVal === null || rawVal === 0) return;
 
-            // 바닥에 완전히 붙어있을 때는 숫자를 숨기고, 막대가 바닥 위로 솟아오르면 표출
-            if (typeof baseY === "number" && (baseY - element.y < 10)) return;
+            // 바닥선에 붙어있을 때는 글자를 그리지 않고, 막대가 12px 이상 솟아오르면 표출
+            if (typeof baseY === "number" && (baseY - element.y < 12)) return;
 
             ctx.font = "bold 12px Pretendard, -apple-system, sans-serif";
             ctx.textAlign = "center";
@@ -658,7 +662,7 @@ class ClanManagerApp {
 
     const donationCanvas = document.getElementById("chart-compare-donations");
     if (donationCanvas) {
-      // 1. 이미 차트 인스턴스가 존재할 경우: 차트를 파괴하지 않고 데이터만 제자리에서 부드럽게 갱신
+      // 1. 이미 차트가 렌더링되어 있다면 파괴하지 않고 데이터만 제자리에서 부드럽게 갱신 (재애니메이션 방지)
       if (this.charts.compareDonations) {
         const chart = this.charts.compareDonations;
         const currentData = chart.data.datasets[0]?.data || [];
@@ -673,18 +677,19 @@ class ClanManagerApp {
 
         if (isDataChanged) {
           if (!chart.options) chart.options = {};
-        chart.options.animation = {
+          chart.options.animation = {
             duration: 600,
             easing: "easeOutQuart"
           };
           chart.update();
+        } else {
+          chart.resize();
         }
         return;
       }
 
-      // 2. 최초 생성 시: 0 수치로 먼저 바닥 베이스라인을 고정한 뒤, 바로 다음 프레임에서 실제 수치로 서서히 위로 늘어나는 수직 애니메이션 실행
+      // 2. 최초 1회 생성 시: 표준 수직 바 차트 (바닥 0에서부터 위로 서서히 늘어나는 순수 수직 상승 애니메이션)
       const ctx = donationCanvas.getContext("2d");
-      const zeroData = donationData.map(() => 0);
       const maxVal = Math.max(...donationData, 100);
 
       this.charts.compareDonations = new Chart(ctx, {
@@ -694,7 +699,7 @@ class ClanManagerApp {
           datasets: [
             {
               label: "주간 총 지원량",
-              data: zeroData, // 처음엔 바닥 0에서 시작 (막대 없음)
+              data: donationData,
               backgroundColor: backgroundColors,
               borderColor: borderColors,
               borderWidth: 1.5,
@@ -706,7 +711,10 @@ class ClanManagerApp {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: false, // 0 데이터 초기 렌더링 시에는 애니메이션 끔
+          animation: {
+            duration: 850,
+            easing: "easeOutCubic"
+          },
           layout: {
             padding: { top: 24 }
           },
@@ -738,20 +746,6 @@ class ClanManagerApp {
             }
           }
         }
-      });
-
-      // 브라우저 렌더링 프레임 직후 실제 데이터를 주입하여 아래에서부터 서서히 위로 솟구치는 애니메이션 실행
-      const rAF = (typeof requestAnimationFrame === "function") ? requestAnimationFrame : (cb) => setTimeout(cb, 16);
-      rAF(() => {
-        if (!this.charts.compareDonations) return;
-        const chart = this.charts.compareDonations;
-        chart.data.datasets[0].data = donationData;
-        if (!chart.options) chart.options = {};
-        chart.options.animation = {
-          duration: 900,
-          easing: "easeOutQuart"
-        };
-        chart.update();
       });
     }
   }
