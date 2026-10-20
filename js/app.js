@@ -63,11 +63,11 @@ class ClanManagerApp {
       }
     }, 150);
 
-    // 접속 즉시 무조건 실시간 최신 정보 동기화 실행
-    this.autoSyncLive(false);
+    // 접속 즉시 홈 클랜 및 타 갤클 비교 데이터를 병렬 사전 동기화 (초기 로딩바 완료 시 두 탭 모두 100% 준비 완료)
+    this.initialFullSync();
 
-    // 5분 주기 자동 최신 동기화 타이머 (처음 접속 시 1회 즉시 동기화 후 5분 주기 유지)
-    setInterval(() => this.autoSyncLive(false), 1000 * 60 * 5);
+    // 5분 주기 자동 최신 동기화 타이머 (홈 클랜 + 타 갤클 동시 갱신)
+    setInterval(() => this.autoSyncAll(false), 1000 * 60 * 5);
   }
 
   // 초기 동기화 프로그레스 바 수치 갱신 헬퍼
@@ -174,7 +174,7 @@ class ClanManagerApp {
       if (tabHint) {
         tabHint.innerHTML = `
           <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-          <span>디시 갤러리 클랜 3자 비교 뷰</span>
+          <span>갤러리 클랜 3자 비교 뷰</span>
         `;
       }
 
@@ -208,6 +208,28 @@ class ClanManagerApp {
     if (typeof window.scrollTo === "function") { window.scrollTo({ top: 0, behavior: "smooth" }); }
   }
 
+  // 첫 접속 시 홈 클랜과 타 갤클 데이터를 병렬로 모두 100% 동기화한 뒤 모달 닫기
+  async initialFullSync() {
+    try {
+      await Promise.allSettled([
+        this.autoSyncLive(false),
+        this.syncCompareLive(false)
+      ]);
+    } catch (e) {
+      console.warn("초기 전체 동기화 중 오류:", e);
+    } finally {
+      this.hideInitialSyncModal();
+    }
+  }
+
+  // 5분 주기 전체 동기화 (홈 클랜 + 타 갤클 동시 최신화)
+  async autoSyncAll(isManual = false) {
+    await Promise.allSettled([
+      this.autoSyncLive(isManual),
+      this.syncCompareLive(isManual)
+    ]);
+  }
+
   // 무조건 실시간 최신 정보 동기화 (홈 클랜)
   async autoSyncLive(isManual = false) {
     const dot = document.getElementById("sync-dot");
@@ -225,7 +247,6 @@ class ClanManagerApp {
       const liveData = await window.crApi.fetchClanFullData(tag, (partialData) => {
         this.renderClan(partialData);
         this.lastSyncTime = new Date();
-        this.hideInitialSyncModal();
         if (dot) dot.className = "status-dot green live-pulse";
         if (statusText) statusText.textContent = "실시간";
       });
@@ -239,7 +260,6 @@ class ClanManagerApp {
       }
     } catch (err) {
       console.warn("실시간 최신 동기화 알림 (프리셋 폴백 적용):", err.message);
-      // 오프라인이거나 API 오류 시 프리셋 데모 데이터로 즉시 폴백하여 공백 방지
       if (!this.currentData && window.DEMO_CLAN_DATA) {
         this.renderClan(window.DEMO_CLAN_DATA);
       }
@@ -247,7 +267,6 @@ class ClanManagerApp {
       if (statusText) statusText.textContent = "안정";
     } finally {
       if (spinIcon) spinIcon.classList.remove("animate-spin");
-      this.hideInitialSyncModal();
     }
   }
 
@@ -542,6 +561,19 @@ class ClanManagerApp {
 
   // 타 갤클 비교 뷰 전체 렌더링 (차트 + 일원화 리스트)
   renderComparisonView() {
+    // 실시간 데이터가 아직 도착하지 않은 극초반에는 데모 숫자를 노출하지 않고 로딩 인디케이터 표시
+    if (!this.hasCompareLoaded && (!this.compareClansData || this.compareClansData.length === 0)) {
+      const listContainer = document.getElementById("compare-summary-list");
+      if (listContainer) {
+        listContainer.innerHTML = `
+          <div class="p-8 text-center text-slate-400 font-medium text-xs animate-pulse">
+            실시간 갤러리 클랜 데이터 동기화 중...
+          </div>
+        `;
+      }
+      return;
+    }
+
     let clans = this.compareClansData;
     if (!Array.isArray(clans) || clans.length === 0) {
       clans = window.crApi?.getGalleryClansPreset() || [];
@@ -746,7 +778,7 @@ class ClanManagerApp {
 
           <!-- 우측: 인원수, 트로피, 지원량 & 격차 -->
           <div class="flex items-center gap-3 sm:gap-6 shrink-0">
-            <!-- 인원수 (만석, 1석 등 부가 텍스트 제거하고 깔끔하게 인원수만 표출) -->
+            <!-- 인원수 (숫자만 깔끔하게 표출) -->
             <div class="text-right">
               <div class="text-[10px] text-slate-500">인원수</div>
               <div class="text-xs sm:text-sm font-bold text-slate-200 font-mono mt-0.5">
