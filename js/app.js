@@ -611,7 +611,7 @@ class ClanManagerApp {
     if (window.lucide) window.lucide.createIcons();
   }
 
-  // B. Chart.js 주간 지원량 비교 차트 렌더링 (순수 막대 + 상단 지원량 수치)
+  // B. Chart.js 주간 지원량 비교 차트 렌더링 (바닥 0에서 서서히 위로 늘어나는 순수 수직 애니메이션)
   renderCompareCharts(clans) {
     if (!window.Chart) return;
 
@@ -625,10 +625,12 @@ class ClanManagerApp {
       c.isHome ? "#6366f1" : c.name.includes("Vandros") ? "#10b981" : "#f43f5e"
     );
 
+    // 주간 총 지원량(막대) 상단에만 수치 표출 플러그인 (막대가 위로 솟아오르면 숫자가 따라 올라감)
     const barDataLabelsPlugin = {
       id: "barDataLabels",
       afterDatasetsDraw(chart, args, options) {
-        const { ctx } = chart;
+        const { ctx, scales } = chart;
+        const baseY = scales?.y?.getPixelForValue ? scales.y.getPixelForValue(0) : null;
         ctx.save();
         chart.data.datasets.forEach((dataset, i) => {
           const meta = chart.getDatasetMeta(i);
@@ -636,7 +638,10 @@ class ClanManagerApp {
 
           meta.data.forEach((element, index) => {
             const rawVal = dataset.data[index];
-            if (rawVal === undefined || rawVal === null) return;
+            if (rawVal === undefined || rawVal === null || rawVal === 0) return;
+
+            // 바닥에 완전히 붙어있을 때는 숫자를 숨기고, 막대가 바닥 위로 솟아오르면 표출
+            if (typeof baseY === "number" && (baseY - element.y < 10)) return;
 
             ctx.font = "bold 12px Pretendard, -apple-system, sans-serif";
             ctx.textAlign = "center";
@@ -653,7 +658,7 @@ class ClanManagerApp {
 
     const donationCanvas = document.getElementById("chart-compare-donations");
     if (donationCanvas) {
-      // 이미 차트가 생성되어 있다면 차트를 파괴하지 않고 데이터만 부드럽게 갱신 (밑에서 다시 솟구쳐 오르는 재애니메이션 방지)
+      // 1. 이미 차트 인스턴스가 존재할 경우: 차트를 파괴하지 않고 데이터만 제자리에서 부드럽게 갱신
       if (this.charts.compareDonations) {
         const chart = this.charts.compareDonations;
         const currentData = chart.data.datasets[0]?.data || [];
@@ -667,14 +672,21 @@ class ClanManagerApp {
         chart.data.datasets[0].borderColor = borderColors;
 
         if (isDataChanged) {
-          // 수치가 달라졌을 때만 제자리에서 부드럽게 막대 높이 조정 (바닥에서 다시 치솟는 현상 100% 방지)
+          if (!chart.options) chart.options = {};
+        chart.options.animation = {
+            duration: 600,
+            easing: "easeOutQuart"
+          };
           chart.update();
         }
         return;
       }
 
-      // 최초 1회 진입 시에만 차트 신규 생성 및 초기 등장 애니메이션 1회 실행
+      // 2. 최초 생성 시: 0 수치로 먼저 바닥 베이스라인을 고정한 뒤, 바로 다음 프레임에서 실제 수치로 서서히 위로 늘어나는 수직 애니메이션 실행
       const ctx = donationCanvas.getContext("2d");
+      const zeroData = donationData.map(() => 0);
+      const maxVal = Math.max(...donationData, 100);
+
       this.charts.compareDonations = new Chart(ctx, {
         type: "bar",
         data: {
@@ -682,7 +694,7 @@ class ClanManagerApp {
           datasets: [
             {
               label: "주간 총 지원량",
-              data: donationData,
+              data: zeroData, // 처음엔 바닥 0에서 시작 (막대 없음)
               backgroundColor: backgroundColors,
               borderColor: borderColors,
               borderWidth: 1.5,
@@ -694,28 +706,17 @@ class ClanManagerApp {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animations: {
-            x: false,
-            y: {
-              from: (ctx) => {
-                if (ctx.type === "data" && ctx.chart?.scales?.y) {
-                  return ctx.chart.scales.y.getPixelForValue(0);
-                }
-              },
-              duration: 800,
-              easing: "easeOutQuart"
-            }
-          },
+          animation: false, // 0 데이터 초기 렌더링 시에는 애니메이션 끔
           layout: {
             padding: { top: 24 }
           },
           scales: {
             y: {
               beginAtZero: true,
+              suggestedMax: Math.round(maxVal * 1.18),
               ticks: { color: "#94a3b8", font: { size: 10 } },
               grid: { color: "rgba(255,255,255,0.05)" },
-              title: { display: false },
-              grace: "18%"
+              title: { display: false }
             },
             x: {
               ticks: { color: "#f8fafc", font: { size: 11, weight: "bold" } },
@@ -738,10 +739,24 @@ class ClanManagerApp {
           }
         }
       });
+
+      // 브라우저 렌더링 프레임 직후 실제 데이터를 주입하여 아래에서부터 서서히 위로 솟구치는 애니메이션 실행
+      const rAF = (typeof requestAnimationFrame === "function") ? requestAnimationFrame : (cb) => setTimeout(cb, 16);
+      rAF(() => {
+        if (!this.charts.compareDonations) return;
+        const chart = this.charts.compareDonations;
+        chart.data.datasets[0].data = donationData;
+        if (!chart.options) chart.options = {};
+        chart.options.animation = {
+          duration: 900,
+          easing: "easeOutQuart"
+        };
+        chart.update();
+      });
     }
   }
 
-  // C. 클랜별 핵심 현황 및 지원량 격차 리스트 렌더링 (중복 없는 단일 통합 뷰)
+    // C. 클랜별 핵심 현황 및 지원량 격차 리스트 렌더링 (중복 없는 단일 통합 뷰)
   renderCompareSummaryList(clans) {
     const container = document.getElementById("compare-summary-list");
     if (!container) return;
