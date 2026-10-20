@@ -694,9 +694,17 @@ class ClanManagerApp {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: {
-            duration: 750,
-            easing: "easeOutQuart"
+          animations: {
+            x: false,
+            y: {
+              from: (ctx) => {
+                if (ctx.type === "data" && ctx.chart?.scales?.y) {
+                  return ctx.chart.scales.y.getPixelForValue(0);
+                }
+              },
+              duration: 800,
+              easing: "easeOutQuart"
+            }
           },
           layout: {
             padding: { top: 24 }
@@ -706,7 +714,7 @@ class ClanManagerApp {
               beginAtZero: true,
               ticks: { color: "#94a3b8", font: { size: 10 } },
               grid: { color: "rgba(255,255,255,0.05)" },
-              title: { display: true, text: "주간 총 지원량 (개)", color: "#94a3b8", font: { size: 10 } },
+              title: { display: false },
               grace: "18%"
             },
             x: {
