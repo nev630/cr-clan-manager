@@ -157,6 +157,8 @@ class ClanManagerApp {
     const viewCompare = document.getElementById("view-compare");
     const tabBtnDashboard = document.getElementById("tab-btn-dashboard");
     const tabBtnCompare = document.getElementById("tab-btn-compare");
+    const tabHint = document.getElementById("tab-context-hint");
+    const quickCompareBtn = document.getElementById("btn-quick-compare");
 
     if (tabName === "compare") {
       if (viewDashboard) viewDashboard.classList.add("hidden");
@@ -165,11 +167,23 @@ class ClanManagerApp {
       if (tabBtnDashboard) tabBtnDashboard.classList.remove("active");
       if (tabBtnCompare) tabBtnCompare.classList.add("active");
 
-      // 탭이 화면에 표시된 후 캔버스 너비가 안정적으로 측정된 직후 애니메이션과 함께 렌더링
+      if (quickCompareBtn) {
+        quickCompareBtn.classList.add("opacity-50", "pointer-events-none");
+      }
+
+      if (tabHint) {
+        tabHint.innerHTML = `
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+          <span>갤러리 클랜 3자 비교 뷰</span>
+        `;
+      }
+
+      // 탭이 화면에 표시된 후 브라우저 레이아웃(캔버스 실제 너비)이 완전히 측정된 다음 렌더링
       setTimeout(() => {
-        this.renderComparisonView(true);
+        this.renderComparisonView();
       }, 40);
 
+      // 아직 실시간 데이터를 가져오지 않았다면 백그라운드 동기화 수행
       if (!this.hasCompareLoaded) {
         this.syncCompareLive(false);
       }
@@ -179,6 +193,17 @@ class ClanManagerApp {
 
       if (tabBtnCompare) tabBtnCompare.classList.remove("active");
       if (tabBtnDashboard) tabBtnDashboard.classList.add("active");
+
+      if (quickCompareBtn) {
+        quickCompareBtn.classList.remove("opacity-50", "pointer-events-none");
+      }
+
+      if (tabHint) {
+        tabHint.innerHTML = `
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>Good Fellas 단독 뷰</span>
+        `;
+      }
     }
 
     if (window.lucide) window.lucide.createIcons();
@@ -539,7 +564,7 @@ class ClanManagerApp {
   }
 
   // 타 갤클 비교 뷰 전체 렌더링 (차트 + 일원화 리스트)
-  renderComparisonView(forceAnimate = false) {
+  renderComparisonView() {
     // 실시간 데이터가 아직 도착하지 않은 극초반에는 데모 숫자를 노출하지 않고 로딩 인디케이터 표시
     if (!this.hasCompareLoaded && (!this.compareClansData || this.compareClansData.length === 0)) {
       const listContainer = document.getElementById("compare-summary-list");
@@ -582,7 +607,7 @@ class ClanManagerApp {
     });
 
     // 1. Chart.js 주간 총 지원량 단독 바 차트 렌더링
-    this.renderCompareCharts(sortedByDonations, forceAnimate);
+    this.renderCompareCharts(sortedByDonations);
 
     // 2. 클랜별 핵심 현황 및 지원량 격차 일원화 리스트 렌더링 (중복 완전 제거)
     this.renderCompareSummaryList(sortedByDonations);
@@ -590,8 +615,8 @@ class ClanManagerApp {
     if (window.lucide) window.lucide.createIcons();
   }
 
-  // B. Chart.js 주간 지원량 비교 차트 렌더링 (바닥 0에서 위로 차오르는 수직 성장 애니메이션)
-  renderCompareCharts(clans, forceAnimate = false) {
+  // B. Chart.js 주간 지원량 비교 차트 렌더링 (바닥선에서부터 위로 곧게 솟구쳐 오르는 수직 애니메이션)
+  renderCompareCharts(clans) {
     if (!window.Chart) return;
 
     const labels = clans.map((c) => c.name);
@@ -604,6 +629,7 @@ class ClanManagerApp {
       c.isHome ? "#6366f1" : c.name.includes("Vandros") ? "#10b981" : "#f43f5e"
     );
 
+    // 막대 상단 지원량 숫자 표출 플러그인 (막대가 위로 솟구치면 머리 위에 숫자가 함께 나타남)
     const barDataLabelsPlugin = {
       id: "barDataLabels",
       afterDatasetsDraw(chart, args, options) {
@@ -618,7 +644,7 @@ class ClanManagerApp {
             const rawVal = dataset.data[index];
             if (rawVal === undefined || rawVal === null || rawVal === 0) return;
 
-            // 바닥에 완전히 붙어있을 때는 숫자를 숨기고, 막대가 바닥 위로 솟아오르면 표출
+            // 바닥선에 붙어있을 때는 글자를 그리지 않고, 막대가 12px 이상 솟아오르면 표출
             if (typeof baseY === "number" && (baseY - element.y < 12)) return;
 
             ctx.font = "bold 12px Pretendard, -apple-system, sans-serif";
@@ -636,29 +662,33 @@ class ClanManagerApp {
 
     const donationCanvas = document.getElementById("chart-compare-donations");
     if (donationCanvas) {
+      // 1. 이미 차트가 렌더링되어 있다면 파괴하지 않고 데이터만 제자리에서 부드럽게 갱신 (재애니메이션 방지)
       if (this.charts.compareDonations) {
         const chart = this.charts.compareDonations;
+        const currentData = chart.data.datasets[0]?.data || [];
+
+        const isDataChanged = currentData.length !== donationData.length ||
+          currentData.some((val, idx) => val !== donationData[idx]);
+
         chart.data.labels = labels;
         chart.data.datasets[0].data = donationData;
         chart.data.datasets[0].backgroundColor = backgroundColors;
         chart.data.datasets[0].borderColor = borderColors;
 
-        if (forceAnimate) {
-          // 탭을 눌러 진입할 때마다 모바일과 동일하게 바닥 0에서부터 위로 서서히 늘어나는 수직 애니메이션 재생
-          if (typeof chart.reset === "function") chart.reset();
+        if (isDataChanged) {
           if (!chart.options) chart.options = {};
           chart.options.animation = {
-            duration: 850,
-            easing: "easeOutCubic"
+            duration: 600,
+            easing: "easeOutQuart"
           };
           chart.update();
         } else {
-          chart.update();
+          chart.resize();
         }
         return;
       }
 
-      // 최초 1회 생성 시: 표준 수직 바 차트 (바닥 0에서부터 위로 서서히 늘어나는 순수 수직 상승 애니메이션)
+      // 2. 최초 1회 생성 시: 표준 수직 바 차트 (바닥 0에서부터 위로 서서히 늘어나는 순수 수직 상승 애니메이션)
       const ctx = donationCanvas.getContext("2d");
       const maxVal = Math.max(...donationData, 100);
 
@@ -720,7 +750,7 @@ class ClanManagerApp {
     }
   }
 
-  // C. 클랜별 핵심 현황 및 지원량 격차 리스트 렌더링 (중복 없는 단일 통합 뷰)
+    // C. 클랜별 핵심 현황 및 지원량 격차 리스트 렌더링 (중복 없는 단일 통합 뷰)
   renderCompareSummaryList(clans) {
     const container = document.getElementById("compare-summary-list");
     if (!container) return;
