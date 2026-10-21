@@ -293,7 +293,7 @@ body {
 /* 비교 차트 컨테이너 */
 .chart-container-compare {
   position: relative;
-  height: 220px;
+  height: 230px;
   width: 100%;
 }
 @media (max-width: 640px) {
