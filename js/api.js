@@ -2,18 +2,18 @@
  * Clash Royale API Client
  * - Supercell Clash Royale Official API 지원
  * - Cloudflare Worker 프록시 및 CORS 프록시 지원
- * - 7일 이내 배틀 횟수 배치 집계 (동시 요청 제한 큐 & 실시간 프로그레스 바)
- * - 로컬 캐싱 지원
+ * - SWR (Stale-While-Revalidate) 로컬 캐싱 지원
+ * - 14,000+ 시즌 트로피 병렬 배치(Concurrent Batch) 동기화 지원
  */
 
 class ClashRoyaleAPI {
   constructor() {
     this.storageKeySettings = "cr_manager_settings_v1";
-    this.storageKeyCache = "cr_manager_clan_cache_v1";
+    this.storageKeyCache = "cr_manager_clan_cache_v2";
     this.settings = this.loadSettings();
   }
 
-  // 기본 설정 로드 (항상 신뢰할 수 있는 전용 Cloudflare Worker 실시간 동기화 강제)
+  // 기본 설정 로드
   loadSettings() {
     const defaultWorkerUrl = "https://green-disk-88a6.marble593812345.workers.dev";
     return {
@@ -21,9 +21,8 @@ class ClashRoyaleAPI {
       clanTag: "#G890J9JC",
       proxyMode: "worker",
       workerUrl: defaultWorkerUrl,
-      autoFetchBattles: false,
       batchConcurrency: 4,
-      cacheDurationMinutes: 0 // 캐시 완전 비활성화
+      cacheDurationMinutes: 10
     };
   }
 
@@ -171,129 +170,7 @@ class ClashRoyaleAPI {
     return maxTrophies;
   }
 
-  // 특정 플레이어의 배틀로그 조회
-  async fetchPlayerBattlelog(playerTag) {
-    const encoded = this.encodeTag(playerTag);
-    const endpoint = `/v1/players/${encoded}/battlelog`;
-    return await this.fetchWithAuth(endpoint);
-  }
-
-  // 배틀로그 로컬 누적 캐시 업데이트 (여러 날에 걸쳐 방문 시 30개 한계를 넘어 실제 1vs1 배틀 누적)
-  updatePlayerBattleHistory(playerTag, battles) {
-    if (!playerTag || !Array.isArray(battles)) return 0;
-    const safeTag = String(playerTag).trim();
-    if (safeTag === "__proto__" || safeTag === "constructor" || safeTag === "prototype") {
-      return 0;
-    }
-    try {
-      const key = "cr_manager_battle_history_v2";
-      let historyMap = Object.create(null);
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        Object.assign(historyMap, JSON.parse(saved));
-      }
-
-      const now = Date.now();
-      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-
-      const playerHistory = new Set(historyMap[safeTag] || []);
-      battles.forEach(b => {
-        if (!b.battleTime) return;
-        // 로얄API Decks 탭 '7 days 1vs1 battle' 기준: 순수 1vs1 배틀만 누적
-        const is2v2 = b.type && b.type.toLowerCase().includes("2v2");
-        const isCW = b.type === "boatBattle" || b.type === "riverRacePvP" || b.type === "riverRaceDuel";
-        if (!is2v2 && !isCW) {
-          playerHistory.add(b.battleTime);
-        }
-      });
-
-      // 7일 지난 배틀 정리
-      const validBattles = Array.from(playerHistory).filter(timeStr => {
-        const d = this.parseApiDate(timeStr);
-        return d && (now - d.getTime() <= sevenDaysMs);
-      });
-
-      historyMap[safeTag] = validBattles;
-      localStorage.setItem(key, JSON.stringify(historyMap));
-      return validBattles.length;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  // 배틀로그 분석: 최근 7일 내 순수 1vs1 대전 수 집계 (로얄API Decks 탭의 '7 days 1vs1 battle' 기준)
-  analyzeBattlelog(battles, playerTag = "") {
-    if (!Array.isArray(battles) || battles.length === 0) {
-      return { recentBattles7d: 0, isMaxed: false, warDecksUsed7d: 0, lastBattleTime: null };
-    }
-
-    const now = Date.now();
-    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-    
-    // 1. 순수 1vs1 대전(Path of Legend, Trophy Road, 1v1 Challenge/Tournament) 분류 및 7일 이내 필터링
-    const pvp7d = [];
-    let cw7dCount = 0;
-    let lastBattleTime = null;
-
-    for (let i = 0; i < battles.length; i++) {
-      const b = battles[i];
-      if (!b.battleTime) continue;
-      const bDate = this.parseApiDate(b.battleTime);
-      if (!bDate || isNaN(bDate.getTime())) continue;
-
-      if (!lastBattleTime) {
-        lastBattleTime = bDate.toISOString();
-      }
-
-      const diff = now - bDate.getTime();
-      if (diff <= sevenDaysMs) {
-        if (b.type === "boatBattle" || b.type === "riverRacePvP" || b.type === "riverRaceDuel") {
-          cw7dCount++;
-        } else {
-          // 2v2 모드 제외 -> 순수 1vs1만 집계
-          const is2v2 = b.type && b.type.toLowerCase().includes("2v2");
-          if (!is2v2) {
-            pvp7d.push(bDate);
-          }
-        }
-      }
-    }
-
-    const pvpCount = pvp7d.length;
-    let finalBattles7d = pvpCount;
-
-    // 2. 슈퍼셀 공식 API의 버퍼(28~30개) 상한 도달 시, 실제 배틀 간격 기반 주간 활동 환산 (로얄API 1vs1 수준 동기화)
-    if (pvpCount >= 28) {
-      const newestPvP = pvp7d[0];
-      const oldestPvP = pvp7d[pvpCount - 1];
-      const spanHours = Math.max(1, (newestPvP.getTime() - oldestPvP.getTime()) / (1000 * 60 * 60));
-
-      const effectiveDays = Math.max(1.5, spanHours / 24.0);
-      const dailyRate = 30.0 / effectiveDays;
-      const remainingDays = Math.max(0.0, (168.0 - spanHours) / 24.0);
-      const factor = spanHours < 24 ? 0.38 : (spanHours < 48 ? 0.48 : 0.58);
-      
-      const estimated = 30 + Math.round(remainingDays * dailyRate * factor);
-      finalBattles7d = Math.min(88, Math.max(30, estimated));
-    }
-
-    // 3. 브라우저 로컬 누적 히스토리와 비교 (로얄API처럼 계속 누적)
-    if (playerTag) {
-      const historyCount = this.updatePlayerBattleHistory(playerTag, battles);
-      if (historyCount > finalBattles7d) {
-        finalBattles7d = historyCount;
-      }
-    }
-
-    return {
-      recentBattles7d: finalBattles7d,
-      isMaxed: pvpCount >= 28,
-      warDecksUsed7d: cw7dCount,
-      lastBattleTime
-    };
-  }
-
-  // 클랜 전체 정보 실시간 동기화 (기본 정보 초고속 조회 + 14000 상한 도달자 시즌 트로피 보강)
+  // 클랜 전체 정보 실시간 동기화 (Fast-path 0.3초 선반영 + 14000+ 도달자 병렬 배치 비동기 보강)
   async fetchClanFullData(clanTag, onPartialData = null) {
     // 1. 클랜 기본 정보(멤버, 직책, 지원량, 기본 트로피, 마지막 접속) 초고속 조회 (0.3초)
     const clanData = await this.fetchClan(clanTag);
@@ -302,35 +179,46 @@ class ClashRoyaleAPI {
       throw new Error("클랜원 목록을 불러오지 못했습니다.");
     }
 
-    // 기본 데이터 수신 즉시 UI에 선반영하여 0.3초 만에 최신 정보를 보도록 콜백 호출
+    // 기본 데이터 수신 즉시 UI 선반영 및 SWR 캐시 갱신
+    this.saveCache(clanTag, clanData);
     if (typeof onPartialData === "function") {
       onPartialData(clanData);
     }
 
     const members = clanData.memberList;
 
-    // 2. 14000 트로피 상한선에 도달한 멤버들의 실제 시즌 트로피(14000~15000+) 백그라운드 비동기 보강
+    // 2. [성능 최적화] 14,000+ 트로피 멤버 전체를 병렬 배치(Promise.all)로 동시 처리 (15명 제한 해제 및 N+1 병목 해결)
     const cappedMembers = members.filter(m => (m.trophies || 0) >= 14000);
 
     if (cappedMembers.length > 0) {
       setTimeout(async () => {
         let hasChanges = false;
-        for (let i = 0; i < Math.min(cappedMembers.length, 15); i++) {
-          const member = cappedMembers[i];
-          if (!member || !member.tag) continue;
-          try {
-            const profile = await this.fetchPlayer(member.tag);
-            const trueTrophies = this.extractSeasonalTrophies(profile);
-            if (trueTrophies > member.trophies) {
-              member.trophies = trueTrophies;
-              hasChanges = true;
-            }
-          } catch (e) {
-            // 실패 시 기존 14000 유지
-          }
+        const concurrency = this.settings.batchConcurrency || 4;
+
+        for (let i = 0; i < cappedMembers.length; i += concurrency) {
+          const batch = cappedMembers.slice(i, i + concurrency);
+          await Promise.all(
+            batch.map(async (member) => {
+              if (!member || !member.tag) return;
+              try {
+                const profile = await this.fetchPlayer(member.tag);
+                const trueTrophies = this.extractSeasonalTrophies(profile);
+                if (trueTrophies > member.trophies) {
+                  member.trophies = trueTrophies;
+                  hasChanges = true;
+                }
+              } catch (e) {
+                // 개별 프로필 실패 시 기존 14000 유지
+              }
+            })
+          );
         }
-        if (hasChanges && typeof onPartialData === "function") {
-          onPartialData(clanData);
+
+        if (hasChanges) {
+          this.saveCache(clanTag, clanData);
+          if (typeof onPartialData === "function") {
+            onPartialData(clanData);
+          }
         }
       }, 50);
     }
@@ -338,13 +226,35 @@ class ClashRoyaleAPI {
     return clanData;
   }
 
-  // 캐시 저장 (무조건 최신 정보 실시간 동기화를 위해 로컬 저장 비활성화)
+  // [SWR] 로컬 캐시 저장
   saveCache(clanTag, data) {
-    // 최신 정보 유지를 위해 캐시 저장 생략
+    if (!clanTag || !data) return;
+    try {
+      const key = `${this.storageKeyCache}_${this.normalizeTag(clanTag)}`;
+      const payload = {
+        timestamp: Date.now(),
+        data: data
+      };
+      localStorage.setItem(key, JSON.stringify(payload));
+    } catch (e) {
+      console.warn("캐시 저장 실패:", e);
+    }
   }
 
-  // 캐시 로드 (무조건 최신 정보 실시간 동기화를 위해 항상 null 반환)
+  // [SWR] 로컬 캐시 불러오기
   loadCache(clanTag) {
+    if (!clanTag) return null;
+    try {
+      const key = `${this.storageKeyCache}_${this.normalizeTag(clanTag)}`;
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.data) {
+        return parsed; // { timestamp, data }
+      }
+    } catch (e) {
+      return null;
+    }
     return null;
   }
 
