@@ -235,34 +235,37 @@
         </p>
       </div>
 
-      <!-- 2. 시각화: 주간 총 지원량 비교 차트 (상단 숫자 표출) -->
-      <section class="surface-card p-3.5 sm:p-4">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-semibold text-slate-200">주간 총 지원량 비교</span>
-            <span class="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 font-medium">실시간</span>
+      <!-- 2. 데스크톱 2분할 그리드: 좌측 차트 + 우측 핵심 현황 및 격차 (양옆 배치) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 items-stretch">
+        <!-- A. 시각화: 주간 총 지원량 비교 차트 -->
+        <section class="surface-card p-3.5 sm:p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2 shrink-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-semibold text-slate-200">주간 총 지원량 비교</span>
+              <span class="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 font-medium">실시간</span>
+            </div>
+            <span class="text-[10px] text-slate-400">단위: 개</span>
           </div>
-          <span class="text-[10px] text-slate-400">단위: 개</span>
-        </div>
-        <div class="chart-container-compare">
-          <canvas id="chart-compare-donations"></canvas>
-        </div>
-      </section>
-
-      <!-- 3. 클랜별 핵심 현황 및 격차 (단일 통합 리스트로 중복 완전 해소) -->
-      <section class="surface-card overflow-hidden">
-        <div class="p-3.5 sm:p-4 border-b border-white/[0.04] flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
-            <h3 class="text-xs sm:text-sm font-semibold text-white">클랜별 핵심 현황 및 지원량 격차</h3>
+          <div class="chart-container-compare flex-1 flex items-center">
+            <canvas id="chart-compare-donations"></canvas>
           </div>
-          <span class="text-[10px] sm:text-[11px] text-slate-400 font-mono">Good Fellas 기준</span>
-        </div>
+        </section>
 
-        <div class="divide-y divide-white/[0.04]" id="compare-summary-list">
-          <!-- JavaScript 동적 렌더링 -->
-        </div>
-      </section>
+        <!-- B. 클랜별 핵심 현황 및 격차 -->
+        <section class="surface-card overflow-hidden flex flex-col justify-between">
+          <div class="p-3.5 sm:p-4 border-b border-white/[0.04] flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+              <h3 class="text-xs sm:text-sm font-semibold text-white">클랜별 핵심 현황 및 지원량 격차</h3>
+            </div>
+            <span class="text-[10px] sm:text-[11px] text-slate-400 font-mono">Good Fellas 기준</span>
+          </div>
+
+          <div class="divide-y divide-white/[0.04] flex-1 flex flex-col justify-around" id="compare-summary-list">
+            <!-- JavaScript 동적 렌더링 -->
+          </div>
+        </section>
+      </div>
 
 
 
