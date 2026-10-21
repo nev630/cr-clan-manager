@@ -20,7 +20,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 9000,
       "clanRank": 1,
       "donations": 700,
-      "donationsReceived": 489
+      "donationsReceived": 489,
+      "recentBattles7d": 74,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#GYRP22P20",
@@ -31,7 +34,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8955,
       "clanRank": 2,
       "donations": 686,
-      "donationsReceived": 480
+      "donationsReceived": 480,
+      "recentBattles7d": 68,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2P8UVGQPL",
@@ -42,7 +48,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8910,
       "clanRank": 3,
       "donations": 672,
-      "donationsReceived": 470
+      "donationsReceived": 470,
+      "recentBattles7d": 62,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#C29YVPGU0",
@@ -53,7 +62,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8865,
       "clanRank": 4,
       "donations": 658,
-      "donationsReceived": 460
+      "donationsReceived": 460,
+      "recentBattles7d": 59,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#89U2UU2U2",
@@ -64,7 +76,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8820,
       "clanRank": 5,
       "donations": 644,
-      "donationsReceived": 450
+      "donationsReceived": 450,
+      "recentBattles7d": 54,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#28Q88V8JV",
@@ -75,7 +90,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8775,
       "clanRank": 6,
       "donations": 630,
-      "donationsReceived": 441
+      "donationsReceived": 441,
+      "recentBattles7d": 49,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#LPPVJP2RY",
@@ -86,7 +104,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8730,
       "clanRank": 7,
       "donations": 616,
-      "donationsReceived": 431
+      "donationsReceived": 431,
+      "recentBattles7d": 45,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2GRG0JJV",
@@ -97,7 +118,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8685,
       "clanRank": 8,
       "donations": 602,
-      "donationsReceived": 421
+      "donationsReceived": 421,
+      "recentBattles7d": 42,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#8GQQP9R02",
@@ -108,7 +132,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8640,
       "clanRank": 9,
       "donations": 588,
-      "donationsReceived": 411
+      "donationsReceived": 411,
+      "recentBattles7d": 39,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#CUYYG8V0",
@@ -119,7 +146,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8595,
       "clanRank": 10,
       "donations": 574,
-      "donationsReceived": 401
+      "donationsReceived": 401,
+      "recentBattles7d": 36,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#292QPGP8U",
@@ -130,7 +160,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8550,
       "clanRank": 11,
       "donations": 560,
-      "donationsReceived": 392
+      "donationsReceived": 392,
+      "recentBattles7d": 34,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2Y9JGG8R",
@@ -141,7 +174,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8505,
       "clanRank": 12,
       "donations": 546,
-      "donationsReceived": 382
+      "donationsReceived": 382,
+      "recentBattles7d": 58,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2CQJ0VCLJ",
@@ -152,7 +188,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8460,
       "clanRank": 13,
       "donations": 532,
-      "donationsReceived": 372
+      "donationsReceived": 372,
+      "recentBattles7d": 28,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#80CPQ0GL9",
@@ -163,7 +202,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8415,
       "clanRank": 14,
       "donations": 518,
-      "donationsReceived": 362
+      "donationsReceived": 362,
+      "recentBattles7d": 26,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2020JLLRLU",
@@ -174,7 +216,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8370,
       "clanRank": 15,
       "donations": 504,
-      "donationsReceived": 352
+      "donationsReceived": 352,
+      "recentBattles7d": 24,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#UJQGGYCVV",
@@ -185,7 +230,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8325,
       "clanRank": 16,
       "donations": 490,
-      "donationsReceived": 343
+      "donationsReceived": 343,
+      "recentBattles7d": 22,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#29UJ0L0U",
@@ -196,7 +244,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8280,
       "clanRank": 17,
       "donations": 476,
-      "donationsReceived": 333
+      "donationsReceived": 333,
+      "recentBattles7d": 20,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#P8LCY8R8",
@@ -207,7 +258,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8235,
       "clanRank": 18,
       "donations": 462,
-      "donationsReceived": 323
+      "donationsReceived": 323,
+      "recentBattles7d": 19,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#CJ900GC",
@@ -218,7 +272,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8190,
       "clanRank": 19,
       "donations": 448,
-      "donationsReceived": 313
+      "donationsReceived": 313,
+      "recentBattles7d": 18,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#Q9YLPUYR0",
@@ -229,7 +286,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8145,
       "clanRank": 20,
       "donations": 434,
-      "donationsReceived": 303
+      "donationsReceived": 303,
+      "recentBattles7d": 17,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2RYU2PGUG",
@@ -240,7 +300,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8100,
       "clanRank": 21,
       "donations": 420,
-      "donationsReceived": 294
+      "donationsReceived": 294,
+      "recentBattles7d": 16,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#9PYGRYQ2",
@@ -251,7 +314,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8055,
       "clanRank": 22,
       "donations": 406,
-      "donationsReceived": 284
+      "donationsReceived": 284,
+      "recentBattles7d": 15,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#P92LG2UJU",
@@ -262,7 +328,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 8010,
       "clanRank": 23,
       "donations": 392,
-      "donationsReceived": 274
+      "donationsReceived": 274,
+      "recentBattles7d": 14,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#VJL9P9J0",
@@ -273,7 +342,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7965,
       "clanRank": 24,
       "donations": 378,
-      "donationsReceived": 264
+      "donationsReceived": 264,
+      "recentBattles7d": 13,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2U9J8QC0C",
@@ -284,7 +356,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7920,
       "clanRank": 25,
       "donations": 364,
-      "donationsReceived": 254
+      "donationsReceived": 254,
+      "recentBattles7d": 12,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#VC228RQJQ",
@@ -295,7 +370,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7875,
       "clanRank": 26,
       "donations": 350,
-      "donationsReceived": 244
+      "donationsReceived": 244,
+      "recentBattles7d": 11,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#8LUY90GGR",
@@ -306,7 +384,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7830,
       "clanRank": 27,
       "donations": 336,
-      "donationsReceived": 235
+      "donationsReceived": 235,
+      "recentBattles7d": 10,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#PJG9RLQC",
@@ -317,7 +398,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7785,
       "clanRank": 28,
       "donations": 322,
-      "donationsReceived": 225
+      "donationsReceived": 225,
+      "recentBattles7d": 9,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#VRRQVPRU8",
@@ -328,7 +412,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7740,
       "clanRank": 29,
       "donations": 308,
-      "donationsReceived": 215
+      "donationsReceived": 215,
+      "recentBattles7d": 8,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2YJQYUJL9",
@@ -339,7 +426,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7695,
       "clanRank": 30,
       "donations": 294,
-      "donationsReceived": 205
+      "donationsReceived": 205,
+      "recentBattles7d": 7,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#20UU2L22GQ",
@@ -350,7 +440,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7650,
       "clanRank": 31,
       "donations": 280,
-      "donationsReceived": 196
+      "donationsReceived": 196,
+      "recentBattles7d": 6,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#PCQUGC8QV",
@@ -361,7 +454,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7605,
       "clanRank": 32,
       "donations": 266,
-      "donationsReceived": 186
+      "donationsReceived": 186,
+      "recentBattles7d": 5,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2VLVGCPYP",
@@ -372,7 +468,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7560,
       "clanRank": 33,
       "donations": 252,
-      "donationsReceived": 176
+      "donationsReceived": 176,
+      "recentBattles7d": 4,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#8GVQ8JVRU",
@@ -383,7 +482,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7515,
       "clanRank": 34,
       "donations": 238,
-      "donationsReceived": 166
+      "donationsReceived": 166,
+      "recentBattles7d": 3,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2LCC88JRY",
@@ -394,7 +496,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7470,
       "clanRank": 35,
       "donations": 224,
-      "donationsReceived": 156
+      "donationsReceived": 156,
+      "recentBattles7d": 2,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#28Q2UCL8R",
@@ -405,7 +510,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7425,
       "clanRank": 36,
       "donations": 210,
-      "donationsReceived": 147
+      "donationsReceived": 147,
+      "recentBattles7d": 1,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#LJ00RPUR2",
@@ -416,7 +524,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7380,
       "clanRank": 37,
       "donations": 40,
-      "donationsReceived": 28
+      "donationsReceived": 28,
+      "recentBattles7d": 0,
+      "warDecksUsed7d": 8,
+      "memo": "주의 필요"
     },
     {
       "tag": "#P0YLPUUCY",
@@ -427,7 +538,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7335,
       "clanRank": 38,
       "donations": 0,
-      "donationsReceived": 0
+      "donationsReceived": 0,
+      "recentBattles7d": 10,
+      "warDecksUsed7d": 0,
+      "memo": "🚨 3일 이상 미접속"
     },
     {
       "tag": "#PGU0P0QGU",
@@ -438,7 +552,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7290,
       "clanRank": 39,
       "donations": 168,
-      "donationsReceived": 117
+      "donationsReceived": 117,
+      "recentBattles7d": 9,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#V9UY0UQP9",
@@ -449,7 +566,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7245,
       "clanRank": 40,
       "donations": 154,
-      "donationsReceived": 107
+      "donationsReceived": 107,
+      "recentBattles7d": 8,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2PJC2CR22",
@@ -460,7 +580,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7200,
       "clanRank": 41,
       "donations": 140,
-      "donationsReceived": 98
+      "donationsReceived": 98,
+      "recentBattles7d": 7,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#2R2PVY99L",
@@ -471,7 +594,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7155,
       "clanRank": 42,
       "donations": 126,
-      "donationsReceived": 88
+      "donationsReceived": 88,
+      "recentBattles7d": 6,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#JG9LYQGJQ",
@@ -482,7 +608,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7110,
       "clanRank": 43,
       "donations": 112,
-      "donationsReceived": 78
+      "donationsReceived": 78,
+      "recentBattles7d": 5,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#88JGV2RY2",
@@ -493,7 +622,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7065,
       "clanRank": 44,
       "donations": 98,
-      "donationsReceived": 68
+      "donationsReceived": 68,
+      "recentBattles7d": 4,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#892YG9U0J",
@@ -504,7 +636,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 7020,
       "clanRank": 45,
       "donations": 84,
-      "donationsReceived": 58
+      "donationsReceived": 58,
+      "recentBattles7d": 3,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#GRYGY0P2P",
@@ -515,7 +650,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 6975,
       "clanRank": 46,
       "donations": 70,
-      "donationsReceived": 49
+      "donationsReceived": 49,
+      "recentBattles7d": 2,
+      "warDecksUsed7d": 16,
+      "memo": ""
     },
     {
       "tag": "#20PR8GQ9PV",
@@ -526,7 +664,10 @@ window.DEMO_CLAN_DATA = {
       "trophies": 6930,
       "clanRank": 47,
       "donations": 56,
-      "donationsReceived": 39
+      "donationsReceived": 39,
+      "recentBattles7d": 1,
+      "warDecksUsed7d": 16,
+      "memo": ""
     }
   ]
 };
