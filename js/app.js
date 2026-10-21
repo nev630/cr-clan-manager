@@ -36,13 +36,6 @@ class ClanManagerApp {
   init() {
     this.bindEvents();
 
-    // 이전 로컬스토리지 캐시 및 구버전 세팅 완전 정리
-    try {
-      localStorage.removeItem("cr_manager_clan_cache_v1");
-      localStorage.removeItem("cr_manager_settings_v1");
-      localStorage.removeItem("cr_manager_cache_ver");
-    } catch (e) {}
-
     // 갤클 비교 프리셋 데이터 사전 로드 (오프라인/즉시 렌더링 지원)
     if (window.crApi && typeof window.crApi.getGalleryClansPreset === "function") {
       this.compareClansData = window.crApi.getGalleryClansPreset();
@@ -50,20 +43,39 @@ class ClanManagerApp {
 
     if (window.lucide) window.lucide.createIcons();
 
-    // 초기 로딩바 서서히 차오르는 프로그레시브 애니메이션 시작
-    this.initialProgress = 5;
-    this.updateInitialProgress(this.initialProgress, "서버 연결 및 데이터 동기화 중...");
-    this.progressInterval = setInterval(() => {
-      if (this.initialProgress < 88) {
-        const step = Math.max(2, Math.round((90 - this.initialProgress) / 4));
-        this.initialProgress += step;
-        let msg = "클랜원 지원량 및 접속 기록 동기화 중...";
-        if (this.initialProgress > 60) msg = "시즌 트로피 및 랭킹 데이터 집계 중...";
-        this.updateInitialProgress(this.initialProgress, msg);
-      }
-    }, 150);
+    // [SWR] 직전 방문 캐시 데이터 확인: 캐시 존재 시 0초 즉시 선반영 (Stale)
+    const clanTag = window.crApi?.settings?.clanTag || "#G890J9JC";
+    const cached = window.crApi?.loadCache(clanTag);
 
-    // 접속 즉시 홈 클랜 및 타 갤클 비교 데이터를 병렬 사전 동기화 (초기 로딩바 완료 시 두 탭 모두 100% 준비 완료)
+    const modal = document.getElementById("initial-sync-modal");
+
+    if (cached && cached.data) {
+      // 캐시된 데이터 즉시 렌더링 (체감 로딩 지연 0ms)
+      this.renderClan(cached.data);
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.dataset.dismissed = "true";
+      }
+      const dot = document.getElementById("sync-dot");
+      const statusText = document.getElementById("sync-status-text");
+      if (dot) dot.className = "status-dot amber live-pulse";
+      if (statusText) statusText.textContent = "동기화 중";
+    } else {
+      // 첫 방문 등으로 캐시가 없을 때만 프로그레시브 모달 표시
+      this.initialProgress = 5;
+      this.updateInitialProgress(this.initialProgress, "서버 연결 및 데이터 동기화 중...");
+      this.progressInterval = setInterval(() => {
+        if (this.initialProgress < 88) {
+          const step = Math.max(2, Math.round((90 - this.initialProgress) / 4));
+          this.initialProgress += step;
+          let msg = "클랜원 지원량 및 접속 기록 동기화 중...";
+          if (this.initialProgress > 60) msg = "시즌 트로피 및 랭킹 데이터 집계 중...";
+          this.updateInitialProgress(this.initialProgress, msg);
+        }
+      }, 150);
+    }
+
+    // 접속 즉시 홈 클랜 및 타 갤클 비교 데이터 실시간 백그라운드 동기화 (Revalidate)
     this.initialFullSync();
 
     // 5분 주기 자동 최신 동기화 타이머 (홈 클랜 + 타 갤클 동시 갱신)
@@ -138,15 +150,7 @@ class ClanManagerApp {
       refreshCompareBtn.addEventListener("click", () => this.syncCompareLive(true));
     }
 
-    // 5. 커스텀 갤클 추가 버튼 및 엔터키 바인딩
-    const addClanBtn = document.getElementById("btn-add-compare-clan");
-    const addClanInput = document.getElementById("input-custom-clan-tag");
-    if (addClanBtn && addClanInput) {
-      addClanBtn.addEventListener("click", () => this.handleCustomClanAdd());
-      addClanInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") this.handleCustomClanAdd();
-      });
-    }
+
   }
 
   // 메인 탭 전환: 'dashboard' (내 클랜) <-> 'compare' (타 갤클과 비교)
@@ -518,23 +522,6 @@ class ClanManagerApp {
       if (this.activeMainTab === "compare") {
         this.renderComparisonView();
       }
-    }
-  }
-
-  // 커스텀 갤클 태그 추가 핸들러
-  handleCustomClanAdd() {
-    const input = document.getElementById("input-custom-clan-tag");
-    if (!input) return;
-    const rawVal = input.value.trim();
-    if (!rawVal) return;
-
-    const normalized = window.crApi ? window.crApi.normalizeTag(rawVal) : (rawVal.startsWith("#") ? rawVal : "#" + rawVal);
-    if (!this.compareTags.includes(normalized)) {
-      this.compareTags.push(normalized);
-      input.value = "";
-      this.syncCompareLive(true);
-    } else {
-      alert("이미 비교 목록에 등록된 클랜 태그입니다.");
     }
   }
 
