@@ -794,7 +794,7 @@ class ClanManagerApp {
           </div>
 
           <!-- 우측: 인원수, 트로피, 지원량 & 격차 -->
-          <div class="flex items-center gap-3 sm:gap-6 shrink-0">
+          <div class="flex items-center gap-2 sm:gap-3.5 lg:gap-4 shrink-0">
             <!-- 인원수 (숫자만 깔끔하게 표출) -->
             <div class="text-right">
               <div class="text-[10px] text-slate-500">인원수</div>
