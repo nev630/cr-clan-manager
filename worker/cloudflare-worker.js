@@ -18,7 +18,7 @@
  */
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const origin = request.headers.get("Origin");
     const allowedOrigin = env.ALLOWED_ORIGIN || "*";
     const corsOrigin = (allowedOrigin === "*" || origin === allowedOrigin) ? (origin || "*") : allowedOrigin;
