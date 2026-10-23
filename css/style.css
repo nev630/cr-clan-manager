@@ -59,9 +59,6 @@ body {
   background-color: var(--accent-rose);
   box-shadow: 0 0 6px rgba(244, 63, 94, 0.4);
 }
-.status-dot.gray {
-  background-color: var(--text-muted);
-}
 
 /* 펄스 애니메이션 (라이브 동기화용) */
 @keyframes pulseDot {
@@ -217,13 +214,11 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* 모바일 전용 레이아웃 미세 조정 */
 @media (max-width: 640px) {
-  .chart-container-bar, .chart-container-donut {
+  .chart-container-donut {
     height: 170px;
   }
 }
-
 
 /* 메인 네비게이션 탭 버튼 */
 .main-nav-btn {
@@ -267,27 +262,12 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
-.clan-compare-card.home-clan {
-  border-color: rgba(99, 102, 241, 0.45);
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.06) 0%, rgba(15, 18, 26, 1) 100%);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
-}
 
 /* 랭킹 뱃지 */
 .rank-badge-gold {
   background: rgba(251, 191, 36, 0.15);
   color: #fbbf24;
   border: 1px solid rgba(251, 191, 36, 0.3);
-}
-.rank-badge-silver {
-  background: rgba(203, 213, 225, 0.15);
-  color: #e2e8f0;
-  border: 1px solid rgba(203, 213, 225, 0.3);
-}
-.rank-badge-bronze {
-  background: rgba(217, 119, 6, 0.15);
-  color: #f59e0b;
-  border: 1px solid rgba(217, 119, 6, 0.3);
 }
 
 /* 비교 차트 컨테이너 */
@@ -302,7 +282,7 @@ body {
   }
 }
 
-/* 모바일 텍스트 2줄 쪼개짐 원천 방지 및 반응형 비율 최적화 */
+/* 모바일 텍스트 줄바꿈 방지 */
 #clan-name, #clan-tag, #sync-status-text, .main-nav-btn, #btn-quick-compare {
   white-space: nowrap !important;
   word-break: keep-all;
