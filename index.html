@@ -51,15 +51,15 @@
           <span class="text-[10px] font-mono text-slate-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06] whitespace-nowrap" id="clan-tag">#G890J9JC</span>
         </div>
         <p class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[190px]" id="clan-desc">
-          좋은 친구들 갤러리 🐬
+          클랜원 주간 지원량 · 마지막 접속 실시간 모니터링
         </p>
       </div>
 
-      <!-- 우측: 요약 이미지 저장 버튼 & 실시간 상태 인디케이터 -->
+      <!-- 우측: 실시간 동기화 상태 인디케이터 (모바일 원래 동작대로 상단 버튼 숨김 유지, 하단 50:50 탭에 집중) -->
       <div class="flex items-center gap-1.5 shrink-0">
-        <button id="btn-export-image" class="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold items-center gap-1.5 transition shadow-sm whitespace-nowrap flex" onclick="window.exportClanSummaryImage(window.app)" title="모바일 세로 리포트 이미지 저장">
-          <i data-lucide="image-down" class="w-3.5 h-3.5 text-indigo-400"></i>
-          <span>이미지 저장</span>
+        <button id="btn-quick-compare" class="hidden px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold items-center gap-1.5 transition shadow-sm whitespace-nowrap" onclick="window.app.switchMainTab('compare')">
+          <i data-lucide="scale" class="w-3.5 h-3.5"></i>
+          <span>타 갤클과 비교</span>
         </button>
 
         <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-[10px] whitespace-nowrap shrink-0">
@@ -102,28 +102,22 @@
       <section class="grid grid-cols-3 gap-2 mt-4">
         <div class="surface-card p-3">
           <div class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">전체 클랜원</div>
-          <div class="text-lg font-bold text-white mt-0.5" id="stat-total-members">50 / 50</div>
-          <div class="text-[10px] text-emerald-400 mt-0.5 truncate" id="stat-member-vacant">여유 자리: 0석</div>
+          <div class="text-lg font-bold text-white mt-0.5" id="stat-total-members">- / 50</div>
+          <div class="text-[10px] text-emerald-400 mt-0.5 truncate" id="stat-member-vacant">실시간 집계 중...</div>
         </div>
 
         <div class="surface-card p-3">
           <div class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">주간 총 지원량</div>
-          <div class="text-lg font-bold text-amber-400 mt-0.5" id="stat-total-donations">17,050</div>
-          <div class="text-[10px] text-slate-400 mt-0.5 truncate" id="stat-avg-donations">1인 평균 341개</div>
+          <div class="text-lg font-bold text-amber-400 mt-0.5" id="stat-total-donations">-</div>
+          <div class="text-[10px] text-slate-400 mt-0.5 truncate" id="stat-avg-donations">1인 평균 계산 중...</div>
         </div>
 
         <div class="surface-card p-3 cursor-pointer hover:border-rose-500/30 transition group" onclick="window.app.setQuickFilter('dormant')">
           <div class="text-[10px] font-medium text-slate-400 group-hover:text-rose-400 transition uppercase tracking-wider">3일+ 미접속</div>
-          <div class="text-lg font-bold text-rose-400 mt-0.5" id="stat-dormant-count">0명</div>
+          <div class="text-lg font-bold text-rose-400 mt-0.5" id="stat-dormant-count">-</div>
           <div class="text-[10px] text-slate-500 group-hover:text-rose-400/80 transition mt-0.5 truncate underline">대상자 보기</div>
         </div>
       </section>
-
-      <!-- 주간 리포트 이미지 저장 원클릭 배너 -->
-      <button onclick="window.exportClanSummaryImage(window.app)" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-500/10 via-purple-500/15 to-indigo-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-indigo-500/25 text-indigo-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-sm cursor-pointer">
-        <i data-lucide="image-down" class="w-4 h-4 text-indigo-400"></i>
-        <span>📊 모바일 맞춤 세로 종합 리포트 이미지 저장</span>
-      </button>
 
       <!-- 3. 시각화 세션: 올림픽 시상대 단상 (Top 7) & 접속 분포 도넛 (모바일 1열 적층 유지) -->
       <section class="grid grid-cols-1 gap-3">
@@ -304,7 +298,6 @@
   <!-- Scripts with Cache Busting -->
   <script src="js/demo-data.js?v=20261019_1440"></script>
   <script src="js/api.js?v=20261019_1440"></script>
-  <script src="js/image-exporter.js"></script>
   <script src="js/app.js?v=20261019_1440"></script>
 </body>
 </html>
