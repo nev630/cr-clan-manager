@@ -4,7 +4,7 @@
  * (Optimized Version with Persistent LocalStorage Cache & 150s Calibrated Online Status)
  */
 
-console.log('%c[Good Fellas App] v2026.11.03_0030 - 디자인 1안(3열 균등 분할) 적용 - 2분30초 기준 및 로컬스토리지 배틀 캐시 타협안 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v2026.11.03_0045 - 초고속 청크 최적화 및 시머 바 적용 - 2분30초 기준 및 로컬스토리지 배틀 캐시 타협안 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -302,7 +302,7 @@ class ClanManagerApp {
     if (!Array.isArray(members) || members.length === 0) return;
 
     let hasNewData = false;
-    const chunkSize = 10;
+    const chunkSize = 17;
 
     for (let i = 0; i < members.length; i += chunkSize) {
       const chunk = members.slice(i, i + chunkSize);
@@ -332,7 +332,7 @@ class ClanManagerApp {
       await Promise.allSettled(chunkPromises);
 
       if (i + chunkSize < members.length) {
-        await new Promise((r) => setTimeout(r, 60));
+        await new Promise((r) => setTimeout(r, 30));
       }
     }
 
@@ -1026,6 +1026,8 @@ class ClanManagerApp {
     if (diffHours < 24) return `${diffHours}시간 전`;
 
     const diffDays = Math.floor(diffHours / 24);
+    // 7일(일주일) 이상 지난 경우 '7일+ 전'으로 직관적 표기
+    if (diffDays >= 7) return "7일+ 전";
     return `${diffDays}일 전`;
   }
 
@@ -1173,7 +1175,8 @@ class ClanManagerApp {
         const battleSecsAgo = Math.floor((now - battleDate.getTime()) / 1000);
         if (battleSecsAgo <= 150) battleTextColor = "text-emerald-400 font-bold";
         else if (battleSecsAgo < 86400) battleTextColor = "text-indigo-300 font-semibold";
-        else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/90 font-medium";
+        else if (battleSecsAgo >= 604800) battleTextColor = "text-rose-400 font-bold";
+        else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/80 font-medium";
       }
 
       const donations = member.donations || 0;
