@@ -46,13 +46,15 @@ class ClanManagerApp {
     // 초기 상태: 가짜 타이머 애니메이션 없이 0%에서 실제 수신 대기
     this.updateInitialProgress(0, "서버 연결 및 데이터 요청 중...");
 
-    // 접속 즉시 실시간 최신 정보 동기화 실행
+    // 접속 즉시 실시간 동기화 병렬 실행: 내 클랜 데이터 + 타 갤클 비교 데이터 사전 프리페치(Prefetch)
     this.autoSyncLive();
+    this.syncCompareLive();
 
     // 5분 주기 자동 최신 동기화 타이머 (Page Visibility API 최적화 적용)
     setInterval(() => {
       if (document.visibilityState === 'visible') {
         this.autoSyncLive();
+        this.syncCompareLive();
       }
     }, 1000 * 60 * 5);
 
@@ -60,9 +62,7 @@ class ClanManagerApp {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         this.autoSyncLive();
-        if (this.activeMainTab === 'compare') {
-          this.syncCompareLive();
-        }
+        this.syncCompareLive();
       }
     });
   }
@@ -164,12 +164,12 @@ class ClanManagerApp {
       });
     }
 
-    // 3. 수동 동기화 보조 버튼 (데드 코드 파라미터 isManual 제거)
+    // 3. 수동 동기화 보조 버튼
     if (btnManualSync) {
       btnManualSync.addEventListener("click", () => this.autoSyncLive());
     }
 
-    // 4. 비교 탭 새로고침 버튼 (데드 코드 파라미터 isManual 제거)
+    // 4. 비교 탭 새로고침 버튼
     if (btnRefreshCompare) {
       btnRefreshCompare.addEventListener("click", () => this.syncCompareLive());
     }
@@ -200,8 +200,10 @@ class ClanManagerApp {
         tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span><span>디시 갤러리 클랜 3자 비교 뷰</span>`;
       }
 
+      // 이미 사전 로딩된 데이터를 사용하여 딜레이 없이 즉시 렌더링!
       this.renderComparisonView();
 
+      // 아직 로드되지 않은 극초기 예외 상태인 경우에만 비동기 로드
       if (!this.hasCompareLoaded) {
         this.syncCompareLive();
       }
@@ -267,6 +269,28 @@ class ClanManagerApp {
     } finally {
       if (spinIcon) spinIcon.classList.remove("animate-spin");
       this.hideInitialSyncModal();
+    }
+  }
+
+  // 타 갤클 비교 데이터 백그라운드 프리페치 및 실시간 동기화
+  async syncCompareLive() {
+    const icon = this.elements.compareRefreshIcon;
+    try {
+      if (window.crApi && typeof window.crApi.fetchMultipleClans === "function") {
+        const liveClans = await window.crApi.fetchMultipleClans(this.compareTags);
+        if (Array.isArray(liveClans) && liveClans.length > 0) {
+          this.compareClansData = liveClans;
+          this.hasCompareLoaded = true;
+        }
+      }
+    } catch (e) {
+      console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
+    } finally {
+      if (icon) icon.classList.remove("animate-spin");
+      // 사용자가 현재 비교 탭을 보고 있을 때만 화면 갱신
+      if (this.activeMainTab === "compare") {
+        this.renderComparisonView();
+      }
     }
   }
 
@@ -539,24 +563,6 @@ class ClanManagerApp {
           cutout: "68%"
         }
       });
-    }
-  }
-
-  async syncCompareLive() {
-    const icon = this.elements.compareRefreshIcon;
-    try {
-      if (window.crApi && typeof window.crApi.fetchMultipleClans === "function") {
-        const liveClans = await window.crApi.fetchMultipleClans(this.compareTags);
-        if (Array.isArray(liveClans) && liveClans.length > 0) {
-          this.compareClansData = liveClans;
-          this.hasCompareLoaded = true;
-        }
-      }
-    } catch (e) {
-      console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
-    } finally {
-      if (icon) icon.classList.remove("animate-spin");
-      this.renderComparisonView();
     }
   }
 
