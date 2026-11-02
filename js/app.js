@@ -200,10 +200,9 @@ class ClanManagerApp {
         tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span><span>디시 갤러리 클랜 3자 비교 뷰</span>`;
       }
 
-      // 이미 사전 로딩된 데이터를 사용하여 딜레이 없이 즉시 렌더링!
-      this.renderComparisonView();
+      // 탭 전환 즉시 렌더링 및 애니메이션 트리거 (지연 시간 0)
+      this.renderComparisonView(true);
 
-      // 아직 로드되지 않은 극초기 예외 상태인 경우에만 비동기 로드
       if (!this.hasCompareLoaded) {
         this.syncCompareLive();
       }
@@ -287,9 +286,9 @@ class ClanManagerApp {
       console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
     } finally {
       if (icon) icon.classList.remove("animate-spin");
-      // 사용자가 현재 비교 탭을 보고 있을 때만 화면 갱신
+      // 사용자가 현재 비교 탭을 보고 있을 때만 화면 갱신 (애니메이션 재시작 없이 부드럽게 수치만 갱신)
       if (this.activeMainTab === "compare") {
-        this.renderComparisonView();
+        this.renderComparisonView(false);
       }
     }
   }
@@ -395,7 +394,7 @@ class ClanManagerApp {
       if (clanData.description) gfInCompare.description = clanData.description;
 
       if (this.activeMainTab === "compare") {
-        this.renderComparisonView();
+        this.renderComparisonView(false);
       }
     }
 
@@ -582,7 +581,7 @@ class ClanManagerApp {
     }
   }
 
-  renderComparisonView() {
+  renderComparisonView(triggerAnimation = false) {
     let clans = this.compareClansData;
     if (!Array.isArray(clans) || clans.length === 0) {
       clans = window.crApi?.getGalleryClansPreset() || [];
@@ -600,13 +599,13 @@ class ClanManagerApp {
     const sortedByDonations = [...enriched].sort((a, b) => b.donationsWeekly - a.donationsWeekly);
     sortedByDonations.forEach((c, idx) => { c.donationRank = idx + 1; });
 
-    this.renderCompareCharts(sortedByDonations);
+    this.renderCompareCharts(sortedByDonations, triggerAnimation);
     this.renderCompareSummaryList(sortedByDonations);
 
     if (window.lucide) window.lucide.createIcons();
   }
 
-  renderCompareCharts(clans) {
+  renderCompareCharts(clans, triggerAnimation = false) {
     if (!window.Chart) return;
 
     const labels = clans.map((c) => c.name);
@@ -617,14 +616,28 @@ class ClanManagerApp {
     const donationCanvas = this.elements.chartCompareDonations;
     if (!donationCanvas) return;
 
-    // 차트 재생성 대신 데이터 갱신 최적화 적용
+    // 이미 존재하는 차트 인스턴스가 있는 경우
     if (this.charts.compareDonations) {
-      this.charts.compareDonations.data.labels = labels;
-      this.charts.compareDonations.data.datasets[0].data = donationData;
-      this.charts.compareDonations.data.datasets[0].backgroundColor = backgroundColors;
-      this.charts.compareDonations.data.datasets[0].borderColor = borderColors;
-      this.charts.compareDonations.update();
+      const chart = this.charts.compareDonations;
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = donationData;
+      chart.data.datasets[0].backgroundColor = backgroundColors;
+      chart.data.datasets[0].borderColor = borderColors;
+      chart.resize();
+
+      if (triggerAnimation) {
+        // 탭을 눌러 새로 진입한 경우: 0에서부터 솟아오르는 애니메이션 즉시 재생 (딜레이 0ms)
+        chart.reset();
+        chart.update({
+          duration: 550,
+          easing: 'easeOutQuart'
+        });
+      } else {
+        // 백그라운드 데이터 갱신 시에는 튀지 않고 조용히 수치만 업데이트
+        chart.update('none');
+      }
     } else {
+      // 최초 생성 시: easeOutQuart 커브를 주어 탭 진입 즉시 폭발적으로 상승 시작
       const barDataLabelsPlugin = {
         id: "barDataLabels",
         afterDatasetsDraw(chart, args, options) {
@@ -662,6 +675,10 @@ class ClanManagerApp {
         },
         plugins: [barDataLabelsPlugin],
         options: {
+          animation: {
+            duration: 550,           // 1000ms -> 550ms로 경쾌하고 빠르게 최적화
+            easing: 'easeOutQuart',   // 딜레이 체감의 주원인인 느린 출발을 없애고 0ms 첫 프레임부터 즉시 치솟음
+          },
           responsive: true, maintainAspectRatio: false, layout: { padding: { top: 24 } },
           scales: {
             y: {
