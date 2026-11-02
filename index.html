@@ -295,8 +295,31 @@
     </div>
   </div>
 
-  <!-- Scripts with Cache Busting -->
-  <script src="js/demo-data.js?v=20261019_1440"></script>
+  <!-- 8. 동기화 실패 에러 알림 팝업 모달 -->
+  <div id="sync-error-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden px-4">
+    <div class="surface-card p-6 rounded-2xl max-w-xs w-full mx-4 text-center border border-red-500/30 shadow-2xl animate-fade-in">
+      <div class="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-3.5">
+        <svg class="w-6 h-6 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+      </div>
+      <h3 id="error-modal-title" class="text-sm font-bold text-white tracking-tight">데이터 동기화 실패</h3>
+      <p id="error-modal-message" class="text-xs text-slate-400 mt-1.5 leading-relaxed bg-white/[0.03] p-3 rounded-xl border border-white/[0.06] text-left">
+        서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.
+      </p>
+      <div class="flex items-center justify-end gap-2 mt-4">
+        <button id="btn-error-close" type="button" class="flex-1 py-2 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-xl transition font-medium">
+          닫기
+        </button>
+        <button id="btn-error-retry" type="button" class="flex-1 py-2 text-xs bg-red-600 hover:bg-red-500 text-white rounded-xl transition font-medium flex items-center justify-center gap-1">
+          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+          <span>다시 시도</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts with Cache Busting (demo-data.js 완전히 제거됨) -->
   <script src="js/api.js?v=20261019_1440"></script>
   <script src="js/app.js?v=20261019_1440"></script>
 </body>
