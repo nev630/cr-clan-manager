@@ -1,7 +1,7 @@
 /**
  * Good Fellas Clan Manager - Core Application Logic
  * Mobile Optimized, Visual Charts & Gallery Clan Comparison
- * (Optimized Version)
+ * (Optimized Version with Real-time Battle Logs)
  */
 
 class ClanManagerApp {
@@ -43,10 +43,10 @@ class ClanManagerApp {
 
     if (window.lucide) window.lucide.createIcons();
 
-    // 초기 상태: 가짜 타이머 애니메이션 없이 0%에서 실제 수신 대기
+    // 초기 상태: 0%에서 실제 수신 대기
     this.updateInitialProgress(0, "서버 연결 및 데이터 요청 중...");
 
-    // 접속 즉시 실시간 동기화 병렬 실행: 내 클랜 데이터 + 타 갤클 비교 데이터 사전 프리페치(Prefetch)
+    // 접속 즉시 실시간 동기화 실행: 내 클랜 데이터 + 타 갤클 비교 데이터 사전 프리페치(Prefetch)
     this.autoSyncLive();
     this.syncCompareLive();
 
@@ -122,16 +122,14 @@ class ClanManagerApp {
     if (msgEl && msg) msgEl.textContent = msg;
   }
 
-  // 실제 API 데이터 수신 완료 시 100%로 부드럽게 채우고 닫음
+  // 실제 API 데이터 수신 완료 시 100%로 채우고 닫음
   hideInitialSyncModal() {
     const modal = this.elements.initialSyncModal;
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    // 1. 실제 데이터 수신 완료 -> 100% 게이지 차오름
     this.updateInitialProgress(100, "동기화 완료!");
 
-    // 2. 100% 게이지 애니메이션을 시각적으로 체감한 뒤(450ms) 부드럽게 페이드아웃
     setTimeout(() => {
       modal.style.opacity = "0";
       modal.style.pointerEvents = "none";
@@ -249,14 +247,57 @@ class ClanManagerApp {
     if (typeof window.scrollTo === "function") { window.scrollTo({ top: 0, behavior: "smooth" }); }
   }
 
+  // 플레이어 1인의 최근 배틀 로그 조회 (프록시 통신)
+  async fetchPlayerBattleLog(playerTag) {
+    if (!playerTag) return [];
+    try {
+      if (window.crApi && typeof window.crApi.fetchPlayerBattleLog === "function") {
+        return await window.crApi.fetchPlayerBattleLog(playerTag);
+      }
+      const normalized = encodeURIComponent(window.crApi ? window.crApi.normalizeTag(playerTag) : playerTag);
+      const url = `https://api.clashroyale.com/v1/players/${normalized}/battlelog`;
+      
+      if (window.crApi && typeof window.crApi.fetchWithProxy === "function") {
+        return await window.crApi.fetchWithProxy(url);
+      }
+      
+      const proxy = window.crApi?.workerUrl || "https://green-disk-88a6.marble593812345.workers.dev";
+      const res = await fetch(`${proxy}/v1/players/${normalized}/battlelog`);
+      if (!res.ok) return [];
+      return await res.json();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // 클랜원 전체 50명의 마지막 배틀 로그 병렬 수집
+  async fetchAllMembersBattleLogs(members) {
+    if (!Array.isArray(members) || members.length === 0) return;
+
+    const promises = members.map(async (m) => {
+      try {
+        const battlelog = await this.fetchPlayerBattleLog(m.tag);
+        if (Array.isArray(battlelog) && battlelog.length > 0) {
+          m.lastBattleTime = battlelog[0].battleTime;
+          m.lastBattleType = battlelog[0].type || "Battle";
+        } else {
+          m.lastBattleTime = null;
+        }
+      } catch (err) {
+        m.lastBattleTime = null;
+      }
+    });
+
+    await Promise.allSettled(promises);
+  }
+
   async autoSyncLive() {
     const { syncDot: dot, syncSpinIcon: spinIcon } = this.elements;
 
     if (dot) dot.className = "status-dot amber live-pulse";
 
-    // 초기 모달 열려있으면 서버 요청 상태로 갱신
     if (!this.elements.initialSyncModal?.dataset?.dismissed) {
-      this.updateInitialProgress(15, "슈퍼셀 서버와 데이터 통신 중...");
+      this.updateInitialProgress(20, "클랜 기본 정보 동기화 중...");
     }
 
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
@@ -264,11 +305,20 @@ class ClanManagerApp {
     try {
       const liveData = await window.crApi.fetchClanFullData(tag, (partialData) => {
         this.renderClan(partialData);
-        this.hideInitialSyncModal();
-        if (dot) dot.className = "status-dot green live-pulse";
       });
 
       if (liveData && liveData.memberList) {
+        // 클랜 기본 정보 1차 반영
+        this.renderClan(liveData);
+
+        // 클랜원 전체의 마지막 배틀 병렬 로드
+        if (!this.elements.initialSyncModal?.dataset?.dismissed) {
+          this.updateInitialProgress(65, "클랜원 50명 최근 배틀 기록 동기화 중...");
+        }
+
+        await this.fetchAllMembersBattleLogs(liveData.memberList);
+
+        // 배틀 기록까지 모두 매핑된 데이터로 재렌더링
         this.renderClan(liveData);
         this.hideInitialSyncModal();
         if (dot) dot.className = "status-dot green live-pulse";
@@ -276,10 +326,8 @@ class ClanManagerApp {
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
       
-      // 상태 표시를 에러(red)로 전환
       if (dot) dot.className = "status-dot red";
 
-      // 기존 데이터가 아예 없는 초기 로딩 실패인 경우: 에러 모달 팝업 + 빈 테이블 상태 렌더링
       if (!this.currentData) {
         this.renderEmptyState(err.message);
         this.showErrorModal(err);
@@ -636,7 +684,6 @@ class ClanManagerApp {
     const donationCanvas = this.elements.chartCompareDonations;
     if (!donationCanvas) return;
 
-    // 이미 존재하는 차트 인스턴스가 있는 경우
     if (this.charts.compareDonations) {
       const chart = this.charts.compareDonations;
       chart.data.labels = labels;
@@ -701,7 +748,7 @@ class ClanManagerApp {
             y: {
               beginAtZero: true, ticks: { color: "#94a3b8", font: { size: 10 } },
               grid: { color: "rgba(255,255,255,0.05)" },
-              title: { display: false }, // '주간 총 지원량 (개)' 삭제
+              title: { display: false },
               grace: "18%"
             },
             x: { ticks: { color: "#f8fafc", font: { size: 11, weight: "bold" } }, grid: { display: false } }
@@ -801,6 +848,30 @@ class ClanManagerApp {
     this.applyFilterAndRender();
   }
 
+  // 상대 시간 포맷팅 도우미
+  formatRelativeTime(dateStr) {
+    if (!dateStr) return "기록 없음";
+    let date = null;
+    if (window.crApi && typeof window.crApi.parseApiDate === "function") {
+      date = window.crApi.parseApiDate(dateStr);
+    } else {
+      const y = dateStr.slice(0, 4), m = dateStr.slice(4, 6), d = dateStr.slice(6, 8);
+      const h = dateStr.slice(9, 11), min = dateStr.slice(11, 13), s = dateStr.slice(13, 15);
+      date = new Date(Date.UTC(y, m - 1, d, h, min, s));
+    }
+    if (!date || isNaN(date.getTime())) return "기록 없음";
+
+    const diffMinutes = Math.floor((Date.now() - date.getTime()) / (1000 * 60));
+    if (diffMinutes < 1) return "방금 전";
+    if (diffMinutes < 60) return `${diffMinutes}분 전`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}시간 전`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}일 전`;
+  }
+
   applyFilterAndRender() {
     if (!this.currentData || !this.currentData.memberList) return;
 
@@ -826,17 +897,22 @@ class ClanManagerApp {
 
     const { key, order } = this.sorting;
     list.sort((a, b) => {
-      let valA = a[key];
-      let valB = b[key];
+      let valA, valB;
 
       if (key === "lastSeen") {
-        const dateA = window.crApi.parseApiDate(a.lastSeen)?.getTime() || 0;
-        const dateB = window.crApi.parseApiDate(b.lastSeen)?.getTime() || 0;
-        return order === "desc" ? dateB - dateA : dateA - dateB;
+        valA = window.crApi.parseApiDate(a.lastSeen)?.getTime() || 0;
+        valB = window.crApi.parseApiDate(b.lastSeen)?.getTime() || 0;
+        return order === "desc" ? valB - valA : valA - valB;
       }
 
-      valA = valA || 0;
-      valB = valB || 0;
+      if (key === "lastBattle") {
+        valA = a.lastBattleTime ? (window.crApi.parseApiDate(a.lastBattleTime)?.getTime() || 0) : 0;
+        valB = b.lastBattleTime ? (window.crApi.parseApiDate(b.lastBattleTime)?.getTime() || 0) : 0;
+        return order === "desc" ? valB - valA : valA - valB;
+      }
+
+      valA = a[key] || 0;
+      valB = b[key] || 0;
       return order === "desc" ? valB - valA : valA - valB;
     });
 
@@ -887,6 +963,8 @@ class ClanManagerApp {
 
       const relativeSeen = window.crApi.getRelativeTime(member.lastSeen);
       const exactSeen = lastSeenDate?.toLocaleString("ko-KR") || "기록 없음";
+      const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
+
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
@@ -907,6 +985,9 @@ class ClanManagerApp {
             <div class="inline-flex items-center gap-1.5" title="${exactSeen}">
               <span class="status-dot ${dotColor}"></span>
               <span class="${seenTextColor} text-xs">${relativeSeen}</span>
+            </div>
+            <div class="text-[10px] text-indigo-300/80 font-mono mt-0.5">
+              배틀: ${relativeBattle}
             </div>
           </td>
           <td class="text-right">
@@ -944,6 +1025,19 @@ class ClanManagerApp {
       }
 
       const relativeSeen = window.crApi.getRelativeTime(member.lastSeen);
+      const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
+
+      // 마지막 배틀 텍스트 색상 구분 (최근 배틀일수록 또렷하게)
+      let battleTextColor = "text-slate-400";
+      if (member.lastBattleTime) {
+        const battleDate = window.crApi?.parseApiDate(member.lastBattleTime);
+        if (battleDate) {
+          const battleDaysAgo = (now - battleDate.getTime()) / (1000 * 60 * 60 * 24);
+          if (battleDaysAgo < 1) battleTextColor = "text-indigo-300 font-semibold";
+          else if (battleDaysAgo >= 3) battleTextColor = "text-rose-400/90 font-medium";
+        }
+      }
+
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
@@ -957,14 +1051,25 @@ class ClanManagerApp {
             </div>
             <span class="text-xs font-semibold text-amber-400 shrink-0">🏆 ${(member.trophies || 0).toLocaleString()}</span>
           </div>
-          <div class="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-white/[0.03]">
-            <div class="text-left">
-              <div class="text-[10px] text-slate-500">마지막 접속</div>
-              <div class="inline-flex items-center gap-1 mt-0.5">
-                <span class="status-dot ${dotColor}"></span>
-                <span class="text-xs ${seenTextColor}">${relativeSeen}</span>
+
+          <!-- 마지막 접속 / 마지막 배틀 / 지원량 2단 그리드 -->
+          <div class="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-white/[0.03] items-center">
+            <!-- 좌측: 마지막 접속 & 마지막 배틀 -->
+            <div class="space-y-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] text-slate-500 shrink-0">마지막 접속</span>
+                <div class="inline-flex items-center gap-1">
+                  <span class="status-dot ${dotColor}"></span>
+                  <span class="text-xs ${seenTextColor}">${relativeSeen}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] text-slate-500 shrink-0">마지막 배틀</span>
+                <span class="text-xs ${battleTextColor}">${relativeBattle}</span>
               </div>
             </div>
+
+            <!-- 우측: 주간 지원량 -->
             <div class="text-right">
               <div class="text-[10px] text-slate-500">주간 지원량</div>
               <div class="text-xs font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5">
