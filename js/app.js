@@ -1,3 +1,4 @@
+console.log('%c[Good Fellas App] v2026.11.02_1640 - 상호 보정 패치 로드 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
 /**
  * Good Fellas Clan Manager - Core Application Logic
  * Mobile Optimized, Visual Charts & Gallery Clan Comparison
