@@ -1,7 +1,7 @@
 /**
  * Good Fellas Clan Manager - Core Application Logic
  * Mobile Optimized, Visual Charts & Gallery Clan Comparison
- * (Optimized Version with Real-time Battle Logs & 3-min Online Status)
+ * (Optimized Version with Real-time Battle Logs & Calibrated 3-min Online Status)
  */
 
 class ClanManagerApp {
@@ -482,10 +482,13 @@ class ClanManagerApp {
       const don = m.donations || 0;
       if (don < 50) lowDonationCount++;
 
-      const lastSeen = window.crApi.parseApiDate(m.lastSeen);
-      if (lastSeen) {
-        const daysAgo = (now - lastSeen.getTime()) / (1000 * 60 * 60 * 24);
+      // 마지막 접속/배틀 중 더 최신 시간을 기준으로 미접속 판정
+      const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+      if (effectiveDate) {
+        const daysAgo = (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24);
         if (daysAgo >= 3) dormantCount++;
+      } else {
+        dormantCount++;
       }
     });
 
@@ -584,12 +587,12 @@ class ClanManagerApp {
     const now = Date.now();
 
     members.forEach((m) => {
-      const lastSeen = window.crApi.parseApiDate(m.lastSeen);
-      if (!lastSeen) {
+      const activeDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+      if (!activeDate) {
         seenDormant++;
         return;
       }
-      const daysAgo = (now - lastSeen.getTime()) / (1000 * 60 * 60 * 24);
+      const daysAgo = (now - activeDate.getTime()) / (1000 * 60 * 60 * 24);
       if (daysAgo < 1) seenToday++;
       else if (daysAgo < 3) seen1to2d++;
       else seenDormant++;
@@ -848,26 +851,45 @@ class ClanManagerApp {
     this.applyFilterAndRender();
   }
 
-  // 3분 기준 '접속 중' 판정 및 상대 시간 계산
-  getOnlineStatus(dateStr) {
-    if (!dateStr) {
-      return { isOnline: false, text: "기록 없음", dotColor: "slate", isPulse: false, textColor: "text-slate-500" };
-    }
-    let date = null;
+  // 날짜 문자열 안전 파싱
+  parseDateSafe(dateStr) {
+    if (!dateStr) return null;
     if (window.crApi && typeof window.crApi.parseApiDate === "function") {
-      date = window.crApi.parseApiDate(dateStr);
-    } else {
+      const d = window.crApi.parseApiDate(dateStr);
+      if (d && !isNaN(d.getTime())) return d;
+    }
+    try {
       const y = dateStr.slice(0, 4), m = dateStr.slice(4, 6), d = dateStr.slice(6, 8);
       const h = dateStr.slice(9, 11), min = dateStr.slice(11, 13), s = dateStr.slice(13, 15);
-      date = new Date(Date.UTC(y, m - 1, d, h, min, s));
+      const parsed = new Date(Date.UTC(y, m - 1, d, h, min, s));
+      return isNaN(parsed.getTime()) ? null : parsed;
+    } catch (e) {
+      return null;
     }
-    if (!date || isNaN(date.getTime())) {
+  }
+
+  // 배틀 시간과 접속 시간 중 더 최신 시간을 실제 활동 시간으로 보정
+  getEffectiveActiveDate(lastSeenStr, lastBattleStr) {
+    const seenDate = this.parseDateSafe(lastSeenStr);
+    const battleDate = this.parseDateSafe(lastBattleStr);
+
+    if (seenDate && battleDate) {
+      // 배틀을 했다는 것은 그 시간에 무조건 접속 중이었다는 뜻이므로 둘 중 더 최신 시각을 채택!
+      return battleDate.getTime() > seenDate.getTime() ? battleDate : seenDate;
+    }
+    return seenDate || battleDate || null;
+  }
+
+  // 상호 보정된 3분 기준 '접속 중' 판정 및 상대 시간 계산
+  getOnlineStatus(lastSeenStr, lastBattleStr) {
+    const effectiveDate = this.getEffectiveActiveDate(lastSeenStr, lastBattleStr);
+    if (!effectiveDate) {
       return { isOnline: false, text: "기록 없음", dotColor: "slate", isPulse: false, textColor: "text-slate-500" };
     }
 
-    const diffMinutes = Math.floor((Date.now() - date.getTime()) / (1000 * 60));
+    const diffMinutes = Math.floor((Date.now() - effectiveDate.getTime()) / (1000 * 60));
 
-    // 1. 3분 이내 활동 감지 -> '🟢 접속 중' 판정
+    // 1. 배틀 또는 접속이 3분 이내인 경우 -> 무조건 '🟢 접속 중' 판정
     if (diffMinutes <= 3) {
       return {
         isOnline: true,
@@ -878,7 +900,7 @@ class ClanManagerApp {
       };
     }
 
-    // 2. 3분 초과 ~ 60분 미만 -> 'N분 전'
+    // 2. 3분 초과 ~ 60분 미만 -> 'N분 전' (배틀 시간과 동기화되어 모순 해결)
     if (diffMinutes < 60) {
       return {
         isOnline: false,
@@ -889,7 +911,7 @@ class ClanManagerApp {
       };
     }
 
-    // 3. 1시간 이상 ~ 24시간 미만 -> 'N시간 전'
+    // 3. 1시간 이상 ~ 24시간 미만
     const diffHours = Math.floor(diffMinutes / 60);
     if (diffHours < 24) {
       return {
@@ -901,7 +923,7 @@ class ClanManagerApp {
       };
     }
 
-    // 4. 1일 이상 -> 'N일 전' (3일 이상은 미접속 경고)
+    // 4. 1일 이상 (3일 이상은 미접속 경고)
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays >= 3) {
       return {
@@ -924,16 +946,8 @@ class ClanManagerApp {
 
   // 상대 시간 포맷팅 도우미 (마지막 배틀용)
   formatRelativeTime(dateStr) {
-    if (!dateStr) return "기록 없음";
-    let date = null;
-    if (window.crApi && typeof window.crApi.parseApiDate === "function") {
-      date = window.crApi.parseApiDate(dateStr);
-    } else {
-      const y = dateStr.slice(0, 4), m = dateStr.slice(4, 6), d = dateStr.slice(6, 8);
-      const h = dateStr.slice(9, 11), min = dateStr.slice(11, 13), s = dateStr.slice(13, 15);
-      date = new Date(Date.UTC(y, m - 1, d, h, min, s));
-    }
-    if (!date || isNaN(date.getTime())) return "기록 없음";
+    const date = this.parseDateSafe(dateStr);
+    if (!date) return "기록 없음";
 
     const diffMinutes = Math.floor((Date.now() - date.getTime()) / (1000 * 60));
     if (diffMinutes <= 3) return "방금 전";
@@ -961,9 +975,9 @@ class ClanManagerApp {
 
     if (this.activeFilter === "dormant") {
       list = list.filter((m) => {
-        const lastSeen = window.crApi.parseApiDate(m.lastSeen);
-        if (!lastSeen) return false;
-        return (now - lastSeen.getTime()) / (1000 * 60 * 60 * 24) >= 3;
+        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+        if (!effectiveDate) return false;
+        return (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24) >= 3;
       });
     } else if (this.activeFilter === "low-donations") {
       list = list.filter((m) => (m.donations || 0) < 50);
@@ -973,15 +987,20 @@ class ClanManagerApp {
     list.sort((a, b) => {
       let valA, valB;
 
+      // 마지막 접속 정렬 시에도 보정된 실제 활동 시각을 기준으로 정확히 정렬!
       if (key === "lastSeen") {
-        valA = window.crApi.parseApiDate(a.lastSeen)?.getTime() || 0;
-        valB = window.crApi.parseApiDate(b.lastSeen)?.getTime() || 0;
+        const dateA = this.getEffectiveActiveDate(a.lastSeen, a.lastBattleTime);
+        const dateB = this.getEffectiveActiveDate(b.lastSeen, b.lastBattleTime);
+        valA = dateA ? dateA.getTime() : 0;
+        valB = dateB ? dateB.getTime() : 0;
         return order === "desc" ? valB - valA : valA - valB;
       }
 
       if (key === "lastBattle") {
-        valA = a.lastBattleTime ? (window.crApi.parseApiDate(a.lastBattleTime)?.getTime() || 0) : 0;
-        valB = b.lastBattleTime ? (window.crApi.parseApiDate(b.lastBattleTime)?.getTime() || 0) : 0;
+        const dateA = this.parseDateSafe(a.lastBattleTime);
+        const dateB = this.parseDateSafe(b.lastBattleTime);
+        valA = dateA ? dateA.getTime() : 0;
+        valB = dateB ? dateB.getTime() : 0;
         return order === "desc" ? valB - valA : valA - valB;
       }
 
@@ -1022,8 +1041,12 @@ class ClanManagerApp {
     let rowsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      const status = this.getOnlineStatus(member.lastSeen);
+      // 상호 보정된 접속 상태
+      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
+
+      const effectiveDate = this.getEffectiveActiveDate(member.lastSeen, member.lastBattleTime);
+      const exactSeen = effectiveDate ? effectiveDate.toLocaleString("ko-KR") : "기록 없음";
 
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
@@ -1042,7 +1065,7 @@ class ClanManagerApp {
             </div>
           </td>
           <td class="text-center">
-            <div class="inline-flex items-center gap-1.5">
+            <div class="inline-flex items-center gap-1.5" title="${exactSeen}">
               <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
               <span class="${status.textColor} text-xs">${status.text}</span>
             </div>
@@ -1072,20 +1095,18 @@ class ClanManagerApp {
     let cardsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      // 3분 기준 온라인 판정
-      const status = this.getOnlineStatus(member.lastSeen);
+      // 상호 보정된 접속 상태 (배틀이 더 최신이면 배틀 시간으로 접속 시간 자동 승격)
+      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
       // 마지막 배틀 텍스트 색상 구분
       let battleTextColor = "text-slate-400";
-      if (member.lastBattleTime) {
-        const battleDate = window.crApi?.parseApiDate(member.lastBattleTime);
-        if (battleDate) {
-          const battleMinutesAgo = Math.floor((now - battleDate.getTime()) / (1000 * 60));
-          if (battleMinutesAgo <= 3) battleTextColor = "text-emerald-400 font-bold";
-          else if (battleMinutesAgo < 1440) battleTextColor = "text-indigo-300 font-semibold";
-          else if (battleMinutesAgo >= 4320) battleTextColor = "text-rose-400/90 font-medium";
-        }
+      const battleDate = this.parseDateSafe(member.lastBattleTime);
+      if (battleDate) {
+        const battleMinutesAgo = Math.floor((now - battleDate.getTime()) / (1000 * 60));
+        if (battleMinutesAgo <= 3) battleTextColor = "text-emerald-400 font-bold";
+        else if (battleMinutesAgo < 1440) battleTextColor = "text-indigo-300 font-semibold";
+        else if (battleMinutesAgo >= 4320) battleTextColor = "text-rose-400/90 font-medium";
       }
 
       const donations = member.donations || 0;
@@ -1104,7 +1125,7 @@ class ClanManagerApp {
 
           <!-- 마지막 접속(접속 중) / 마지막 배틀 / 지원량 2단 그리드 -->
           <div class="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-white/[0.03] items-center">
-            <!-- 좌측: 마지막 접속 & 마지막 배틀 -->
+            <!-- 좌측: 마지막 접속 & 마지막 배틀 (보정 완료) -->
             <div class="space-y-1">
               <div class="flex items-center gap-1.5">
                 <span class="text-[10px] text-slate-500 shrink-0">마지막 접속</span>
