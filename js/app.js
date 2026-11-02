@@ -4,7 +4,7 @@
  * (Optimized Version with Persistent LocalStorage Cache & 150s Calibrated Online Status)
  */
 
-console.log('%c[Good Fellas App] v2026.11.03_0045 - 초고속 청크 최적화 및 시머 바 적용 - 2분30초 기준 및 로컬스토리지 배틀 캐시 타협안 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v2026.11.03_0118 - Body is disturbed 완전 수정 및 에러 격리 - 2분30초 기준 및 로컬스토리지 배틀 캐시 타협안 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -263,32 +263,33 @@ class ClanManagerApp {
   }
 
   // 플레이어 1인의 최근 배틀 로그 조회 (프록시 다각화 및 403/429 재시도)
+  // 플레이어 1인의 최근 배틀 로그 안전 조회 (스트림 1회 단일 소비로 'Body is disturbed or locked' 원천 차단)
   async fetchPlayerBattleLog(playerTag, retries = 1) {
     if (!playerTag) return null;
     const normalized = encodeURIComponent(window.crApi ? window.crApi.normalizeTag(playerTag) : playerTag);
-    const supercellUrl = `https://api.clashroyale.com/v1/players/${normalized}/battlelog`;
+    const proxy = window.crApi?.workerUrl || "https://green-disk-88a6.marble593812345.workers.dev";
+    const url = `${proxy}/v1/players/${normalized}/battlelog`;
 
     for (let i = 0; i <= retries; i++) {
       try {
-        if (window.crApi && typeof window.crApi.fetchWithProxy === "function") {
-          const res = await window.crApi.fetchWithProxy(supercellUrl);
-          if (Array.isArray(res) && res.length > 0) return res;
-        }
-
-        const proxy = window.crApi?.workerUrl || "https://green-disk-88a6.marble593812345.workers.dev";
-        const res = await fetch(`${proxy}/v1/players/${normalized}/battlelog`);
+        const res = await fetch(url);
         
         if ((res.status === 429 || res.status === 403) && i < retries) {
-          await new Promise((r) => setTimeout(r, 200));
+          await new Promise((r) => setTimeout(r, 150));
           continue;
         }
 
         if (!res.ok) return null;
-        const data = await res.json();
+        
+        // 스트림을 텍스트로 딱 1회만 안전하게 읽음
+        const rawText = await res.text();
+        if (!rawText) return null;
+
+        const data = JSON.parse(rawText);
         return Array.isArray(data) ? data : null;
       } catch (e) {
         if (i < retries) {
-          await new Promise((r) => setTimeout(r, 150));
+          await new Promise((r) => setTimeout(r, 100));
           continue;
         }
         return null;
