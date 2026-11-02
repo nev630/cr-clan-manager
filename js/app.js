@@ -1,9 +1,10 @@
-console.log('%c[Good Fellas App] v2026.11.02_1640 - 상호 보정 패치 로드 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
 /**
  * Good Fellas Clan Manager - Core Application Logic
  * Mobile Optimized, Visual Charts & Gallery Clan Comparison
- * (Optimized Version with Real-time Battle Logs & Calibrated 3-min Online Status)
+ * (Optimized Version with Real-time Battle Logs & 1-min Online Status)
  */
+
+console.log('%c[Good Fellas App] v2026.11.02_1652 - 1분 기준 접속 판정 패치 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -881,7 +882,7 @@ class ClanManagerApp {
     return seenDate || battleDate || null;
   }
 
-  // 상호 보정된 3분 기준 '접속 중' 판정 및 상대 시간 계산
+  // 1분 기준 '접속 중' 판정 및 상대 시간 계산
   getOnlineStatus(lastSeenStr, lastBattleStr) {
     const effectiveDate = this.getEffectiveActiveDate(lastSeenStr, lastBattleStr);
     if (!effectiveDate) {
@@ -890,8 +891,8 @@ class ClanManagerApp {
 
     const diffMinutes = Math.floor((Date.now() - effectiveDate.getTime()) / (1000 * 60));
 
-    // 1. 배틀 또는 접속이 3분 이내인 경우 -> 무조건 '🟢 접속 중' 판정
-    if (diffMinutes <= 3) {
+    // 1. 배틀 또는 접속이 1분 이내인 경우 -> '🟢 접속 중' 판정
+    if (diffMinutes <= 1) {
       return {
         isOnline: true,
         text: "접속 중",
@@ -901,7 +902,7 @@ class ClanManagerApp {
       };
     }
 
-    // 2. 3분 초과 ~ 60분 미만 -> 'N분 전' (배틀 시간과 동기화되어 모순 해결)
+    // 2. 1분 초과 ~ 60분 미만 -> 'N분 전' (배틀 시간과 동기화되어 모순 해결)
     if (diffMinutes < 60) {
       return {
         isOnline: false,
@@ -945,13 +946,13 @@ class ClanManagerApp {
     };
   }
 
-  // 상대 시간 포맷팅 도우미 (마지막 배틀용)
+  // 상대 시간 포맷팅 도우미 (마지막 배틀용 - 1분 기준)
   formatRelativeTime(dateStr) {
     const date = this.parseDateSafe(dateStr);
     if (!date) return "기록 없음";
 
     const diffMinutes = Math.floor((Date.now() - date.getTime()) / (1000 * 60));
-    if (diffMinutes <= 3) return "방금 전";
+    if (diffMinutes <= 1) return "방금 전";
     if (diffMinutes < 60) return `${diffMinutes}분 전`;
 
     const diffHours = Math.floor(diffMinutes / 60);
@@ -1042,7 +1043,7 @@ class ClanManagerApp {
     let rowsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      // 상호 보정된 접속 상태
+      // 상호 보정된 접속 상태 (1분 기준)
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
@@ -1096,16 +1097,16 @@ class ClanManagerApp {
     let cardsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      // 상호 보정된 접속 상태 (배틀이 더 최신이면 배틀 시간으로 접속 시간 자동 승격)
+      // 1분 기준 상호 보정된 접속 상태
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
-      // 마지막 배틀 텍스트 색상 구분
+      // 마지막 배틀 텍스트 색상 구분 (1분 기준)
       let battleTextColor = "text-slate-400";
       const battleDate = this.parseDateSafe(member.lastBattleTime);
       if (battleDate) {
         const battleMinutesAgo = Math.floor((now - battleDate.getTime()) / (1000 * 60));
-        if (battleMinutesAgo <= 3) battleTextColor = "text-emerald-400 font-bold";
+        if (battleMinutesAgo <= 1) battleTextColor = "text-emerald-400 font-bold";
         else if (battleMinutesAgo < 1440) battleTextColor = "text-indigo-300 font-semibold";
         else if (battleMinutesAgo >= 4320) battleTextColor = "text-rose-400/90 font-medium";
       }
@@ -1126,7 +1127,7 @@ class ClanManagerApp {
 
           <!-- 마지막 접속(접속 중) / 마지막 배틀 / 지원량 2단 그리드 -->
           <div class="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-white/[0.03] items-center">
-            <!-- 좌측: 마지막 접속 & 마지막 배틀 (보정 완료) -->
+            <!-- 좌측: 마지막 접속 & 마지막 배틀 (1분 기준 보정) -->
             <div class="space-y-1">
               <div class="flex items-center gap-1.5">
                 <span class="text-[10px] text-slate-500 shrink-0">마지막 접속</span>
