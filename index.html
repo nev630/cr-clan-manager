@@ -55,16 +55,15 @@
         </p>
       </div>
 
-      <!-- 우측: 실시간 동기화 상태 인디케이터 (모바일 원래 동작대로 상단 버튼 숨김 유지, 하단 50:50 탭에 집중) -->
+      <!-- 우측: 실시간 동기화 상태 인디케이터 (점등효과만 유지) -->
       <div class="flex items-center gap-1.5 shrink-0">
         <button id="btn-quick-compare" class="hidden px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold items-center gap-1.5 transition shadow-sm whitespace-nowrap" onclick="window.app.switchMainTab('compare')">
           <i data-lucide="scale" class="w-3.5 h-3.5"></i>
           <span>타 갤클과 비교</span>
         </button>
 
-        <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-[10px] whitespace-nowrap shrink-0">
+        <div class="flex items-center justify-center p-2 rounded-full bg-white/[0.03] border border-white/[0.06] shrink-0" title="실시간 상태">
           <span class="status-dot green live-pulse" id="sync-dot"></span>
-          <span class="text-slate-300 font-medium whitespace-nowrap" id="sync-status-text">실시간</span>
         </div>
 
         <button id="btn-manual-sync" class="p-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition shrink-0" title="수동 갱신">
@@ -83,7 +82,6 @@
         <button id="tab-btn-compare" class="main-nav-btn justify-center whitespace-nowrap py-2 text-center text-xs" onclick="window.app.switchMainTab('compare')">
           <i data-lucide="scale" class="w-3.5 h-3.5"></i>
           <span>타 갤클과 비교</span>
-          <span class="inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 ml-0.5">NEW</span>
         </button>
       </div>
 
@@ -124,11 +122,7 @@
         <!-- 시상대 단상: 주간 지원 기여도 Top 7 -->
         <div class="surface-card p-3.5 flex flex-col justify-between">
           <div class="flex items-center justify-between mb-2">
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs font-semibold text-slate-200">주간 지원 기여도 Top 7</span>
-              <span class="text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">시상대</span>
-            </div>
-            <span class="text-[10px] text-slate-500">실시간 랭킹</span>
+            <span class="text-xs font-semibold text-slate-200">주간 지원 기여도 Top 7</span>
           </div>
 
           <!-- 올림픽 3인 포디움 (단상) - 실시간 렌더링 -->
@@ -145,7 +139,6 @@
         <div class="surface-card p-3.5">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-semibold text-slate-300">클랜원 접속 분포</span>
-            <span class="text-[10px] text-slate-500">활동성 진단</span>
           </div>
           <div class="chart-container-donut">
             <canvas id="chart-activity"></canvas>
@@ -153,7 +146,7 @@
         </div>
       </section>
 
-      <!-- 4. 컨트롤 바: 필터 칩 (3개 칩) & 검색 & 정렬 (모바일 세로 배치 유지) -->
+      <!-- 4. 컨트롤 바: 필터 칩 & 검색 & 정렬 (내림차순/오름차순 토글 버튼) -->
       <section class="flex flex-col justify-between gap-2.5">
         <!-- 좌측: 필터 칩 (가로 스와이프 스크롤 유지) -->
         <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
@@ -168,22 +161,26 @@
           </button>
         </div>
 
-        <!-- 우측: 검색창 & 정렬 선택 -->
-        <div class="flex items-center gap-2">
+        <!-- 우측: 검색창 & 정렬 기준 + 내림차순/오름차순 토글 버튼 -->
+        <div class="flex items-center gap-1.5">
           <div class="relative flex-1">
             <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
             <input type="text" id="search-input" placeholder="클랜원 검색..."
               class="w-full pl-8 pr-3 py-1.5 bg-[#0f121a] border border-white/[0.06] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition" />
           </div>
 
-          <select id="sort-select" class="bg-[#0f121a] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer">
-            <option value="donations-desc">지원량 많은 순</option>
-            <option value="donations-asc">지원량 적은 순</option>
-            <option value="lastSeen-desc">접속 최근 순</option>
-            <option value="lastSeen-asc">접속 오래된 순</option>
-            <option value="trophies-desc">트로피 높은 순</option>
-            <option value="trophies-asc">트로피 낮은 순</option>
+          <!-- 정렬 기준 선택 -->
+          <select id="sort-key-select" class="bg-[#0f121a] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer shrink-0">
+            <option value="donations">지원량</option>
+            <option value="lastSeen">마지막 접속</option>
+            <option value="trophies">트로피</option>
           </select>
+
+          <!-- 오름차순 / 내림차순 원클릭 토글 버튼 -->
+          <button id="btn-sort-order" type="button" class="flex items-center gap-1 bg-[#0f121a] hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0" title="정렬 순서 변경">
+            <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-indigo-400" id="sort-order-icon"></i>
+            <span id="sort-order-text">내림차순</span>
+          </button>
         </div>
       </section>
 
@@ -241,11 +238,7 @@
         <!-- A. 시각화: 주간 총 지원량 비교 차트 -->
         <section class="surface-card p-3.5 flex flex-col justify-between">
           <div class="flex items-center justify-between mb-2 shrink-0">
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs font-semibold text-slate-200">주간 총 지원량 비교</span>
-              <span class="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 font-medium">실시간</span>
-            </div>
-            <span class="text-[10px] text-slate-400">단위: 개</span>
+            <span class="text-xs font-semibold text-slate-200">주간 총 지원량 비교</span>
           </div>
           <div class="chart-container-compare flex-1 flex items-center">
             <canvas id="chart-compare-donations"></canvas>
@@ -259,7 +252,6 @@
               <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
               <h3 class="text-xs font-semibold text-white">클랜별 핵심 현황 및 지원량 격차</h3>
             </div>
-            <span class="text-[10px] text-slate-400 font-mono">Good Fellas 기준</span>
           </div>
 
           <div class="divide-y divide-white/[0.04] flex-1 flex flex-col justify-around" id="compare-summary-list">
@@ -319,7 +311,7 @@
     </div>
   </div>
 
-  <!-- Scripts with Cache Busting (demo-data.js 완전히 제거됨) -->
+  <!-- Scripts with Cache Busting -->
   <script src="js/api.js?v=20261019_1440"></script>
   <script src="js/app.js?v=20261019_1440"></script>
 </body>
