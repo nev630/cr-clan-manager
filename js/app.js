@@ -4,7 +4,7 @@
  * (Optimized Version with Real-time Battle Logs & 1-min Online Status)
  */
 
-console.log('%c[Good Fellas App] v2026.11.02_1652 - 1분 기준 접속 판정 패치 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v2026.11.02_1718 - 기본 정렬: 최근 접속 순 - 1분 기준 접속 판정 패치 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -12,7 +12,7 @@ class ClanManagerApp {
     this.filteredMembers = [];
     this.activeFilter = "all"; // 'all' | 'dormant' | 'low-donations'
     this.searchQuery = "";
-    this.sorting = { key: "donations", order: "desc" };
+    this.sorting = { key: "lastSeen", order: "desc" };
     this.activeMainTab = "dashboard";
     this.compareTags = ["#G890J9JC", "#JYQRP2C2", "#Q0U22YGQ"];
     this.compareClansData = [];
