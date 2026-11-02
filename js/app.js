@@ -43,20 +43,10 @@ class ClanManagerApp {
 
     if (window.lucide) window.lucide.createIcons();
 
-    // 초기 로딩바 서서히 차오르는 프로그레시브 애니메이션 시작
-    this.initialProgress = 5;
-    this.updateInitialProgress(this.initialProgress, "서버 연결 및 데이터 동기화 중...");
-    this.progressInterval = setInterval(() => {
-      if (this.initialProgress < 88) {
-        const step = Math.max(2, Math.round((90 - this.initialProgress) / 4));
-        this.initialProgress += step;
-        let msg = "클랜원 지원량 및 접속 기록 동기화 중...";
-        if (this.initialProgress > 60) msg = "시즌 트로피 및 랭킹 데이터 집계 중...";
-        this.updateInitialProgress(this.initialProgress, msg);
-      }
-    }, 150);
+    // 초기 상태: 가짜 타이머 애니메이션 없이 0%에서 실제 수신 대기
+    this.updateInitialProgress(0, "서버 연결 및 데이터 요청 중...");
 
-    // 접속 즉시 무조건 실시간 최신 정보 동기화 실행
+    // 접속 즉시 실시간 최신 정보 동기화 실행
     this.autoSyncLive();
 
     // 5분 주기 자동 최신 동기화 타이머 (Page Visibility API 최적화 적용)
@@ -130,25 +120,23 @@ class ClanManagerApp {
     if (msgEl && msg) msgEl.textContent = msg;
   }
 
+  // 실제 API 데이터 수신 완료 시 100%로 부드럽게 채우고 닫음
   hideInitialSyncModal() {
     const modal = this.elements.initialSyncModal;
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    if (this.progressInterval) {
-      clearInterval(this.progressInterval);
-      this.progressInterval = null;
-    }
-
+    // 1. 실제 데이터 수신 완료 -> 100% 게이지 차오름
     this.updateInitialProgress(100, "동기화 완료!");
 
+    // 2. 100% 게이지 애니메이션을 시각적으로 체감한 뒤(450ms) 부드럽게 페이드아웃
     setTimeout(() => {
       modal.style.opacity = "0";
       modal.style.pointerEvents = "none";
       setTimeout(() => {
         modal.classList.add("hidden");
       }, 400);
-    }, 300);
+    }, 450);
   }
 
   bindEvents() {
@@ -241,6 +229,11 @@ class ClanManagerApp {
     if (dot) dot.className = "status-dot amber live-pulse";
     if (statusText) statusText.textContent = "동기화 중";
 
+    // 초기 모달 열려있으면 서버 요청 상태로 갱신
+    if (!this.elements.initialSyncModal?.dataset?.dismissed) {
+      this.updateInitialProgress(15, "슈퍼셀 서버와 데이터 통신 중...");
+    }
+
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
 
     try {
@@ -253,6 +246,7 @@ class ClanManagerApp {
 
       if (liveData && liveData.memberList) {
         this.renderClan(liveData);
+        this.hideInitialSyncModal();
         if (dot) dot.className = "status-dot green live-pulse";
         if (statusText) statusText.textContent = "실시간";
       }
@@ -268,7 +262,6 @@ class ClanManagerApp {
         this.renderEmptyState(err.message);
         this.showErrorModal(err);
       } else {
-        // 이미 데이터가 표시된 상태에서 수동 갱신만 실패한 경우: 기존 화면 유지 + 알림
         alert(`데이터 갱신 실패: ${err.message}`);
       }
     } finally {
