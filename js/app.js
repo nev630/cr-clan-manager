@@ -4,7 +4,7 @@
  * (Optimized Version with Real-time Battle Logs & 1-min Online Status)
  */
 
-console.log('%c[Good Fellas App] v2026.11.02_1718 - 기본 정렬: 최근 접속 순 - 1분 기준 접속 판정 패치 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v2026.11.02_1730 - 단색 및 부드러운 로딩바 - 1분 주기 자동 동기화 - 1분 기준 접속 판정 패치 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -46,19 +46,19 @@ class ClanManagerApp {
     if (window.lucide) window.lucide.createIcons();
 
     // 초기 상태: 0%에서 실제 수신 대기
-    this.updateInitialProgress(0, "서버 연결 및 데이터 요청 중...");
+    this.updateInitialProgress(10, "서버 연결 및 데이터 요청 중...");
 
     // 접속 즉시 실시간 동기화 실행: 내 클랜 데이터 + 타 갤클 비교 데이터 사전 프리페치(Prefetch)
     this.autoSyncLive();
     this.syncCompareLive();
 
-    // 5분 주기 자동 최신 동기화 타이머 (Page Visibility API 최적화 적용)
+    // 1분 주기 자동 최신 동기화 타이머 (Page Visibility API 최적화 적용)
     setInterval(() => {
       if (document.visibilityState === 'visible') {
         this.autoSyncLive();
         this.syncCompareLive();
       }
-    }, 1000 * 60 * 5);
+    }, 1000 * 60 * 1);
 
     // 화면 탭 활성화 시 즉각 동기화 (Page Visibility API 최적화 적용)
     document.addEventListener('visibilitychange', () => {
@@ -132,13 +132,14 @@ class ClanManagerApp {
 
     this.updateInitialProgress(100, "동기화 완료!");
 
+    // 100%까지 채워지는 부드러운 애니메이션(700ms)을 눈으로 감상한 뒤 서서히 페이드아웃
     setTimeout(() => {
       modal.style.opacity = "0";
       modal.style.pointerEvents = "none";
       setTimeout(() => {
         modal.classList.add("hidden");
       }, 400);
-    }, 450);
+    }, 600);
   }
 
   bindEvents() {
@@ -299,7 +300,7 @@ class ClanManagerApp {
     if (dot) dot.className = "status-dot amber live-pulse";
 
     if (!this.elements.initialSyncModal?.dataset?.dismissed) {
-      this.updateInitialProgress(20, "클랜 기본 정보 동기화 중...");
+      this.updateInitialProgress(25, "서버 연결 완료 · 클랜 정보 요청 중...");
     }
 
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
@@ -310,19 +311,25 @@ class ClanManagerApp {
       });
 
       if (liveData && liveData.memberList) {
-        // 클랜 기본 정보 1차 반영
         this.renderClan(liveData);
 
-        // 클랜원 전체의 마지막 배틀 병렬 로드
         if (!this.elements.initialSyncModal?.dataset?.dismissed) {
-          this.updateInitialProgress(65, "클랜원 50명 최근 배틀 기록 동기화 중...");
+          this.updateInitialProgress(60, "클랜원 50명 최근 배틀 기록 동기화 중...");
         }
 
         await this.fetchAllMembersBattleLogs(liveData.memberList);
 
-        // 배틀 기록까지 모두 매핑된 데이터로 재렌더링
+        if (!this.elements.initialSyncModal?.dataset?.dismissed) {
+          this.updateInitialProgress(90, "데이터 정리 및 대시보드 구성 중...");
+        }
+
         this.renderClan(liveData);
-        this.hideInitialSyncModal();
+        
+        // 90%에서 잠시 머무른 뒤 100% 완료로 유려하게 연결
+        setTimeout(() => {
+          this.hideInitialSyncModal();
+        }, 150);
+
         if (dot) dot.className = "status-dot green live-pulse";
       }
     } catch (err) {
