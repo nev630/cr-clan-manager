@@ -51,7 +51,7 @@
           <span class="text-[10px] font-mono text-slate-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06] whitespace-nowrap" id="clan-tag">#G890J9JC</span>
         </div>
         <p class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[190px]" id="clan-desc">
-          클랜원 주간 지원량 · 마지막 접속 실시간 모니터링
+          클랜원 주간 지원량 · 마지막 접속 및 배틀 모니터링
         </p>
       </div>
 
@@ -169,10 +169,11 @@
               class="w-full pl-8 pr-3 py-1.5 bg-[#0f121a] border border-white/[0.06] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition" />
           </div>
 
-          <!-- 정렬 기준 선택 -->
+          <!-- 정렬 기준 선택: 지원량 / 마지막 접속 / 마지막 배틀 / 트로피 -->
           <select id="sort-key-select" class="bg-[#0f121a] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer shrink-0">
             <option value="donations">지원량</option>
             <option value="lastSeen">마지막 접속</option>
+            <option value="lastBattle">마지막 배틀</option>
             <option value="trophies">트로피</option>
           </select>
 
@@ -186,7 +187,7 @@
 
       <!-- 5. 클랜원 목록: 모바일 전용 카드 리스트 뷰로 통일 -->
       <div class="surface-card mt-3 overflow-hidden">
-        <!-- 데스크톱 테이블 뷰 (완전 비활성화) -->
+        <!-- 데스크톱 테이블 뷰 (비활성화 상태 유지) -->
         <div class="hidden">
           <table class="w-full text-left data-table">
             <thead>
@@ -194,7 +195,7 @@
                 <th class="w-12 text-center">#</th>
                 <th class="cursor-pointer hover:text-white" onclick="window.app.toggleSort('trophies')" title="클릭 시 트로피 순 정렬">클랜원 (트로피 ↕)</th>
                 <th class="text-center cursor-pointer hover:text-white" onclick="window.app.toggleSort('lastSeen')">
-                  마지막 접속
+                  마지막 접속 / 배틀
                 </th>
                 <th class="text-right cursor-pointer hover:text-white" onclick="window.app.toggleSort('donations')">
                   주간 지원량
@@ -207,7 +208,7 @@
           </table>
         </div>
 
-        <!-- 모바일 전용 고밀도 카드 리스트: 모든 화면에서 항상 활성화 -->
+        <!-- 모바일 전용 고밀도 카드 리스트: 마지막 접속 & 마지막 배틀 동시 표시 -->
         <div class="block divide-y divide-white/[0.04]" id="member-mobile-list">
           <!-- JavaScript 렌더링 -->
         </div>
@@ -275,7 +276,7 @@
       </div>
       <h3 class="text-sm font-bold text-white tracking-tight">클랜 실시간 동기화 중</h3>
       <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
-        슈퍼셀 공식 서버에서 <span class="text-emerald-400 font-semibold">Good Fellas</span> 클랜의 지원량, 접속 현황, 시즌 트로피를 동기화하고 있습니다.
+        슈퍼셀 공식 서버에서 <span class="text-emerald-400 font-semibold">Good Fellas</span> 클랜의 지원량, 접속 현황, 시즌 트로피 및 최근 배틀 기록을 동기화하고 있습니다.
       </p>
       <div class="w-full bg-white/[0.06] rounded-full h-2 overflow-hidden mt-4">
         <div id="initial-sync-progress-bar" class="bg-gradient-to-r from-emerald-500 via-indigo-500 to-amber-400 h-full rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
