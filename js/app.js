@@ -257,16 +257,107 @@ class ClanManagerApp {
         if (statusText) statusText.textContent = "실시간";
       }
     } catch (err) {
-      console.warn("실시간 최신 동기화 알림 (프리셋 폴백 적용):", err.message);
-      if (!this.currentData && window.DEMO_CLAN_DATA) {
-        this.renderClan(window.DEMO_CLAN_DATA);
+      console.error("실시간 최신 동기화 실패:", err.message);
+      
+      // 상태 표시를 에러(red)로 전환
+      if (dot) dot.className = "status-dot red";
+      if (statusText) statusText.textContent = "연결 실패";
+
+      // 기존 데이터가 아예 없는 초기 로딩 실패인 경우: 에러 모달 팝업 + 빈 테이블 상태 렌더링
+      if (!this.currentData) {
+        this.renderEmptyState(err.message);
+        this.showErrorModal(err);
+      } else {
+        // 이미 데이터가 표시된 상태에서 수동 갱신만 실패한 경우: 기존 화면 유지 + 알림
+        alert(`데이터 갱신 실패: ${err.message}`);
       }
-      if (dot) dot.className = "status-dot green";
-      if (statusText) statusText.textContent = "안정";
     } finally {
       if (spinIcon) spinIcon.classList.remove("animate-spin");
       this.hideInitialSyncModal();
     }
+  }
+
+  // 에러 모달 표시 메서드
+  showErrorModal(err) {
+    const modal = document.getElementById("sync-error-modal");
+    if (!modal) return;
+
+    const titleEl = document.getElementById("error-modal-title");
+    const msgEl = document.getElementById("error-modal-message");
+    const btnRetry = document.getElementById("btn-error-retry");
+    const btnClose = document.getElementById("btn-error-close");
+
+    const errStr = (err?.message || "").toLowerCase();
+
+    if (errStr.includes("403") || errStr.includes("401") || errStr.includes("key")) {
+      if (titleEl) titleEl.textContent = "API 인증 실패";
+      if (msgEl) msgEl.textContent = "Supercell API 키가 만료되었거나 IP 접근 제한/Cloudflare Worker 설정이 올바르지 않습니다.";
+    } else if (errStr.includes("404")) {
+      if (titleEl) titleEl.textContent = "클랜 정보 없음";
+      if (msgEl) msgEl.textContent = "지정된 클랜 태그(#G890J9JC)를 Supercell API에서 조회할 수 없습니다.";
+    } else if (errStr.includes("429")) {
+      if (titleEl) titleEl.textContent = "요청 횟수 초과";
+      if (msgEl) msgEl.textContent = "API 요청 한도를 초과했습니다. 1~2분 후 다시 시도해주세요.";
+    } else {
+      if (titleEl) titleEl.textContent = "데이터 동기화 실패";
+      if (msgEl) msgEl.textContent = `서버와 통신할 수 없습니다: ${err?.message || "네트워크 상태를 확인해주세요."}`;
+    }
+
+    if (btnRetry) {
+      btnRetry.onclick = () => {
+        this.closeErrorModal();
+        this.autoSyncLive();
+      };
+    }
+
+    if (btnClose) {
+      btnClose.onclick = () => this.closeErrorModal();
+    }
+
+    modal.classList.remove("hidden");
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  // 에러 모달 닫기 메서드
+  closeErrorModal() {
+    const modal = document.getElementById("sync-error-modal");
+    if (modal) modal.classList.add("hidden");
+  }
+
+  // 데이터 수신 실패 시 Empty State 렌더링
+  renderEmptyState(reason) {
+    const mobileList = this.elements.memberMobileList;
+    const desktopTbody = this.elements.memberTableBody;
+    const emptyState = this.elements.emptyState;
+    const podium = this.elements.podiumContainer;
+
+    if (podium) {
+      podium.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">데이터를 불러오지 못했습니다.</div>`;
+    }
+
+    const emptyHtml = `
+      <div class="py-12 px-4 text-center">
+        <div class="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-2 text-red-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <p class="text-xs font-semibold text-slate-300">클랜 데이터를 불러올 수 없습니다</p>
+        <p class="text-[11px] text-slate-500 mt-1 max-w-xs mx-auto">${this.escapeHtml(reason || "API 서버 응답 실패")}</p>
+        <button onclick="window.app.autoSyncLive()" class="mt-3 px-3 py-1.5 bg-white/[0.06] hover:bg-white/[0.1] text-xs text-slate-200 rounded-lg border border-white/[0.08] transition inline-flex items-center gap-1.5">
+          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+          <span>다시 시도</span>
+        </button>
+      </div>
+    `;
+
+    if (mobileList) mobileList.innerHTML = emptyHtml;
+    if (desktopTbody) {
+      desktopTbody.innerHTML = `<tr><td colspan="4" class="py-10 text-center text-xs text-slate-500">${this.escapeHtml(reason || "데이터 수신 실패")}</td></tr>`;
+    }
+    if (emptyState) emptyState.classList.add("hidden");
+
+    if (window.lucide) window.lucide.createIcons();
   }
 
   renderClan(clanData) {
