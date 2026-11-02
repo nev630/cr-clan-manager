@@ -1,7 +1,7 @@
 /**
  * Good Fellas Clan Manager - Core Application Logic
  * Mobile Optimized, Visual Charts & Gallery Clan Comparison
- * (Optimized Version with Real-time Battle Logs)
+ * (Optimized Version with Real-time Battle Logs & 3-min Online Status)
  */
 
 class ClanManagerApp {
@@ -848,7 +848,81 @@ class ClanManagerApp {
     this.applyFilterAndRender();
   }
 
-  // 상대 시간 포맷팅 도우미
+  // 3분 기준 '접속 중' 판정 및 상대 시간 계산
+  getOnlineStatus(dateStr) {
+    if (!dateStr) {
+      return { isOnline: false, text: "기록 없음", dotColor: "slate", isPulse: false, textColor: "text-slate-500" };
+    }
+    let date = null;
+    if (window.crApi && typeof window.crApi.parseApiDate === "function") {
+      date = window.crApi.parseApiDate(dateStr);
+    } else {
+      const y = dateStr.slice(0, 4), m = dateStr.slice(4, 6), d = dateStr.slice(6, 8);
+      const h = dateStr.slice(9, 11), min = dateStr.slice(11, 13), s = dateStr.slice(13, 15);
+      date = new Date(Date.UTC(y, m - 1, d, h, min, s));
+    }
+    if (!date || isNaN(date.getTime())) {
+      return { isOnline: false, text: "기록 없음", dotColor: "slate", isPulse: false, textColor: "text-slate-500" };
+    }
+
+    const diffMinutes = Math.floor((Date.now() - date.getTime()) / (1000 * 60));
+
+    // 1. 3분 이내 활동 감지 -> '🟢 접속 중' 판정
+    if (diffMinutes <= 3) {
+      return {
+        isOnline: true,
+        text: "접속 중",
+        dotColor: "green",
+        isPulse: true,
+        textColor: "text-emerald-400 font-bold"
+      };
+    }
+
+    // 2. 3분 초과 ~ 60분 미만 -> 'N분 전'
+    if (diffMinutes < 60) {
+      return {
+        isOnline: false,
+        text: `${diffMinutes}분 전`,
+        dotColor: "green",
+        isPulse: false,
+        textColor: "text-slate-300 font-medium"
+      };
+    }
+
+    // 3. 1시간 이상 ~ 24시간 미만 -> 'N시간 전'
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+      return {
+        isOnline: false,
+        text: `${diffHours}시간 전`,
+        dotColor: "amber",
+        isPulse: false,
+        textColor: "text-amber-300 font-medium"
+      };
+    }
+
+    // 4. 1일 이상 -> 'N일 전' (3일 이상은 미접속 경고)
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays >= 3) {
+      return {
+        isOnline: false,
+        text: `${diffDays}일 전`,
+        dotColor: "rose",
+        isPulse: false,
+        textColor: "text-rose-400 font-bold"
+      };
+    }
+
+    return {
+      isOnline: false,
+      text: `${diffDays}일 전`,
+      dotColor: "amber",
+      isPulse: false,
+      textColor: "text-amber-300 font-medium"
+    };
+  }
+
+  // 상대 시간 포맷팅 도우미 (마지막 배틀용)
   formatRelativeTime(dateStr) {
     if (!dateStr) return "기록 없음";
     let date = null;
@@ -862,7 +936,7 @@ class ClanManagerApp {
     if (!date || isNaN(date.getTime())) return "기록 없음";
 
     const diffMinutes = Math.floor((Date.now() - date.getTime()) / (1000 * 60));
-    if (diffMinutes < 1) return "방금 전";
+    if (diffMinutes <= 3) return "방금 전";
     if (diffMinutes < 60) return `${diffMinutes}분 전`;
 
     const diffHours = Math.floor(diffMinutes / 60);
@@ -945,24 +1019,10 @@ class ClanManagerApp {
 
     if (emptyState) emptyState.classList.add("hidden");
 
-    const now = Date.now();
     let rowsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      const lastSeenDate = window.crApi.parseApiDate(member.lastSeen);
-      let daysAgo = 0;
-      if (lastSeenDate) daysAgo = (now - lastSeenDate.getTime()) / (1000 * 60 * 60 * 24);
-
-      let dotColor = "green";
-      let seenTextColor = "text-slate-300";
-      if (daysAgo >= 3) {
-        dotColor = "rose"; seenTextColor = "text-rose-400 font-semibold";
-      } else if (daysAgo >= 1) {
-        dotColor = "amber"; seenTextColor = "text-amber-300";
-      }
-
-      const relativeSeen = window.crApi.getRelativeTime(member.lastSeen);
-      const exactSeen = lastSeenDate?.toLocaleString("ko-KR") || "기록 없음";
+      const status = this.getOnlineStatus(member.lastSeen);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
       const donations = member.donations || 0;
@@ -982,9 +1042,9 @@ class ClanManagerApp {
             </div>
           </td>
           <td class="text-center">
-            <div class="inline-flex items-center gap-1.5" title="${exactSeen}">
-              <span class="status-dot ${dotColor}"></span>
-              <span class="${seenTextColor} text-xs">${relativeSeen}</span>
+            <div class="inline-flex items-center gap-1.5">
+              <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
+              <span class="${status.textColor} text-xs">${status.text}</span>
             </div>
             <div class="text-[10px] text-indigo-300/80 font-mono mt-0.5">
               배틀: ${relativeBattle}
@@ -1012,29 +1072,19 @@ class ClanManagerApp {
     let cardsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      const lastSeenDate = window.crApi.parseApiDate(member.lastSeen);
-      let daysAgo = 0;
-      if (lastSeenDate) daysAgo = (now - lastSeenDate.getTime()) / (1000 * 60 * 60 * 24);
-
-      let dotColor = "green";
-      let seenTextColor = "text-slate-300";
-      if (daysAgo >= 3) {
-        dotColor = "rose"; seenTextColor = "text-rose-400 font-bold";
-      } else if (daysAgo >= 1) {
-        dotColor = "amber"; seenTextColor = "text-amber-300 font-medium";
-      }
-
-      const relativeSeen = window.crApi.getRelativeTime(member.lastSeen);
+      // 3분 기준 온라인 판정
+      const status = this.getOnlineStatus(member.lastSeen);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
-      // 마지막 배틀 텍스트 색상 구분 (최근 배틀일수록 또렷하게)
+      // 마지막 배틀 텍스트 색상 구분
       let battleTextColor = "text-slate-400";
       if (member.lastBattleTime) {
         const battleDate = window.crApi?.parseApiDate(member.lastBattleTime);
         if (battleDate) {
-          const battleDaysAgo = (now - battleDate.getTime()) / (1000 * 60 * 60 * 24);
-          if (battleDaysAgo < 1) battleTextColor = "text-indigo-300 font-semibold";
-          else if (battleDaysAgo >= 3) battleTextColor = "text-rose-400/90 font-medium";
+          const battleMinutesAgo = Math.floor((now - battleDate.getTime()) / (1000 * 60));
+          if (battleMinutesAgo <= 3) battleTextColor = "text-emerald-400 font-bold";
+          else if (battleMinutesAgo < 1440) battleTextColor = "text-indigo-300 font-semibold";
+          else if (battleMinutesAgo >= 4320) battleTextColor = "text-rose-400/90 font-medium";
         }
       }
 
@@ -1052,15 +1102,15 @@ class ClanManagerApp {
             <span class="text-xs font-semibold text-amber-400 shrink-0">🏆 ${(member.trophies || 0).toLocaleString()}</span>
           </div>
 
-          <!-- 마지막 접속 / 마지막 배틀 / 지원량 2단 그리드 -->
+          <!-- 마지막 접속(접속 중) / 마지막 배틀 / 지원량 2단 그리드 -->
           <div class="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-white/[0.03] items-center">
             <!-- 좌측: 마지막 접속 & 마지막 배틀 -->
             <div class="space-y-1">
               <div class="flex items-center gap-1.5">
                 <span class="text-[10px] text-slate-500 shrink-0">마지막 접속</span>
                 <div class="inline-flex items-center gap-1">
-                  <span class="status-dot ${dotColor}"></span>
-                  <span class="text-xs ${seenTextColor}">${relativeSeen}</span>
+                  <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
+                  <span class="text-xs ${status.textColor}">${status.text}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1.5">
