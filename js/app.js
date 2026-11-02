@@ -75,7 +75,10 @@ class ClanManagerApp {
       initialSyncStatusMsg: document.getElementById("initial-sync-status-msg"),
       initialSyncModal: document.getElementById("initial-sync-modal"),
       searchInput: document.getElementById("search-input"),
-      sortSelect: document.getElementById("sort-select"),
+      sortKeySelect: document.getElementById("sort-key-select"),
+      btnSortOrder: document.getElementById("btn-sort-order"),
+      sortOrderText: document.getElementById("sort-order-text"),
+      sortOrderIcon: document.getElementById("sort-order-icon"),
       btnManualSync: document.getElementById("btn-manual-sync"),
       btnRefreshCompare: document.getElementById("btn-refresh-compare"),
       btnAddCompareClan: document.getElementById("btn-add-compare-clan"),
@@ -87,7 +90,6 @@ class ClanManagerApp {
       tabContextHint: document.getElementById("tab-context-hint"),
       btnQuickCompare: document.getElementById("btn-quick-compare"),
       syncDot: document.getElementById("sync-dot"),
-      syncStatusText: document.getElementById("sync-status-text"),
       syncSpinIcon: document.getElementById("sync-spin-icon"),
       clanName: document.getElementById("clan-name"),
       clanTag: document.getElementById("clan-tag"),
@@ -140,7 +142,7 @@ class ClanManagerApp {
   }
 
   bindEvents() {
-    const { searchInput, sortSelect, btnManualSync, btnRefreshCompare, btnAddCompareClan, inputCustomClanTag } = this.elements;
+    const { searchInput, sortKeySelect, btnSortOrder, btnManualSync, btnRefreshCompare, btnAddCompareClan, inputCustomClanTag } = this.elements;
     
     // 1. 실시간 검색 인풋 (디바운싱 최적화 적용)
     if (searchInput) {
@@ -150,36 +152,59 @@ class ClanManagerApp {
         searchTimeout = setTimeout(() => {
           this.searchQuery = e.target.value.trim().toLowerCase();
           this.applyFilterAndRender();
-        }, 300); // 300ms 딜레이
+        }, 300);
       });
     }
 
-    // 2. 정렬 드롭다운
-    if (sortSelect) {
-      sortSelect.addEventListener("change", (e) => {
-        const [key, order] = e.target.value.split("-");
-        this.sorting.key = key;
-        this.sorting.order = order || "desc";
+    // 2. 정렬 기준 변경 드롭다운
+    if (sortKeySelect) {
+      sortKeySelect.addEventListener("change", (e) => {
+        this.sorting.key = e.target.value;
         this.applyFilterAndRender();
       });
     }
 
-    // 3. 수동 동기화 보조 버튼
+    // 3. 내림차순 / 오름차순 원클릭 토글 버튼
+    if (btnSortOrder) {
+      btnSortOrder.addEventListener("click", () => this.toggleSortOrder());
+    }
+
+    // 4. 수동 동기화 보조 버튼
     if (btnManualSync) {
       btnManualSync.addEventListener("click", () => this.autoSyncLive());
     }
 
-    // 4. 비교 탭 새로고침 버튼
+    // 5. 비교 탭 새로고침 버튼
     if (btnRefreshCompare) {
       btnRefreshCompare.addEventListener("click", () => this.syncCompareLive());
     }
 
-    // 5. 커스텀 갤클 추가 버튼 및 엔터키 바인딩
+    // 6. 커스텀 갤클 추가 버튼 및 엔터키 바인딩
     if (btnAddCompareClan && inputCustomClanTag) {
       btnAddCompareClan.addEventListener("click", () => this.handleCustomClanAdd());
       inputCustomClanTag.addEventListener("keydown", (e) => {
         if (e.key === "Enter") this.handleCustomClanAdd();
       });
+    }
+  }
+
+  // 정렬 방향 토글 (내림차순 <-> 오름차순)
+  toggleSortOrder() {
+    this.sorting.order = this.sorting.order === "desc" ? "asc" : "desc";
+    this.updateSortOrderUI();
+    this.applyFilterAndRender();
+  }
+
+  updateSortOrderUI() {
+    const { sortOrderText: textEl, sortOrderIcon: iconEl } = this.elements;
+    const isDesc = this.sorting.order === "desc";
+    
+    if (textEl) {
+      textEl.textContent = isDesc ? "내림차순" : "오름차순";
+    }
+    if (iconEl) {
+      iconEl.setAttribute("data-lucide", isDesc ? "arrow-down-wide-narrow" : "arrow-up-narrow-wide");
+      if (window.lucide) window.lucide.createIcons();
     }
   }
 
@@ -200,7 +225,7 @@ class ClanManagerApp {
         tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span><span>디시 갤러리 클랜 3자 비교 뷰</span>`;
       }
 
-      // 탭 전환 즉시 렌더링 및 애니메이션 트리거 (지연 시간 0)
+      // 탭 전환 즉시 렌더링 및 애니메이션 트리거
       this.renderComparisonView(true);
 
       if (!this.hasCompareLoaded) {
@@ -225,10 +250,9 @@ class ClanManagerApp {
   }
 
   async autoSyncLive() {
-    const { syncDot: dot, syncStatusText: statusText, syncSpinIcon: spinIcon } = this.elements;
+    const { syncDot: dot, syncSpinIcon: spinIcon } = this.elements;
 
     if (dot) dot.className = "status-dot amber live-pulse";
-    if (statusText) statusText.textContent = "동기화 중";
 
     // 초기 모달 열려있으면 서버 요청 상태로 갱신
     if (!this.elements.initialSyncModal?.dataset?.dismissed) {
@@ -242,21 +266,18 @@ class ClanManagerApp {
         this.renderClan(partialData);
         this.hideInitialSyncModal();
         if (dot) dot.className = "status-dot green live-pulse";
-        if (statusText) statusText.textContent = "실시간";
       });
 
       if (liveData && liveData.memberList) {
         this.renderClan(liveData);
         this.hideInitialSyncModal();
         if (dot) dot.className = "status-dot green live-pulse";
-        if (statusText) statusText.textContent = "실시간";
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
       
       // 상태 표시를 에러(red)로 전환
       if (dot) dot.className = "status-dot red";
-      if (statusText) statusText.textContent = "연결 실패";
 
       // 기존 데이터가 아예 없는 초기 로딩 실패인 경우: 에러 모달 팝업 + 빈 테이블 상태 렌더링
       if (!this.currentData) {
@@ -286,7 +307,6 @@ class ClanManagerApp {
       console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
     } finally {
       if (icon) icon.classList.remove("animate-spin");
-      // 사용자가 현재 비교 탭을 보고 있을 때만 화면 갱신 (애니메이션 재시작 없이 부드럽게 수치만 갱신)
       if (this.activeMainTab === "compare") {
         this.renderComparisonView(false);
       }
@@ -626,18 +646,15 @@ class ClanManagerApp {
       chart.resize();
 
       if (triggerAnimation) {
-        // 탭을 눌러 새로 진입한 경우: 0에서부터 솟아오르는 애니메이션 즉시 재생 (딜레이 0ms)
         chart.reset();
         chart.update({
           duration: 550,
           easing: 'easeOutQuart'
         });
       } else {
-        // 백그라운드 데이터 갱신 시에는 튀지 않고 조용히 수치만 업데이트
         chart.update('none');
       }
     } else {
-      // 최초 생성 시: easeOutQuart 커브를 주어 탭 진입 즉시 폭발적으로 상승 시작
       const barDataLabelsPlugin = {
         id: "barDataLabels",
         afterDatasetsDraw(chart, args, options) {
@@ -676,15 +693,16 @@ class ClanManagerApp {
         plugins: [barDataLabelsPlugin],
         options: {
           animation: {
-            duration: 550,           // 1000ms -> 550ms로 경쾌하고 빠르게 최적화
-            easing: 'easeOutQuart',   // 딜레이 체감의 주원인인 느린 출발을 없애고 0ms 첫 프레임부터 즉시 치솟음
+            duration: 550,
+            easing: 'easeOutQuart'
           },
           responsive: true, maintainAspectRatio: false, layout: { padding: { top: 24 } },
           scales: {
             y: {
               beginAtZero: true, ticks: { color: "#94a3b8", font: { size: 10 } },
               grid: { color: "rgba(255,255,255,0.05)" },
-              title: { display: true, text: "주간 총 지원량 (개)", color: "#94a3b8", font: { size: 10 } }, grace: "18%"
+              title: { display: false }, // '주간 총 지원량 (개)' 삭제
+              grace: "18%"
             },
             x: { ticks: { color: "#f8fafc", font: { size: 11, weight: "bold" } }, grid: { display: false } }
           },
@@ -778,7 +796,8 @@ class ClanManagerApp {
       this.sorting.key = key;
       this.sorting.order = "desc";
     }
-    if (this.elements.sortSelect) this.elements.sortSelect.value = `${this.sorting.key}-${this.sorting.order}`;
+    if (this.elements.sortKeySelect) this.elements.sortKeySelect.value = this.sorting.key;
+    this.updateSortOrderUI();
     this.applyFilterAndRender();
   }
 
