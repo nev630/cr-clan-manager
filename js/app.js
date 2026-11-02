@@ -4,7 +4,7 @@
  * (Optimized Version with Persistent LocalStorage Cache & 150s Calibrated Online Status)
  */
 
-console.log('%c[Good Fellas App] v2026.11.02_1837 - 2분30초 기준 및 로컬스토리지 배틀 캐시 타협안 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v2026.11.03_0019 - 디자인 3안 적용 - 2분30초 기준 및 로컬스토리지 배틀 캐시 타협안 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -1162,10 +1162,12 @@ class ClanManagerApp {
     let cardsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
+      // 상호 보정된 접속 상태
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
-      let battleTextColor = "text-slate-400";
+      // 마지막 배틀 텍스트 색상 구분
+      let battleTextColor = "text-slate-300";
       const battleDate = this.parseDateSafe(member.lastBattleTime);
       if (battleDate) {
         const battleSecsAgo = Math.floor((now - battleDate.getTime()) / 1000);
@@ -1174,37 +1176,42 @@ class ClanManagerApp {
         else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/90 font-medium";
       }
 
+      // 상단 닉네임 라인에 들어갈 접속 상태 뱃지 (안 3번)
+      let onlineBadgeHtml = "";
+      if (status.isOnline) {
+        onlineBadgeHtml = `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0"><span class="status-dot green live-pulse"></span>접속 중</span>`;
+      } else {
+        onlineBadgeHtml = `<span class="inline-flex items-center gap-1 text-[10px] ${status.textColor} shrink-0"><span class="status-dot ${status.dotColor}"></span>${status.text}</span>`;
+      }
+
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
       cardsHtml += `
         <div class="mobile-member-card">
+          <!-- 상단 행: 순위 + 닉네임 + 직급 + 접속 상태 뱃지 & 우측 트로피 -->
           <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1.5 min-w-0">
-              <span class="font-mono text-xs text-slate-500 w-4">${member.clanRank || idx + 1}</span>
-              <span class="font-bold text-white text-[13px] truncate">${this.escapeHtml(member.name)}</span>
+            <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
+              <span class="font-bold text-white text-[13px] truncate max-w-[120px] sm:max-w-[150px]">${this.escapeHtml(member.name)}</span>
               ${this.getRoleBadge(member.role)}
+              ${onlineBadgeHtml}
             </div>
             <span class="text-xs font-semibold text-amber-400 shrink-0">🏆 ${(member.trophies || 0).toLocaleString()}</span>
           </div>
 
+          <!-- 하단 행: 최근 배틀 vs 주간 지원량 1:1 대칭 배치 -->
           <div class="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-white/[0.03] items-center">
-            <div class="space-y-1">
-              <div class="flex items-center gap-1.5">
-                <span class="text-[10px] text-slate-500 shrink-0">마지막 접속</span>
-                <div class="inline-flex items-center gap-1">
-                  <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
-                  <span class="text-xs ${status.textColor}">${status.text}</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="text-[10px] text-slate-500 shrink-0">마지막 배틀</span>
-                <span class="text-xs ${battleTextColor}">${relativeBattle}</span>
+            <div class="text-left">
+              <div class="text-[10px] text-slate-500 font-medium">최근 배틀</div>
+              <div class="text-xs ${battleTextColor} mt-0.5 font-medium flex items-center gap-1">
+                <i data-lucide="swords" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+                <span>${relativeBattle}</span>
               </div>
             </div>
 
             <div class="text-right">
-              <div class="text-[10px] text-slate-500">주간 지원량</div>
+              <div class="text-[10px] text-slate-500 font-medium">주간 지원량</div>
               <div class="text-xs font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5">
                 ${donations.toLocaleString()}<span class="text-[10px] font-normal text-slate-500 ml-0.5">/ ${received}</span>
               </div>
