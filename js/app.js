@@ -1,10 +1,10 @@
 /**
  * Good Fellas Clan Manager - Core Application Logic
  * Mobile Optimized, Visual Charts & Gallery Clan Comparison
- * (Optimized Version with Real-time Battle Logs & 1-min Online Status)
+ * (Optimized Version with Chunked Battle Logs & Memory Cache Fallback)
  */
 
-console.log('%c[Good Fellas App] v2026.11.02_1730 - 단색 및 부드러운 로딩바 - 1분 주기 자동 동기화 - 1분 기준 접속 판정 패치 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v2026.11.02_1740 - 청크 분할 및 배틀로그 캐시 안전장치 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -18,6 +18,9 @@ class ClanManagerApp {
     this.compareClansData = [];
     this.hasCompareLoaded = false;
     
+    // 배틀로그 메모리 캐시 (일시적 429/네트워크 오류 시 이전 기록 보존)
+    this.battleLogCache = new Map();
+
     // Chart.js 인스턴스
     this.charts = { activity: null, compareDonations: null };
     
@@ -46,7 +49,7 @@ class ClanManagerApp {
     if (window.lucide) window.lucide.createIcons();
 
     // 초기 상태: 0%에서 실제 수신 대기
-    this.updateInitialProgress(10, "서버 연결 및 데이터 요청 중...");
+    this.updateInitialProgress(0, "서버 연결 및 데이터 요청 중...");
 
     // 접속 즉시 실시간 동기화 실행: 내 클랜 데이터 + 타 갤클 비교 데이터 사전 프리페치(Prefetch)
     this.autoSyncLive();
@@ -132,7 +135,6 @@ class ClanManagerApp {
 
     this.updateInitialProgress(100, "동기화 완료!");
 
-    // 100%까지 채워지는 부드러운 애니메이션(700ms)을 눈으로 감상한 뒤 서서히 페이드아웃
     setTimeout(() => {
       modal.style.opacity = "0";
       modal.style.pointerEvents = "none";
@@ -226,7 +228,6 @@ class ClanManagerApp {
         tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span><span>디시 갤러리 클랜 3자 비교 뷰</span>`;
       }
 
-      // 탭 전환 즉시 렌더링 및 애니메이션 트리거
       this.renderComparisonView(true);
 
       if (!this.hasCompareLoaded) {
@@ -250,48 +251,82 @@ class ClanManagerApp {
     if (typeof window.scrollTo === "function") { window.scrollTo({ top: 0, behavior: "smooth" }); }
   }
 
-  // 플레이어 1인의 최근 배틀 로그 조회 (프록시 통신)
-  async fetchPlayerBattleLog(playerTag) {
-    if (!playerTag) return [];
-    try {
-      if (window.crApi && typeof window.crApi.fetchPlayerBattleLog === "function") {
-        return await window.crApi.fetchPlayerBattleLog(playerTag);
+  // 플레이어 1인의 최근 배틀 로그 조회 (429 속도 제한 시 1회 지수 백오프 재시도)
+  async fetchPlayerBattleLog(playerTag, retries = 1) {
+    if (!playerTag) return null;
+    const normalized = encodeURIComponent(window.crApi ? window.crApi.normalizeTag(playerTag) : playerTag);
+    const url = `https://api.clashroyale.com/v1/players/${normalized}/battlelog`;
+
+    for (let i = 0; i <= retries; i++) {
+      try {
+        if (window.crApi && typeof window.crApi.fetchPlayerBattleLog === "function") {
+          const res = await window.crApi.fetchPlayerBattleLog(playerTag);
+          if (Array.isArray(res) && res.length > 0) return res;
+        }
+
+        if (window.crApi && typeof window.crApi.fetchWithProxy === "function") {
+          const res = await window.crApi.fetchWithProxy(url);
+          if (Array.isArray(res) && res.length > 0) return res;
+        }
+
+        const proxy = window.crApi?.workerUrl || "https://green-disk-88a6.marble593812345.workers.dev";
+        const res = await fetch(`${proxy}/v1/players/${normalized}/battlelog`);
+        
+        if (res.status === 429 && i < retries) {
+          await new Promise((r) => setTimeout(r, 200));
+          continue;
+        }
+
+        if (!res.ok) return null;
+        const data = await res.json();
+        return Array.isArray(data) ? data : null;
+      } catch (e) {
+        if (i < retries) {
+          await new Promise((r) => setTimeout(r, 150));
+          continue;
+        }
+        return null;
       }
-      const normalized = encodeURIComponent(window.crApi ? window.crApi.normalizeTag(playerTag) : playerTag);
-      const url = `https://api.clashroyale.com/v1/players/${normalized}/battlelog`;
-      
-      if (window.crApi && typeof window.crApi.fetchWithProxy === "function") {
-        return await window.crApi.fetchWithProxy(url);
-      }
-      
-      const proxy = window.crApi?.workerUrl || "https://green-disk-88a6.marble593812345.workers.dev";
-      const res = await fetch(`${proxy}/v1/players/${normalized}/battlelog`);
-      if (!res.ok) return [];
-      return await res.json();
-    } catch (e) {
-      return [];
     }
+    return null;
   }
 
-  // 클랜원 전체 50명의 마지막 배틀 로그 병렬 수집
+  // 클랜원 전체 50명의 마지막 배틀 로그 청크(10개 단위) 분할 수집 + 캐시 폴백 안전장치
   async fetchAllMembersBattleLogs(members) {
     if (!Array.isArray(members) || members.length === 0) return;
 
-    const promises = members.map(async (m) => {
-      try {
+    const chunkSize = 10;
+    for (let i = 0; i < members.length; i += chunkSize) {
+      const chunk = members.slice(i, i + chunkSize);
+
+      const chunkPromises = chunk.map(async (m) => {
         const battlelog = await this.fetchPlayerBattleLog(m.tag);
+
         if (Array.isArray(battlelog) && battlelog.length > 0) {
+          // 최신 배틀 수신 성공 시 캐시 갱신
           m.lastBattleTime = battlelog[0].battleTime;
           m.lastBattleType = battlelog[0].type || "Battle";
+          this.battleLogCache.set(m.tag, {
+            time: m.lastBattleTime,
+            type: m.lastBattleType
+          });
+        } else if (this.battleLogCache.has(m.tag)) {
+          // 일시적 429나 네트워크 지연으로 실패하더라도 이전 캐시가 있다면 '기록 없음'으로 덮어쓰지 않고 보존!
+          const cached = this.battleLogCache.get(m.tag);
+          m.lastBattleTime = cached.time;
+          m.lastBattleType = cached.type;
         } else {
           m.lastBattleTime = null;
         }
-      } catch (err) {
-        m.lastBattleTime = null;
-      }
-    });
+      });
 
-    await Promise.allSettled(promises);
+      await Promise.allSettled(chunkPromises);
+
+      // 청크 사이에 60ms의 미세 지연을 주어 슈퍼셀 서버의 동시 요청 버스트(429) 차단 완벽 방지
+      if (i + chunkSize < members.length) {
+        await new Promise((r) => setTimeout(r, 60));
+      }
+    }
   }
 
   async autoSyncLive() {
@@ -317,6 +352,7 @@ class ClanManagerApp {
           this.updateInitialProgress(60, "클랜원 50명 최근 배틀 기록 동기화 중...");
         }
 
+        // 10개씩 분할 수집하여 429 차단 방지 + 실패 시 이전 기록 보존
         await this.fetchAllMembersBattleLogs(liveData.memberList);
 
         if (!this.elements.initialSyncModal?.dataset?.dismissed) {
@@ -324,8 +360,7 @@ class ClanManagerApp {
         }
 
         this.renderClan(liveData);
-        
-        // 90%에서 잠시 머무른 뒤 100% 완료로 유려하게 연결
+
         setTimeout(() => {
           this.hideInitialSyncModal();
         }, 150);
@@ -383,17 +418,17 @@ class ClanManagerApp {
     const errStr = (err?.message || "").toLowerCase();
 
     if (errStr.includes("403") || errStr.includes("401") || errStr.includes("key")) {
-      if (titleEl) titleEl.textContent = "API 인증 실패";
-      if (msgEl) msgEl.textContent = "Supercell API 키가 만료되었거나 IP 접근 제한/Cloudflare Worker 설정이 올바르지 않습니다.";
+      titleEl.textContent = "API 인증 실패";
+      msgEl.textContent = "Supercell API 키가 만료되었거나 IP 접근 제한/Cloudflare Worker 설정이 올바르지 않습니다.";
     } else if (errStr.includes("404")) {
-      if (titleEl) titleEl.textContent = "클랜 정보 없음";
-      if (msgEl) msgEl.textContent = "지정된 클랜 태그(#G890J9JC)를 Supercell API에서 조회할 수 없습니다.";
+      titleEl.textContent = "클랜 정보 없음";
+      msgEl.textContent = "지정된 클랜 태그(#G890J9JC)를 Supercell API에서 조회할 수 없습니다.";
     } else if (errStr.includes("429")) {
-      if (titleEl) titleEl.textContent = "요청 횟수 초과";
-      if (msgEl) msgEl.textContent = "API 요청 한도를 초과했습니다. 1~2분 후 다시 시도해주세요.";
+      titleEl.textContent = "요청 횟수 초과";
+      msgEl.textContent = "API 요청 한도를 초과했습니다. 1~2분 후 다시 시도해주세요.";
     } else {
-      if (titleEl) titleEl.textContent = "데이터 동기화 실패";
-      if (msgEl) msgEl.textContent = `서버와 통신할 수 없습니다: ${err?.message || "네트워크 상태를 확인해주세요."}`;
+      titleEl.textContent = "데이터 동기화 실패";
+      msgEl.textContent = `서버와 통신할 수 없습니다: ${err?.message || "네트워크 상태를 확인해주세요."}`;
     }
 
     if (btnRetry) {
@@ -610,7 +645,6 @@ class ClanManagerApp {
     const activityCanvas = this.elements.chartActivity;
     if (!activityCanvas) return;
 
-    // 차트 재생성 대신 데이터 갱신 최적화 적용
     if (this.charts.activity) {
       this.charts.activity.data.datasets[0].data = [seenToday, seen1to2d, seenDormant];
       this.charts.activity.update();
@@ -883,7 +917,6 @@ class ClanManagerApp {
     const battleDate = this.parseDateSafe(lastBattleStr);
 
     if (seenDate && battleDate) {
-      // 배틀을 했다는 것은 그 시간에 무조건 접속 중이었다는 뜻이므로 둘 중 더 최신 시각을 채택!
       return battleDate.getTime() > seenDate.getTime() ? battleDate : seenDate;
     }
     return seenDate || battleDate || null;
@@ -909,7 +942,7 @@ class ClanManagerApp {
       };
     }
 
-    // 2. 1분 초과 ~ 60분 미만 -> 'N분 전' (배틀 시간과 동기화되어 모순 해결)
+    // 2. 1분 초과 ~ 60분 미만 -> 'N분 전'
     if (diffMinutes < 60) {
       return {
         isOnline: false,
@@ -1050,7 +1083,6 @@ class ClanManagerApp {
     let rowsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      // 상호 보정된 접속 상태 (1분 기준)
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
@@ -1104,11 +1136,9 @@ class ClanManagerApp {
     let cardsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      // 1분 기준 상호 보정된 접속 상태
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
-      // 마지막 배틀 텍스트 색상 구분 (1분 기준)
       let battleTextColor = "text-slate-400";
       const battleDate = this.parseDateSafe(member.lastBattleTime);
       if (battleDate) {
@@ -1132,9 +1162,7 @@ class ClanManagerApp {
             <span class="text-xs font-semibold text-amber-400 shrink-0">🏆 ${(member.trophies || 0).toLocaleString()}</span>
           </div>
 
-          <!-- 마지막 접속(접속 중) / 마지막 배틀 / 지원량 2단 그리드 -->
           <div class="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-white/[0.03] items-center">
-            <!-- 좌측: 마지막 접속 & 마지막 배틀 (1분 기준 보정) -->
             <div class="space-y-1">
               <div class="flex items-center gap-1.5">
                 <span class="text-[10px] text-slate-500 shrink-0">마지막 접속</span>
@@ -1149,7 +1177,6 @@ class ClanManagerApp {
               </div>
             </div>
 
-            <!-- 우측: 주간 지원량 -->
             <div class="text-right">
               <div class="text-[10px] text-slate-500">주간 지원량</div>
               <div class="text-xs font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5">
