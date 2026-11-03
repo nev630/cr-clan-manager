@@ -81,6 +81,7 @@ class ClanManagerApp {
   detectDonationActivity(members) {
     if (!Array.isArray(members)) return;
     const nowIso = new Date().toISOString();
+    const now = Date.now();
     let hasDonationUpdate = false;
 
     // 대시보드가 10분 이내에 활성화되어 있었던 세션인 경우에만 실시간 지원으로 감지 (장시간 후 접속 시 왜곡 방지)
