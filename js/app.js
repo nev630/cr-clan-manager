@@ -4,7 +4,7 @@
  * (Optimized Version with Persistent LocalStorage Cache & 150s Calibrated Online Status)
  */
 
-console.log('%c[Good Fellas App] v1.1.0 - 로딩 애니메이션 및 미니멀 UI 개선 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.3.0 - 초고속 실시간 동기화, 스마트 배틀로그 검증 & 심플 로딩바 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -26,6 +26,10 @@ class ClanManagerApp {
     
     // DOM 캐싱 (성능 최적화)
     this.elements = {};
+
+    this.currentProgress = 0;
+    this.lastSyncTime = 0;
+    this.syncThrottleMs = 30000; // 30초 쿨타운 (탭 전환/폴링 중복 호출 방지)
 
     this.init();
   }
@@ -69,27 +73,35 @@ class ClanManagerApp {
     if (window.lucide) window.lucide.createIcons();
 
     // 초기 상태: 0%에서 실제 수신 대기
-    this.updateInitialProgress(0, "서버 연결 및 데이터 요청 중...");
+    this.animateProgress(0, "서버 연결 및 데이터 요청 중...");
 
     // 접속 즉시 실시간 동기화 실행
-    this.autoSyncLive();
+    this.autoSyncLive(true);
     this.syncCompareLive();
 
-    // 1분 주기 자동 최신 동기화 타이머 (Page Visibility API 최적화 적용)
+    // 1분 주기 자동 최신 동기화 타이머 (30초 쿨타운 적용)
     setInterval(() => {
       if (document.visibilityState === 'visible') {
-        this.autoSyncLive();
+        this.autoSyncLive(false);
         this.syncCompareLive();
       }
-    }, 1000 * 60 * 1);
+    }, 60000);
 
-    // 화면 탭 활성화 시 즉각 동기화
+    // 화면 탭 활성화 시 즉각 동기화 (30초 쿨타운 적용)
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        this.autoSyncLive();
+        this.autoSyncLive(false);
         this.syncCompareLive();
       }
     });
+
+    // 1분 주기 상대 시간 자동 리렌더링 (네트워크 비용 0)
+    setInterval(() => {
+      if (document.visibilityState === 'visible' && this.currentData) {
+        this.renderMobileList();
+        this.renderDesktopTable();
+      }
+    }, 60000);
   }
 
   cacheDOM() {
@@ -139,11 +151,34 @@ class ClanManagerApp {
   }
 
   updateInitialProgress(percent, msg) {
+    this.animateProgress(percent, msg, 350);
+  }
+
+  animateProgress(targetPercent, msg, duration = 350) {
+    const startPercent = this.currentProgress || 0;
+    const clampedTarget = Math.min(100, Math.max(0, Math.round(targetPercent)));
+    this.currentProgress = clampedTarget;
+
     const { initialSyncProgressBar: bar, initialSyncPercent: percentEl, initialSyncStatusMsg: msgEl } = this.elements;
-    const clamped = Math.min(100, Math.max(0, percent));
-    if (bar) bar.style.width = `${clamped}%`;
-    if (percentEl) percentEl.textContent = `${clamped}%`;
+    if (bar) bar.style.width = `${clampedTarget}%`;
     if (msgEl && msg) msgEl.textContent = msg;
+
+    if (percentEl) {
+      const startTime = performance.now();
+      const step = (now) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentVal = Math.round(startPercent + (clampedTarget - startPercent) * easeOut);
+        percentEl.textContent = `${currentVal}%`;
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          percentEl.textContent = `${clampedTarget}%`;
+        }
+      };
+      requestAnimationFrame(step);
+    }
   }
 
   hideInitialSyncModal() {
@@ -151,15 +186,16 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    this.updateInitialProgress(100, "동기화 완료!");
+    this.animateProgress(100, "동기화 완료!", 250);
 
     setTimeout(() => {
+      modal.style.transition = "opacity 0.4s ease, visibility 0.4s ease";
       modal.style.opacity = "0";
       modal.style.pointerEvents = "none";
       setTimeout(() => {
         modal.classList.add("hidden");
       }, 400);
-    }, 600);
+    }, 450);
   }
 
   bindEvents() {
@@ -188,7 +224,7 @@ class ClanManagerApp {
     }
 
     if (btnManualSync) {
-      btnManualSync.addEventListener("click", () => this.autoSyncLive());
+      btnManualSync.addEventListener("click", () => this.autoSyncLive(true));
     }
 
     if (btnRefreshCompare) {
@@ -298,121 +334,133 @@ class ClanManagerApp {
     return null;
   }
 
-  // 클랜원 전체 50명의 마지막 배틀 로그 청크(10개 단위) 분할 수집 + 영구 캐시 보존
-  async fetchAllMembersBattleLogs(members) {
+  // 캐시된 배틀로그 즉시 바인딩 (기록 없음 방지)
+  bindCachedBattleLogs(members) {
+    if (!Array.isArray(members)) return;
+    members.forEach((m) => {
+      if (this.battleLogCache.has(m.tag)) {
+        const c = this.battleLogCache.get(m.tag);
+        m.lastBattleTime = c.time;
+        m.lastBattleType = c.type;
+      }
+    });
+  }
+
+  // 최근 활동 멤버 대상 스마트 타겟팅 배틀로그 비동기 검증 (리스크 0 & 초고속 속도 보장)
+  async syncTargetedBattleLogs(members) {
     if (!Array.isArray(members) || members.length === 0) return;
 
+    const now = Date.now();
+    const candidates = members
+      .filter((m) => {
+        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+        if (!effectiveDate) return false;
+        const diffHours = (now - effectiveDate.getTime()) / (1000 * 60 * 60);
+        return diffHours <= 48; // 최근 48시간 이내 활동자 선별
+      })
+      .sort((a, b) => {
+        const dateA = this.getEffectiveActiveDate(a.lastSeen, a.lastBattleTime)?.getTime() || 0;
+        const dateB = this.getEffectiveActiveDate(b.lastSeen, b.lastBattleTime)?.getTime() || 0;
+        return dateB - dateA;
+      })
+      .slice(0, 10); // 최대 10명만 안전하게 타겟팅
+
+    if (candidates.length === 0) return;
+
     let hasNewData = false;
-    const chunkSize = 17;
+    const concurrency = 3;
 
-    for (let i = 0; i < members.length; i += chunkSize) {
-      const chunk = members.slice(i, i + chunkSize);
-
+    for (let i = 0; i < candidates.length; i += concurrency) {
+      const chunk = candidates.slice(i, i + concurrency);
       const chunkPromises = chunk.map(async (m) => {
-        // 1. 이미 캐시에 기록이 있으면 먼저 즉시 바인딩 (기록 없음 절대 방지)
-        if (this.battleLogCache.has(m.tag)) {
-          const cached = this.battleLogCache.get(m.tag);
-          m.lastBattleTime = cached.time;
-          m.lastBattleType = cached.type;
-        }
-
-        // 2. 서버에서 최신 배틀로그 조회
         const battlelog = await this.fetchPlayerBattleLog(m.tag);
-
         if (Array.isArray(battlelog) && battlelog.length > 0) {
-          m.lastBattleTime = battlelog[0].battleTime;
-          m.lastBattleType = battlelog[0].type || "Battle";
-          this.battleLogCache.set(m.tag, {
-            time: m.lastBattleTime,
-            type: m.lastBattleType
-          });
-          hasNewData = true;
+          const newBattleTime = battlelog[0].battleTime;
+          const newBattleType = battlelog[0].type || "Battle";
+          if (m.lastBattleTime !== newBattleTime) {
+            m.lastBattleTime = newBattleTime;
+            m.lastBattleType = newBattleType;
+            this.battleLogCache.set(m.tag, {
+              time: newBattleTime,
+              type: newBattleType
+            });
+            hasNewData = true;
+          }
         }
       });
 
       await Promise.allSettled(chunkPromises);
-
-      if (i + chunkSize < members.length) {
-        await new Promise((r) => setTimeout(r, 30));
+      if (i + concurrency < candidates.length) {
+        await new Promise((r) => setTimeout(r, 50));
       }
     }
 
-    // 새 데이터가 있다면 로컬스토리지에 영구 저장
     if (hasNewData) {
       this.saveBattleLogCache();
+      this.applyFilterAndRender();
+      this.updateStats(this.currentData);
     }
   }
 
-  async autoSyncLive() {
+  async autoSyncLive(isManual = false) {
+    const now = Date.now();
+    // 30초 쿨타운 적용 (수동 클릭 시 즉시 허용)
+    if (!isManual && (now - this.lastSyncTime < this.syncThrottleMs)) {
+      return;
+    }
+    this.lastSyncTime = now;
+
     const { syncDot: dot, syncSpinIcon: spinIcon } = this.elements;
-
     if (dot) dot.className = "status-dot amber live-pulse";
+    if (spinIcon && isManual) spinIcon.classList.add("animate-spin");
 
-    if (!this.elements.initialSyncModal?.dataset?.dismissed) {
-      this.updateInitialProgress(25, "서버 연결 완료 · 클랜 정보 요청 중...");
+    const isInitial = !this.elements.initialSyncModal?.dataset?.dismissed;
+    if (isInitial) {
+      this.animateProgress(30, "서버 연결 완료 · 클랜 정보 요청 중...");
     }
 
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
 
     try {
       const liveData = await window.crApi.fetchClanFullData(tag, (partialData) => {
-        // 캐시된 배틀로그 먼저 즉시 바인딩하여 첫 렌더링부터 기록 없음 방지
         if (partialData?.memberList) {
-          partialData.memberList.forEach((m) => {
-            if (this.battleLogCache.has(m.tag)) {
-              const c = this.battleLogCache.get(m.tag);
-              m.lastBattleTime = c.time;
-              m.lastBattleType = c.type;
-            }
-          });
+          this.bindCachedBattleLogs(partialData.memberList);
         }
         this.renderClan(partialData);
       });
 
       if (liveData && liveData.memberList) {
-        // 1. 캐시된 배틀로그 선적용 후 렌더링
-        liveData.memberList.forEach((m) => {
-          if (this.battleLogCache.has(m.tag)) {
-            const c = this.battleLogCache.get(m.tag);
-            m.lastBattleTime = c.time;
-            m.lastBattleType = c.type;
-          }
-        });
+        // 캐시 바인딩 및 즉시 1차 렌더링
+        this.bindCachedBattleLogs(liveData.memberList);
         this.renderClan(liveData);
 
-        if (!this.elements.initialSyncModal?.dataset?.dismissed) {
-          this.updateInitialProgress(60, "클랜원 50명 최근 배틀 기록 동기화 중...");
+        if (isInitial) {
+          this.animateProgress(100, "동기화 완료!");
+          setTimeout(() => {
+            this.hideInitialSyncModal();
+          }, 350);
         }
-
-        // 2. 서버 최신 배틀로그 청크 분할 수집
-        await this.fetchAllMembersBattleLogs(liveData.memberList);
-
-        if (!this.elements.initialSyncModal?.dataset?.dismissed) {
-          this.updateInitialProgress(90, "데이터 정리 및 대시보드 구성 중...");
-        }
-
-        this.renderClan(liveData);
-
-        setTimeout(() => {
-          this.hideInitialSyncModal();
-        }, 150);
 
         if (dot) dot.className = "status-dot green live-pulse";
+
+        // 백그라운드에서 최근 활동 멤버 배틀로그 비동기 보강 (UI 차단 없음)
+        this.syncTargetedBattleLogs(liveData.memberList);
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
-      
       if (dot) dot.className = "status-dot red";
 
       if (!this.currentData) {
         this.renderEmptyState(err.message);
         this.showErrorModal(err);
-      } else {
+      } else if (isManual) {
         alert(`데이터 갱신 실패: ${err.message}`);
       }
     } finally {
       if (spinIcon) spinIcon.classList.remove("animate-spin");
-      this.hideInitialSyncModal();
+      if (isInitial) {
+        this.hideInitialSyncModal();
+      }
     }
   }
 
