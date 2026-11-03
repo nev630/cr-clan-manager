@@ -1,8 +1,8 @@
 /**
- * Clash Royale API Client (v1.4.0 Optimized)
+ * Clash Royale API Client (v1.4.1 Optimized)
  * - Supercell Clash Royale Official API 지원
  * - Cloudflare Worker / Oracle 프록시 실시간 통신
- * - v1.4.0: 신규 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
+ * - v1.4.1: 신규 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
  * - 지능형 On-Demand 캐시 및 우아한 폴백(Graceful Fallback) 메커니즘
  */
 
@@ -85,7 +85,7 @@ class ClashRoyaleAPI {
     const url = this.buildUrl(endpoint);
     const headers = { 
       "Accept": "application/json",
-      "Cache-Control": "max-age=15"
+      "Cache-Control": "max-age=10"
     };
 
     if (this.settings.apiKey) {

@@ -4,7 +4,7 @@
  * (Optimized Version with Persistent LocalStorage Cache & 150s Calibrated Online Status)
  */
 
-console.log('%c[Good Fellas App] v1.4.0 - 서버 인메모리 TTL 캐시, 단일 통합 동기화 & 고속 렌더링 최적화 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.1 - 20초 초고속 동기화, 트로피 변동 실시간 감지 & 7.5분 접속 윈도우 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -32,7 +32,8 @@ class ClanManagerApp {
 
     this.currentProgress = 0;
     this.lastSyncTime = 0;
-    this.syncThrottleMs = 30000; // 30초 쿨타운 (탭 전환/폴링 중복 호출 방지)
+    this.syncThrottleMs = 15000; // 15초 쿨타운 (초고속 실시간 동기화)
+    this.trophyCache = new Map(); // 트로피 실시간 변동 감지용 (탭 전환/폴링 중복 호출 방지)
 
     this.init();
   }
@@ -77,9 +78,22 @@ class ClanManagerApp {
     } catch (e) {}
   }
 
-  // 지원량 캐시 관리 (접속 상태 왜곡 방지를 위해 lastDonationTime은 조작하지 않음)
-  detectDonationActivity(members) {
-    // 슈퍼셀 공식 lastSeen과 lastBattleTime의 정확도를 위해 추정 타임스탬프 부여 제거
+  // 트로피 변동 감지 (경기 종료 시 트로피가 변동되면 배틀로그 반영 전이라도 즉시 접속 중 판정)
+  detectTrophyActivity(members) {
+    if (!Array.isArray(members)) return;
+    const nowIso = new Date().toISOString();
+    members.forEach((m) => {
+      const currentTrophies = m.trophies || 0;
+      if (this.trophyCache.has(m.tag)) {
+        const prevTrophies = this.trophyCache.get(m.tag);
+        if (prevTrophies !== currentTrophies) {
+          m.lastTrophyChangeTime = nowIso;
+          this.trophyCache.set(m.tag, currentTrophies);
+        }
+      } else {
+        this.trophyCache.set(m.tag, currentTrophies);
+      }
+    });
   }
 
   init() {
@@ -479,7 +493,7 @@ class ClanManagerApp {
           this.bindCachedBattleLogs(liveData.memberList);
         }
 
-        this.detectDonationActivity(liveData.memberList);
+        this.detectTrophyActivity(liveData.memberList);
         this.renderClan(liveData);
 
         if (isInitial) {
@@ -654,7 +668,7 @@ class ClanManagerApp {
       const don = m.donations || 0;
       if (don < 50) lowDonationCount++;
 
-      const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+      const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastTrophyChangeTime);
       if (effectiveDate) {
         const daysAgo = (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24);
         if (daysAgo >= 3) dormantCount++;
@@ -758,7 +772,7 @@ class ClanManagerApp {
     const now = Date.now();
 
     members.forEach((m) => {
-      const activeDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+      const activeDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastTrophyChangeTime);
       if (!activeDate) {
         seenDormant++;
         return;
@@ -1034,14 +1048,18 @@ class ClanManagerApp {
     }
   }
 
-  // 슈퍼셀 공식 접속 시각(lastSeen)과 최근 배틀 시각(lastBattleTime) 중 최신 시간을 실제 활동 시간으로 판정
-  getEffectiveActiveDate(lastSeenStr, lastBattleStr, lastDonationStr = null) {
+  // 슈퍼셀 공식 접속 시각(lastSeen), 최근 배틀 시각(lastBattleTime), 트로피 변동 시각 중 최신 시간을 판정
+  getEffectiveActiveDate(lastSeenStr, lastBattleStr, lastTrophyStr = null) {
     const seenDate = this.parseDateSafe(lastSeenStr);
     const battleDate = this.parseDateSafe(lastBattleStr);
+    const trophyDate = this.parseDateSafe(lastTrophyStr);
 
     let latest = seenDate;
     if (battleDate && (!latest || battleDate.getTime() > latest.getTime())) {
       latest = battleDate;
+    }
+    if (trophyDate && (!latest || trophyDate.getTime() > latest.getTime())) {
+      latest = trophyDate;
     }
     return latest || null;
   }
@@ -1056,8 +1074,8 @@ class ClanManagerApp {
     const diffSeconds = Math.max(0, Math.floor((Date.now() - effectiveDate.getTime()) / 1000));
     const diffMinutes = Math.floor(diffSeconds / 60);
 
-    // 1. 5분(300초) 이내 활동 감지 시 -> '🟢 접속 중' (연속 배틀 및 로비 활동 보정)
-    if (diffSeconds <= 300) {
+    // 1. 7.5분(450초) 이내 활동 감지 시 -> '🟢 접속 중' (1판 배틀+연장전+매칭 대기 완벽 커버)
+    if (diffSeconds <= 450) {
       return {
         isOnline: true,
         text: "접속 중",
@@ -1146,7 +1164,7 @@ class ClanManagerApp {
 
     if (this.activeFilter === "dormant") {
       list = list.filter((m) => {
-        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastTrophyChangeTime);
         if (!effectiveDate) return false;
         return (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24) >= 3;
       });
@@ -1160,7 +1178,7 @@ class ClanManagerApp {
     if (key === "lastSeen" || key === "lastBattle") {
       list.forEach((m) => {
         if (key === "lastSeen") {
-          const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+          const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastTrophyChangeTime);
           m._sortTime = effectiveDate ? effectiveDate.getTime() : 0;
         } else {
           const battleDate = this.parseDateSafe(m.lastBattleTime);
@@ -1215,10 +1233,10 @@ class ClanManagerApp {
     let rowsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
+      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime, member.lastTrophyChangeTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
-      const effectiveDate = this.getEffectiveActiveDate(member.lastSeen, member.lastBattleTime);
+      const effectiveDate = this.getEffectiveActiveDate(member.lastSeen, member.lastBattleTime, member.lastTrophyChangeTime);
       const exactSeen = effectiveDate ? effectiveDate.toLocaleString("ko-KR") : "기록 없음";
 
       const donations = member.donations || 0;
@@ -1269,7 +1287,7 @@ class ClanManagerApp {
 
     this.filteredMembers.forEach((member, idx) => {
       // 상호 보정된 접속 상태
-      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
+      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime, member.lastTrophyChangeTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
       // 마지막 배틀 텍스트 색상 구분

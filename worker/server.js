@@ -1,7 +1,7 @@
 /**
- * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.4.0)
+ * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.4.1)
  * 
- * [주요 기능 & 최적화 (v1.4.0)]
+ * [주요 기능 & 최적화 (v1.4.1)]
  * 1. On-Demand In-Memory TTL 캐시 적용:
  *    - 클랜 정보: 60초 TTL
  *    - 배틀로그: 120초(2분) TTL
@@ -150,7 +150,7 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
           try {
             battlelog = await fetchSupercell(`/v1/players/${playerEncoded}/battlelog`);
             if (Array.isArray(battlelog)) {
-              setCache(playerCacheKey, battlelog, 120); // 배틀로그 2분 TTL
+              setCache(playerCacheKey, battlelog, 30); // 30초 배틀로그 캐시 // 배틀로그 2분 TTL
             }
           } catch (e) {
             // 개별 실패 시 건너뜀
@@ -165,7 +165,7 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
     }
 
     // C. 60초간 서버 캐싱 후 반환
-    setCache(summaryCacheKey, clanData, 60);
+    setCache(summaryCacheKey, clanData, 20); // 20초 초고속 캐시
     res.setHeader('X-Cache-Status', 'MISS');
     res.json(clanData);
   } catch (err) {
@@ -191,8 +191,8 @@ app.use('/v1', async (req, res) => {
     const data = await fetchSupercell(cleanUrl);
 
     // 엔드포인트 유형별 TTL 차등 적용
-    let ttl = 60; // 기본 1분
-    if (cleanUrl.includes('/battlelog')) ttl = 120; // 배틀로그 2분
+    let ttl = 20; // 기본 1분
+    if (cleanUrl.includes('/battlelog')) ttl = 30; // 배틀로그 2분
 
     setCache(cacheKey, data, ttl);
     res.setHeader('X-Cache-Status', 'MISS');
@@ -206,11 +206,11 @@ app.use('/v1', async (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    version: '1.4.0',
+    version: '1.4.1',
     cachedEntries: cache.size,
     message: 'Good Fellas Dedicated Oracle CR Proxy is running with In-Memory TTL Cache!'
   });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.4.0 running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.4.1 running on port ${PORT}`));
