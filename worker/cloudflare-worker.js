@@ -1,10 +1,10 @@
 /**
- * Clash Royale API Cloudflare Worker Proxy (v1.4.1)
+ * Clash Royale API Cloudflare Worker Proxy (v1.4.2)
  * 
  * [목적]
  * 1. 브라우저의 CORS 제한 해결 및 HTTPS -> HTTP 종단 처리
  * 2. 슈퍼셀 Developer API의 IP 화이트리스트 통과를 위해 오라클 서울 인스턴스(168.110.63.115) 경유
- * 3. v1.4.1: 신규 /v1/clans/:tag/summary 지원 및 브라우저/Edge 캐시 협력
+ * 3. v1.4.2: 신규 /v1/clans/:tag/summary 지원 및 브라우저/Edge 캐시 협력
  */
 
 export default {
@@ -55,7 +55,7 @@ export default {
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(JSON.stringify({
         status: "online",
-        version: "1.4.1",
+        version: "1.4.2",
         message: "Clash Royale API Proxy (Oracle Dedicated Instance with TTL Cache) is active!",
         timestamp: new Date().toISOString()
       }), {

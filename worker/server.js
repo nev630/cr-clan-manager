@@ -1,7 +1,7 @@
 /**
- * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.4.1)
+ * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.4.2)
  * 
- * [주요 기능 & 최적화 (v1.4.1)]
+ * [주요 기능 & 최적화 (v1.4.2)]
  * 1. On-Demand In-Memory TTL 캐시 적용:
  *    - 클랜 정보: 60초 TTL
  *    - 배틀로그: 120초(2분) TTL
@@ -206,11 +206,11 @@ app.use('/v1', async (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    version: '1.4.1',
+    version: '1.4.2',
     cachedEntries: cache.size,
     message: 'Good Fellas Dedicated Oracle CR Proxy is running with In-Memory TTL Cache!'
   });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.4.1 running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.4.2 running on port ${PORT}`));
