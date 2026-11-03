@@ -77,52 +77,9 @@ class ClanManagerApp {
     } catch (e) {}
   }
 
-  // 지원량 증가 감지 (배틀을 안 해도 지원량 증가 시 즉시 접속 상태 보정)
+  // 지원량 캐시 관리 (접속 상태 왜곡 방지를 위해 lastDonationTime은 조작하지 않음)
   detectDonationActivity(members) {
-    if (!Array.isArray(members)) return;
-    const nowIso = new Date().toISOString();
-    const now = Date.now();
-    let hasDonationUpdate = false;
-
-    // 대시보드가 10분 이내에 활성화되어 있었던 세션인 경우에만 실시간 지원으로 감지 (장시간 후 접속 시 왜곡 방지)
-    const lastCheck = this.lastDonationCheckTime || now;
-    const isContinuousSession = (now - lastCheck) < (10 * 60 * 1000);
-    this.lastDonationCheckTime = now;
-
-    members.forEach((m) => {
-      const currentDonations = m.donations || 0;
-      if (this.donationCache.has(m.tag)) {
-        const cached = this.donationCache.get(m.tag);
-        if (currentDonations > (cached.donations || 0)) {
-          if (isContinuousSession) {
-            m.lastDonationTime = nowIso;
-            this.donationCache.set(m.tag, {
-              donations: currentDonations,
-              time: nowIso
-            });
-            hasDonationUpdate = true;
-          } else {
-            cached.donations = currentDonations;
-            this.donationCache.set(m.tag, cached);
-          }
-        } else {
-          m.lastDonationTime = cached.time || null;
-          if (cached.donations !== currentDonations) {
-            cached.donations = currentDonations;
-            this.donationCache.set(m.tag, cached);
-          }
-        }
-      } else {
-        this.donationCache.set(m.tag, {
-          donations: currentDonations,
-          time: null
-        });
-      }
-    });
-
-    if (hasDonationUpdate) {
-      this.saveDonationCache();
-    }
+    // 슈퍼셀 공식 lastSeen과 lastBattleTime의 정확도를 위해 추정 타임스탬프 부여 제거
   }
 
   init() {
@@ -134,6 +91,7 @@ class ClanManagerApp {
       localStorage.removeItem("cr_manager_clan_cache_v1");
       localStorage.removeItem("cr_manager_settings_v1");
       localStorage.removeItem("cr_manager_cache_ver");
+      localStorage.removeItem("cr_clan_donation_cache_v1"); // 잘못된 실시간 접속 왜곡 캐시 완전 제거
     } catch (e) {}
 
     // 갤클 비교 프리셋 데이터 사전 로드
@@ -696,7 +654,7 @@ class ClanManagerApp {
       const don = m.donations || 0;
       if (don < 50) lowDonationCount++;
 
-      const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastDonationTime);
+      const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
       if (effectiveDate) {
         const daysAgo = (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24);
         if (daysAgo >= 3) dormantCount++;
@@ -1076,18 +1034,14 @@ class ClanManagerApp {
     }
   }
 
-  // 배틀 시간, 접속 시간, 지원 활동 시간 중 가장 최신 시간을 실제 활동 시간으로 보정
+  // 슈퍼셀 공식 접속 시각(lastSeen)과 최근 배틀 시각(lastBattleTime) 중 최신 시간을 실제 활동 시간으로 판정
   getEffectiveActiveDate(lastSeenStr, lastBattleStr, lastDonationStr = null) {
     const seenDate = this.parseDateSafe(lastSeenStr);
     const battleDate = this.parseDateSafe(lastBattleStr);
-    const donationDate = this.parseDateSafe(lastDonationStr);
 
     let latest = seenDate;
     if (battleDate && (!latest || battleDate.getTime() > latest.getTime())) {
       latest = battleDate;
-    }
-    if (donationDate && (!latest || donationDate.getTime() > latest.getTime())) {
-      latest = donationDate;
     }
     return latest || null;
   }
@@ -1192,7 +1146,7 @@ class ClanManagerApp {
 
     if (this.activeFilter === "dormant") {
       list = list.filter((m) => {
-        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastDonationTime);
+        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
         if (!effectiveDate) return false;
         return (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24) >= 3;
       });
@@ -1206,7 +1160,7 @@ class ClanManagerApp {
     if (key === "lastSeen" || key === "lastBattle") {
       list.forEach((m) => {
         if (key === "lastSeen") {
-          const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastDonationTime);
+          const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
           m._sortTime = effectiveDate ? effectiveDate.getTime() : 0;
         } else {
           const battleDate = this.parseDateSafe(m.lastBattleTime);
@@ -1261,7 +1215,7 @@ class ClanManagerApp {
     let rowsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime, member.lastDonationTime);
+      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
       const effectiveDate = this.getEffectiveActiveDate(member.lastSeen, member.lastBattleTime);
@@ -1315,7 +1269,7 @@ class ClanManagerApp {
 
     this.filteredMembers.forEach((member, idx) => {
       // 상호 보정된 접속 상태
-      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime, member.lastDonationTime);
+      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
       // 마지막 배틀 텍스트 색상 구분
