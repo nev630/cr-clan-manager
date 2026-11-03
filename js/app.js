@@ -4,7 +4,7 @@
  * (Optimized Version with Persistent LocalStorage Cache & 150s Calibrated Online Status)
  */
 
-console.log('%c[Good Fellas App] v1.3.1 - 클랜원 50명 전원 백그라운드 배틀로그 수집 & 5분 접속 중 기준 현실화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.3.2 - 배틀로그 실시간 캐시버스터, 지원량 감지 보정 & 수동 강제 갱신 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -24,6 +24,9 @@ class ClanManagerApp {
     // Chart.js 인스턴스
     this.charts = { activity: null, compareDonations: null };
     
+    // 지원량 추적 캐시 (로비 내 카드 지원 활동으로 접속 감지)
+    this.donationCache = this.loadDonationCache();
+
     // DOM 캐싱 (성능 최적화)
     this.elements = {};
 
@@ -52,6 +55,64 @@ class ClanManagerApp {
       const obj = Object.fromEntries(this.battleLogCache);
       localStorage.setItem("cr_clan_battle_cache_v2", JSON.stringify(obj));
     } catch (e) {}
+  }
+
+  // 지원량 추적 캐시 복원
+  loadDonationCache() {
+    try {
+      const saved = localStorage.getItem("cr_clan_donation_cache_v1");
+      if (saved) {
+        const obj = JSON.parse(saved);
+        return new Map(Object.entries(obj));
+      }
+    } catch (e) {}
+    return new Map();
+  }
+
+  // 지원량 추적 캐시 저장
+  saveDonationCache() {
+    try {
+      const obj = Object.fromEntries(this.donationCache);
+      localStorage.setItem("cr_clan_donation_cache_v1", JSON.stringify(obj));
+    } catch (e) {}
+  }
+
+  // 지원량 증가 감지 (배틀을 안 해도 지원량 증가 시 즉시 접속 상태 보정)
+  detectDonationActivity(members) {
+    if (!Array.isArray(members)) return;
+    const nowIso = new Date().toISOString();
+    let hasDonationUpdate = false;
+
+    members.forEach((m) => {
+      const currentDonations = m.donations || 0;
+      if (this.donationCache.has(m.tag)) {
+        const cached = this.donationCache.get(m.tag);
+        // 지원량이 증가한 경우 방금 접속하여 지원한 것으로 판단
+        if (currentDonations > (cached.donations || 0)) {
+          m.lastDonationTime = nowIso;
+          this.donationCache.set(m.tag, {
+            donations: currentDonations,
+            time: nowIso
+          });
+          hasDonationUpdate = true;
+        } else {
+          m.lastDonationTime = cached.time || null;
+          if (cached.donations !== currentDonations) {
+            cached.donations = currentDonations;
+            this.donationCache.set(m.tag, cached);
+          }
+        }
+      } else {
+        this.donationCache.set(m.tag, {
+          donations: currentDonations,
+          time: null
+        });
+      }
+    });
+
+    if (hasDonationUpdate) {
+      this.saveDonationCache();
+    }
   }
 
   init() {
@@ -303,12 +364,16 @@ class ClanManagerApp {
   async fetchPlayerBattleLog(playerTag, retries = 1) {
     if (!playerTag) return null;
     const normalized = encodeURIComponent(window.crApi ? window.crApi.normalizeTag(playerTag) : playerTag);
-    const proxy = window.crApi?.workerUrl || "https://green-disk-88a6.marble593812345.workers.dev";
-    const url = `${proxy}/v1/players/${normalized}/battlelog`;
+    const proxy = window.crApi?.settings?.workerUrl || window.crApi?.workerUrl || "https://green-disk-88a6.marble593812345.workers.dev";
+    // 실시간 캐시 버스터(_t) 강제 부착하여 중간 프록시/브라우저 캐시 무효화
+    const url = `${proxy}/v1/players/${normalized}/battlelog?_t=${Date.now()}`;
 
     for (let i = 0; i <= retries; i++) {
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          cache: "no-store",
+          headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
+        });
         
         if ((res.status === 429 || res.status === 403) && i < retries) {
           await new Promise((r) => setTimeout(r, 150));
@@ -400,7 +465,7 @@ class ClanManagerApp {
 
   async autoSyncLive(isManual = false) {
     const now = Date.now();
-    // 30초 쿨타운 적용 (수동 클릭 시 즉시 허용)
+    // 30초 쿨타운 적용 (수동 클릭 시는 쿨타운 완전 무시하고 즉각 강제 동기화)
     if (!isManual && (now - this.lastSyncTime < this.syncThrottleMs)) {
       return;
     }
@@ -421,13 +486,15 @@ class ClanManagerApp {
       const liveData = await window.crApi.fetchClanFullData(tag, (partialData) => {
         if (partialData?.memberList) {
           this.bindCachedBattleLogs(partialData.memberList);
+          this.detectDonationActivity(partialData.memberList);
         }
         this.renderClan(partialData);
       });
 
       if (liveData && liveData.memberList) {
-        // 캐시 바인딩 및 즉시 1차 렌더링
+        // 캐시 바인딩 및 지원량 증가 감지 후 즉시 1차 렌더링
         this.bindCachedBattleLogs(liveData.memberList);
+        this.detectDonationActivity(liveData.memberList);
         this.renderClan(liveData);
 
         if (isInitial) {
@@ -600,7 +667,7 @@ class ClanManagerApp {
       const don = m.donations || 0;
       if (don < 50) lowDonationCount++;
 
-      const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+      const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastDonationTime);
       if (effectiveDate) {
         const daysAgo = (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24);
         if (daysAgo >= 3) dormantCount++;
@@ -980,20 +1047,25 @@ class ClanManagerApp {
     }
   }
 
-  // 배틀 시간과 접속 시간 중 더 최신 시간을 실제 활동 시간으로 보정
-  getEffectiveActiveDate(lastSeenStr, lastBattleStr) {
+  // 배틀 시간, 접속 시간, 지원 활동 시간 중 가장 최신 시간을 실제 활동 시간으로 보정
+  getEffectiveActiveDate(lastSeenStr, lastBattleStr, lastDonationStr = null) {
     const seenDate = this.parseDateSafe(lastSeenStr);
     const battleDate = this.parseDateSafe(lastBattleStr);
+    const donationDate = this.parseDateSafe(lastDonationStr);
 
-    if (seenDate && battleDate) {
-      return battleDate.getTime() > seenDate.getTime() ? battleDate : seenDate;
+    let latest = seenDate;
+    if (battleDate && (!latest || battleDate.getTime() > latest.getTime())) {
+      latest = battleDate;
     }
-    return seenDate || battleDate || null;
+    if (donationDate && (!latest || donationDate.getTime() > latest.getTime())) {
+      latest = donationDate;
+    }
+    return latest || null;
   }
 
-  // 5분(300초) 기준 '접속 중' 판정 (클래시 로얄 1판 배틀 시간 3~5분 및 매칭 대기 완벽 커버)
-  getOnlineStatus(lastSeenStr, lastBattleStr) {
-    const effectiveDate = this.getEffectiveActiveDate(lastSeenStr, lastBattleStr);
+  // 5분(300초) 기준 '접속 중' 판정 (클래시 로얄 1판 배틀 시간 3~5분, 로비 지원 및 매칭 대기 완벽 커버)
+  getOnlineStatus(lastSeenStr, lastBattleStr, lastDonationStr = null) {
+    const effectiveDate = this.getEffectiveActiveDate(lastSeenStr, lastBattleStr, lastDonationStr);
     if (!effectiveDate) {
       return { isOnline: false, text: "기록 없음", dotColor: "slate", isPulse: false, textColor: "text-slate-500" };
     }
@@ -1091,7 +1163,7 @@ class ClanManagerApp {
 
     if (this.activeFilter === "dormant") {
       list = list.filter((m) => {
-        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastDonationTime);
         if (!effectiveDate) return false;
         return (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24) >= 3;
       });
@@ -1104,8 +1176,8 @@ class ClanManagerApp {
       let valA, valB;
 
       if (key === "lastSeen") {
-        const dateA = this.getEffectiveActiveDate(a.lastSeen, a.lastBattleTime);
-        const dateB = this.getEffectiveActiveDate(b.lastSeen, b.lastBattleTime);
+        const dateA = this.getEffectiveActiveDate(a.lastSeen, a.lastBattleTime, a.lastDonationTime);
+        const dateB = this.getEffectiveActiveDate(b.lastSeen, b.lastBattleTime, b.lastDonationTime);
         valA = dateA ? dateA.getTime() : 0;
         valB = dateB ? dateB.getTime() : 0;
         return order === "desc" ? valB - valA : valA - valB;
@@ -1156,7 +1228,7 @@ class ClanManagerApp {
     let rowsHtml = "";
 
     this.filteredMembers.forEach((member, idx) => {
-      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
+      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime, member.lastDonationTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
       const effectiveDate = this.getEffectiveActiveDate(member.lastSeen, member.lastBattleTime);
@@ -1210,7 +1282,7 @@ class ClanManagerApp {
 
     this.filteredMembers.forEach((member, idx) => {
       // 상호 보정된 접속 상태
-      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
+      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime, member.lastDonationTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
       // 마지막 배틀 텍스트 색상 구분
