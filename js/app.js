@@ -4,7 +4,7 @@
  * (Optimized Version with Persistent LocalStorage Cache & 150s Calibrated Online Status)
  */
 
-console.log('%c[Good Fellas App] v2026.11.03_0118 - Body is disturbed 완전 수정 및 에러 격리 - 2분30초 기준 및 로컬스토리지 배틀 캐시 타협안 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.1.0 - 로딩 애니메이션 및 미니멀 UI 개선 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {

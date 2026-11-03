@@ -36,21 +36,46 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=20261103_0118" />
+  <link rel="stylesheet" href="css/style.css?v=1.1.0" />
 
   <style>
     @keyframes shimmer-sweep {
       0% { transform: translateX(-100%); }
       100% { transform: translateX(200%); }
     }
+    @keyframes stripe-move {
+      0% { background-position: 0 0; }
+      100% { background-position: 28px 0; }
+    }
+    .loading-bar-stripes {
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.25),
+        rgba(255, 255, 255, 0.25) 7px,
+        transparent 7px,
+        transparent 14px
+      );
+      background-size: 28px 28px;
+      animation: stripe-move 0.8s linear infinite;
+    }
     .loading-bar-shimmer {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%);
-      animation: shimmer-sweep 1.3s infinite ease-in-out;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
+      animation: shimmer-sweep 1.2s infinite ease-in-out;
+    }
+    .loading-bar-head-glow {
+      position: absolute;
+      right: -2px;
+      top: -2px;
+      bottom: -2px;
+      width: 10px;
+      background: #ffffff;
+      border-radius: 9999px;
+      box-shadow: 0 0 10px 3px rgba(255, 255, 255, 0.9), 0 0 18px 6px rgba(16, 185, 129, 0.8);
+      pointer-events: none;
     }
   </style>
 </head>
@@ -283,25 +308,34 @@
 
   <!-- 7. 초기 실시간 동기화 오버레이 팝업 (모바일 규격 유지) -->
   <div id="initial-sync-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#090b10]/95 backdrop-blur-md transition-opacity duration-300">
-    <div class="surface-card p-6 rounded-2xl max-w-xs w-full mx-4 text-center border border-white/[0.08] shadow-2xl">
-      <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3.5">
-        <svg class="w-6 h-6 text-emerald-400 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
-      </div>
-      <h3 class="text-sm font-bold text-white tracking-tight">클랜 실시간 동기화 중</h3>
-      <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
-        슈퍼셀 공식 서버에서 <span class="text-emerald-400 font-semibold">Good Fellas</span> 클랜의 지원량, 접속 현황, 시즌 트로피 및 최근 배틀 기록을 동기화하고 있습니다.
-      </p>
-      <div class="w-full bg-white/[0.06] rounded-full h-2 overflow-hidden mt-4 relative">
-        <div id="initial-sync-progress-bar" class="bg-emerald-500 shadow-sm shadow-emerald-500/40 h-full rounded-full transition-all duration-400 ease-out relative overflow-hidden" style="width: 0%">
-          <div class="loading-bar-shimmer"></div>
+    <div class="surface-card p-6 rounded-2xl max-w-xs w-full mx-4 text-center border border-white/[0.08] shadow-2xl relative overflow-hidden">
+      <!-- 상단 스피너 & 외곽 레이더 펄스(Ping) 링 -->
+      <div class="relative w-12 h-12 mx-auto mb-3.5 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping opacity-60"></div>
+        <div class="relative w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          <svg class="w-6 h-6 text-emerald-400 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
         </div>
       </div>
-      <div class="flex items-center justify-between text-[10px] text-slate-500 mt-2.5 font-mono">
-        <span id="initial-sync-status-msg">서버 연결 및 데이터 동기화 중...</span>
-        <span id="initial-sync-percent" class="text-slate-400 font-bold">0%</span>
+
+      <!-- 단일 타이틀 -->
+      <h3 class="text-sm font-bold text-white tracking-tight">클랜 실시간 동기화 중</h3>
+
+      <!-- 역동적인 사선 스트라이프 + 글로우 로딩바 (높이 h-3로 확장) -->
+      <div class="w-full bg-white/[0.06] rounded-full h-3 overflow-hidden mt-4 relative border border-white/[0.08] shadow-inner p-[1px]">
+        <div id="initial-sync-progress-bar" class="bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 h-full rounded-full transition-all duration-300 ease-out relative shadow-[0_0_12px_rgba(16,185,129,0.5)]" style="width: 0%">
+          <div class="loading-bar-stripes"></div>
+          <div class="loading-bar-shimmer"></div>
+          <div class="loading-bar-head-glow"></div>
+        </div>
+      </div>
+
+      <!-- 볼드 네온 퍼센트 (상태 텍스트는 숨김 처리) -->
+      <div class="flex items-center justify-center mt-2.5 font-mono">
+        <span id="initial-sync-percent" class="text-emerald-400 font-extrabold text-sm tracking-wider drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">0%</span>
+        <span id="initial-sync-status-msg" class="hidden"></span>
       </div>
     </div>
   </div>
@@ -331,7 +365,7 @@
   </div>
 
   <!-- Scripts with Cache Busting -->
-  <script src="js/api.js?v=20261103_0118"></script>
-  <script src="js/app.js?v=20261103_0118"></script>
+  <script src="js/api.js?v=1.1.0"></script>
+  <script src="js/app.js?v=1.1.0"></script>
 </body>
 </html>
