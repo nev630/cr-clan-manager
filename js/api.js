@@ -34,38 +34,51 @@ class ClashRoyaleAPI {
         return encodeURIComponent(this.normalizeTag(tag));
     }
 
-    getWorkerUrl() {
-        return (this.settings.workerUrl || "").replace(/\/+$/, "");
+    // Supercell API 날짜 형식 변환
+    parseApiDate(dateStr) {
+        if (!dateStr) return null;
+        if (dateStr.includes("-")) {
+            return new Date(dateStr);
+        }
+        try {
+            const year = dateStr.slice(0, 4);
+            const month = dateStr.slice(4, 6);
+            const day = dateStr.slice(6, 8);
+            const timePart = dateStr.slice(9);
+            const hour = timePart.slice(0, 2);
+            const minute = timePart.slice(2, 4);
+            const second = timePart.slice(4, 6);
+            return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`);
+        } catch {
+            return new Date(dateStr);
+        }
+    }
+
+    getRelativeTime(date) {
+        if (!date) return "기록 없음";
+        const d = typeof date === "string" ? this.parseApiDate(date) : date;
+        if (!d || isNaN(d.getTime())) return "기록 없음";
+
+        const diffMs = Date.now() - d.getTime();
+        if (diffMs < 0) return "방금 전";
+
+        const diffMinutes = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMinutes < 1) return "방금 전";
+        if (diffMinutes < 60) return `${diffMinutes}분 전`;
+        if (diffHours < 24) return `${diffHours}시간 전`;
+        if (diffDays === 1) return "어제";
+        if (diffDays < 30) return `${diffDays}일 전`;
+        return `${Math.floor(diffDays / 30)}달 전`;
     }
 
     buildUrl(endpoint) {
-        const cleanEndpoint = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
-        const worker = this.getWorkerUrl();
-
-        if (worker) {
-            const hasQuery = cleanEndpoint.includes("?");
-            return `${worker}${cleanEndpoint}${hasQuery ? "&" : "?"}url=${encodeURIComponent("https://api.clashroyale.com/v1" + cleanEndpoint)}`;
-        }
-
-        return `https://api.clashroyale.com/v1${cleanEndpoint}`;
-    }
-
-    // 외부 프록시/API 통신용 래퍼 (Stream 소비 안전성 처리)
-    async fetchWithProxy(endpoint) {
-        const worker = this.getWorkerUrl();
-        const cleanEndpoint = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
-        
-        let targetUrl = `https://api.clashroyale.com/v1${cleanEndpoint}`;
-        if (worker) {
-            const hasQuery = cleanEndpoint.includes("?");
-            targetUrl = `${worker}${cleanEndpoint}${hasQuery ? "&" : "?"}url=${encodeURIComponent("https://api.clashroyale.com/v1" + cleanEndpoint)}`;
-        }
-
-        const res = await fetch(targetUrl, { method: "GET" });
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-        }
-        return await res.json();
+        const defaultWorkerUrl = "https://green-disk-88a6.marble593812345.workers.dev";
+        const workerUrl = (this.settings.workerUrl || defaultWorkerUrl).trim().replace(/\/$/, "");
+        const separator = endpoint.includes("?") ? "&" : "?";
+        return `${workerUrl}${endpoint}${separator}_t=${Date.now()}`;
     }
 
     async fetchWithAuth(endpoint) {
@@ -95,66 +108,39 @@ class ClashRoyaleAPI {
         return rawText ? JSON.parse(rawText) : null;
     }
 
-    // 클랜 프로필
     async fetchClan(clanTag) {
-        const tag = this.encodeTag(clanTag || this.settings.clanTag);
-        return await this.fetchWithAuth(`/clans/${tag}`);
+        return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}`);
     }
 
-    // 클랜원 목록
-    async fetchClanMembers(clanTag) {
-        const tag = this.encodeTag(clanTag || this.settings.clanTag);
-        const data = await this.fetchWithAuth(`/clans/${tag}/members`);
-        return data.items || [];
-    }
-
-    // 플레이어 프로필
     async fetchPlayer(playerTag) {
-        const tag = this.encodeTag(playerTag);
-        return await this.fetchWithAuth(`/players/${tag}`);
+        return await this.fetchWithAuth(`/v1/players/${this.encodeTag(playerTag)}`);
     }
 
-    // 플레이어 배틀로그 (최근 25경기)
-    async fetchPlayerBattleLog(playerTag) {
-        const tag = this.encodeTag(playerTag);
-        try {
-            const data = await this.fetchWithAuth(`/players/${tag}/battlelog`);
-            return Array.isArray(data) ? data : [];
-        } catch {
-            return [];
-        }
-    }
-
-    // 최상위 랭커의 실제 전설 점수(Best Trophies/Seasonal) 보정
     extractSeasonalTrophies(playerProfile) {
         if (!playerProfile) return 0;
-        let best = playerProfile.trophies || 0;
-
-        if (playerProfile.bestTrophies && playerProfile.bestTrophies > best) {
-            best = playerProfile.bestTrophies;
-        }
-
-        if (playerProfile.leagueStatistics) {
-            const ls = playerProfile.leagueStatistics;
-            if (ls.currentSeason && ls.currentSeason.trophies > best) {
-                best = ls.currentSeason.trophies;
-            }
-            if (ls.previousSeason && ls.previousSeason.trophies > best) {
-                best = ls.previousSeason.trophies;
-            }
-            if (ls.bestSeason && ls.bestSeason.trophies > best) {
-                best = ls.bestSeason.trophies;
+        let maxTrophies = typeof playerProfile.trophies === "number" ? playerProfile.trophies : 0;
+        const progress = playerProfile.progress;
+        if (progress && typeof progress === "object") {
+            for (const key of Object.keys(progress)) {
+                if (key.toLowerCase().includes("seasonal")) {
+                    const s = progress[key];
+                    if (s && typeof s.trophies === "number" && s.trophies > maxTrophies) {
+                        maxTrophies = s.trophies;
+                    }
+                }
             }
         }
-
-        return best;
+        return maxTrophies;
     }
 
-    // 클랜 상세 정보 (14,000점 이상 유저 보정 로직 포함)
-    async fetchClanWithTrophyFix(clanTag, onPartialData = null) {
+    async fetchClanFullData(clanTag, onPartialData = null) {
         const clanData = await this.fetchClan(clanTag);
         if (!clanData || !clanData.memberList) {
-            return clanData;
+            throw new Error("클랜원 목록을 불러오지 못했습니다.");
+        }
+
+        if (typeof onPartialData === "function") {
+            onPartialData(clanData);
         }
 
         const members = clanData.memberList;
@@ -182,6 +168,11 @@ class ClashRoyaleAPI {
         }
 
         return clanData;
+    }
+
+    // 하위 호환 별칭
+    async fetchClanWithTrophyFix(clanTag, onPartialData = null) {
+        return await this.fetchClanFullData(clanTag, onPartialData);
     }
 
     getGalleryClansPreset() {
