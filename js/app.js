@@ -78,6 +78,11 @@ class ClanManagerApp {
     } catch (e) {}
   }
 
+  // 하위 호환 안전 별칭
+  detectDonationActivity(members) {
+    this.detectTrophyActivity(members);
+  }
+
   // 트로피 변동 감지 (경기 종료 시 트로피가 변동되면 배틀로그 반영 전이라도 즉시 접속 중 판정)
   detectTrophyActivity(members) {
     if (!Array.isArray(members)) return;
@@ -468,7 +473,7 @@ class ClanManagerApp {
       const liveData = await window.crApi.fetchClanFullData(tag, (partialData) => {
         if (partialData?.memberList) {
           this.bindCachedBattleLogs(partialData.memberList);
-          this.detectDonationActivity(partialData.memberList);
+          this.detectTrophyActivity(partialData.memberList);
         }
         this.renderClan(partialData);
       });
