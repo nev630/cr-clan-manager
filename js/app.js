@@ -4,7 +4,7 @@
  * (Optimized Version with Persistent LocalStorage Cache & 150s Calibrated Online Status)
  */
 
-console.log('%c[Good Fellas App] v1.3.2 - 배틀로그 실시간 캐시버스터, 지원량 감지 보정 & 수동 강제 갱신 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.0 - 서버 인메모리 TTL 캐시, 단일 통합 동기화 & 고속 렌더링 최적화 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -83,18 +83,27 @@ class ClanManagerApp {
     const nowIso = new Date().toISOString();
     let hasDonationUpdate = false;
 
+    // 대시보드가 10분 이내에 활성화되어 있었던 세션인 경우에만 실시간 지원으로 감지 (장시간 후 접속 시 왜곡 방지)
+    const lastCheck = this.lastDonationCheckTime || now;
+    const isContinuousSession = (now - lastCheck) < (10 * 60 * 1000);
+    this.lastDonationCheckTime = now;
+
     members.forEach((m) => {
       const currentDonations = m.donations || 0;
       if (this.donationCache.has(m.tag)) {
         const cached = this.donationCache.get(m.tag);
-        // 지원량이 증가한 경우 방금 접속하여 지원한 것으로 판단
         if (currentDonations > (cached.donations || 0)) {
-          m.lastDonationTime = nowIso;
-          this.donationCache.set(m.tag, {
-            donations: currentDonations,
-            time: nowIso
-          });
-          hasDonationUpdate = true;
+          if (isContinuousSession) {
+            m.lastDonationTime = nowIso;
+            this.donationCache.set(m.tag, {
+              donations: currentDonations,
+              time: nowIso
+            });
+            hasDonationUpdate = true;
+          } else {
+            cached.donations = currentDonations;
+            this.donationCache.set(m.tag, cached);
+          }
         } else {
           m.lastDonationTime = cached.time || null;
           if (cached.donations !== currentDonations) {
@@ -492,8 +501,25 @@ class ClanManagerApp {
       });
 
       if (liveData && liveData.memberList) {
-        // 캐시 바인딩 및 지원량 증가 감지 후 즉시 1차 렌더링
-        this.bindCachedBattleLogs(liveData.memberList);
+        // A. 서버에서 이미 배틀로그가 통합 수신되었는지 확인 (v1.4.0 단일 통합 요약 기능)
+        const hasServerBattleLogs = liveData.memberList.some((m) => m.lastBattleTime);
+
+        if (hasServerBattleLogs) {
+          // 서버 통합 캐시가 50명 배틀로그를 제공하므로 추가 50개 네트워크 요청 생략!
+          liveData.memberList.forEach((m) => {
+            if (m.lastBattleTime) {
+              this.battleLogCache.set(m.tag, {
+                time: m.lastBattleTime,
+                type: m.lastBattleType || "Battle"
+              });
+            }
+          });
+          this.saveBattleLogCache();
+        } else {
+          // 서버 요약 미지원 시 기존 캐시 바인딩
+          this.bindCachedBattleLogs(liveData.memberList);
+        }
+
         this.detectDonationActivity(liveData.memberList);
         this.renderClan(liveData);
 
@@ -506,8 +532,10 @@ class ClanManagerApp {
 
         if (dot) dot.className = "status-dot green live-pulse";
 
-        // 백그라운드에서 클랜원 50명 전체 배틀로그 비동기 순차 수집 (기록 없음 방지 & UI 차단 없음)
-        this.fetchAllMembersBattleLogs(liveData.memberList);
+        // 서버에서 배틀로그가 제공되지 않은 경우(폴백 모드)에만 백그라운드 수집 실행
+        if (!hasServerBattleLogs) {
+          this.fetchAllMembersBattleLogs(liveData.memberList);
+        }
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
@@ -1172,29 +1200,29 @@ class ClanManagerApp {
     }
 
     const { key, order } = this.sorting;
-    list.sort((a, b) => {
-      let valA, valB;
 
-      if (key === "lastSeen") {
-        const dateA = this.getEffectiveActiveDate(a.lastSeen, a.lastBattleTime, a.lastDonationTime);
-        const dateB = this.getEffectiveActiveDate(b.lastSeen, b.lastBattleTime, b.lastDonationTime);
-        valA = dateA ? dateA.getTime() : 0;
-        valB = dateB ? dateB.getTime() : 0;
+    // 정렬 성능 최적화: O(N log N) 비교 시 반복되는 Date 생성 및 파싱을 O(N)으로 1회 사전 연산
+    if (key === "lastSeen" || key === "lastBattle") {
+      list.forEach((m) => {
+        if (key === "lastSeen") {
+          const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime, m.lastDonationTime);
+          m._sortTime = effectiveDate ? effectiveDate.getTime() : 0;
+        } else {
+          const battleDate = this.parseDateSafe(m.lastBattleTime);
+          m._sortTime = battleDate ? battleDate.getTime() : 0;
+        }
+      });
+
+      list.sort((a, b) => {
+        return order === "desc" ? b._sortTime - a._sortTime : a._sortTime - b._sortTime;
+      });
+    } else {
+      list.sort((a, b) => {
+        const valA = a[key] || 0;
+        const valB = b[key] || 0;
         return order === "desc" ? valB - valA : valA - valB;
-      }
-
-      if (key === "lastBattle") {
-        const dateA = this.parseDateSafe(a.lastBattleTime);
-        const dateB = this.parseDateSafe(b.lastBattleTime);
-        valA = dateA ? dateA.getTime() : 0;
-        valB = dateB ? dateB.getTime() : 0;
-        return order === "desc" ? valB - valA : valA - valB;
-      }
-
-      valA = a[key] || 0;
-      valB = b[key] || 0;
-      return order === "desc" ? valB - valA : valA - valB;
-    });
+      });
+    }
 
     this.filteredMembers = list;
     this.renderDesktopTable();
@@ -1216,6 +1244,10 @@ class ClanManagerApp {
     const tbody = this.elements.memberTableBody;
     const emptyState = this.elements.emptyState;
     if (!tbody) return;
+
+    // 데스크톱 테이블 뷰가 CSS hidden 상태이면 불필요한 DOM 조작 생략
+    const tableWrapper = tbody.closest('.hidden');
+    if (tableWrapper && window.innerWidth < 1024) return;
 
     if (this.filteredMembers.length === 0) {
       tbody.innerHTML = "";

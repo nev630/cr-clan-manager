@@ -1,12 +1,10 @@
 /**
- * Clash Royale API Cloudflare Worker Proxy (v1.2.0 - Oracle Cloud Always Free 전용 프록시 연동)
+ * Clash Royale API Cloudflare Worker Proxy (v1.4.0)
  * 
  * [목적]
- * 1. 브라우저의 CORS(Cross-Origin Resource Sharing) 제한 해결
- * 2. 슈퍼셀 Developer API의 IP 제한(유동 IP 문제)을 해결하기 위해
- *    고정 IP(168.110.63.115)를 제공하는 오라클 서울 Always Free 전용 서버 경유
- * 3. 3자 무료 프록시(RoyaleAPI)의 SSL 만료/장애(HTTP 525) 위험 완전 차단 및 국내망 직통 지연시간 대폭 개선
- * 4. Cloudflare Error 1003(Direct IP Access Not Allowed) 방지를 위한 sslip.io 자동 DNS 도메인 적용
+ * 1. 브라우저의 CORS 제한 해결 및 HTTPS -> HTTP 종단 처리
+ * 2. 슈퍼셀 Developer API의 IP 화이트리스트 통과를 위해 오라클 서울 인스턴스(168.110.63.115) 경유
+ * 3. v1.4.0: 신규 /v1/clans/:tag/summary 지원 및 브라우저/Edge 캐시 협력
  */
 
 export default {
@@ -57,7 +55,8 @@ export default {
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(JSON.stringify({
         status: "online",
-        message: "Clash Royale API Proxy (Oracle Dedicated Instance) is running smoothly!",
+        version: "1.4.0",
+        message: "Clash Royale API Proxy (Oracle Dedicated Instance with TTL Cache) is active!",
         timestamp: new Date().toISOString()
       }), {
         headers: {
@@ -68,12 +67,10 @@ export default {
     }
 
     // 2. 오라클 서울 Always Free 인스턴스(고정 IP: 168.110.63.115, Nginx 80)로 전달
-    // ※ Cloudflare Error 1003(Raw IP 차단) 방지 및 포트 80 웹표준 통신 적용
     const targetPath = url.pathname.startsWith("/v1") ? url.pathname : `/v1${url.pathname}`;
     const targetUrl = `http://168.110.63.115.sslip.io${targetPath}${url.search}`;
 
     try {
-      // 오라클 서버로 프록시 요청 (오라클 내부 Node.js 프록시가 슈퍼셀 API 토큰을 부착하여 직접 호출)
       const apiResponse = await fetch(targetUrl, {
         method: request.method,
         headers: {
@@ -84,14 +81,17 @@ export default {
       const responseBody = await apiResponse.text();
 
       // 3. CORS 및 캐시 헤더를 붙여서 응답 반환
+      const cacheStatus = apiResponse.headers.get("x-cache-status") || "DYNAMIC";
+
       return new Response(responseBody, {
         status: apiResponse.status,
         headers: {
           "Content-Type": "application/json; charset=utf-8",
           "Access-Control-Allow-Origin": corsOrigin,
           "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key",
-          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key, Cache-Control, Pragma",
+          "X-Proxy-Cache": cacheStatus,
+          "Cache-Control": "public, max-age=15, stale-while-revalidate=45"
         }
       });
     } catch (err) {
