@@ -4,7 +4,7 @@
  * (Optimized Version with Persistent LocalStorage Cache & 150s Calibrated Online Status)
  */
 
-console.log('%c[Good Fellas App] v1.3.0 - 초고속 실시간 동기화, 스마트 배틀로그 검증 & 심플 로딩바 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.3.1 - 클랜원 50명 전원 백그라운드 배틀로그 수집 & 5분 접속 중 기준 현실화', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -346,43 +346,37 @@ class ClanManagerApp {
     });
   }
 
-  // 최근 활동 멤버 대상 스마트 타겟팅 배틀로그 비동기 검증 (리스크 0 & 초고속 속도 보장)
-  async syncTargetedBattleLogs(members) {
+  // 클랜원 전체 50명의 마지막 배틀로그 비동기 분할 수집 + 캐시 영구 보존 (기록 없음 완전 해결)
+  async fetchAllMembersBattleLogs(members) {
     if (!Array.isArray(members) || members.length === 0) return;
 
-    const now = Date.now();
-    const candidates = members
-      .filter((m) => {
-        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
-        if (!effectiveDate) return false;
-        const diffHours = (now - effectiveDate.getTime()) / (1000 * 60 * 60);
-        return diffHours <= 48; // 최근 48시간 이내 활동자 선별
-      })
-      .sort((a, b) => {
-        const dateA = this.getEffectiveActiveDate(a.lastSeen, a.lastBattleTime)?.getTime() || 0;
-        const dateB = this.getEffectiveActiveDate(b.lastSeen, b.lastBattleTime)?.getTime() || 0;
-        return dateB - dateA;
-      })
-      .slice(0, 10); // 최대 10명만 안전하게 타겟팅
-
-    if (candidates.length === 0) return;
-
     let hasNewData = false;
-    const concurrency = 3;
+    const chunkSize = 10; // 10명씩 부드럽게 분할 수집
 
-    for (let i = 0; i < candidates.length; i += concurrency) {
-      const chunk = candidates.slice(i, i + concurrency);
+    for (let i = 0; i < members.length; i += chunkSize) {
+      const chunk = members.slice(i, i + chunkSize);
+
       const chunkPromises = chunk.map(async (m) => {
+        // 1. 기존 캐시 기록 바인딩
+        if (this.battleLogCache.has(m.tag)) {
+          const cached = this.battleLogCache.get(m.tag);
+          if (!m.lastBattleTime || cached.time > m.lastBattleTime) {
+            m.lastBattleTime = cached.time;
+            m.lastBattleType = cached.type;
+          }
+        }
+
+        // 2. 서버 최신 배틀로그 비동기 조회
         const battlelog = await this.fetchPlayerBattleLog(m.tag);
         if (Array.isArray(battlelog) && battlelog.length > 0) {
-          const newBattleTime = battlelog[0].battleTime;
-          const newBattleType = battlelog[0].type || "Battle";
-          if (m.lastBattleTime !== newBattleTime) {
-            m.lastBattleTime = newBattleTime;
-            m.lastBattleType = newBattleType;
+          const newTime = battlelog[0].battleTime;
+          const newType = battlelog[0].type || "Battle";
+          if (m.lastBattleTime !== newTime) {
+            m.lastBattleTime = newTime;
+            m.lastBattleType = newType;
             this.battleLogCache.set(m.tag, {
-              time: newBattleTime,
-              type: newBattleType
+              time: newTime,
+              type: newType
             });
             hasNewData = true;
           }
@@ -390,15 +384,17 @@ class ClanManagerApp {
       });
 
       await Promise.allSettled(chunkPromises);
-      if (i + concurrency < candidates.length) {
-        await new Promise((r) => setTimeout(r, 50));
-      }
-    }
 
-    if (hasNewData) {
-      this.saveBattleLogCache();
-      this.applyFilterAndRender();
-      this.updateStats(this.currentData);
+      // 10명 단위 청크 완료 시마다 UI 즉시 갱신 (사용자가 기다릴 필요 없음)
+      if (hasNewData) {
+        this.saveBattleLogCache();
+        this.applyFilterAndRender();
+        this.updateStats(this.currentData);
+      }
+
+      if (i + chunkSize < members.length) {
+        await new Promise((r) => setTimeout(r, 40));
+      }
     }
   }
 
@@ -443,8 +439,8 @@ class ClanManagerApp {
 
         if (dot) dot.className = "status-dot green live-pulse";
 
-        // 백그라운드에서 최근 활동 멤버 배틀로그 비동기 보강 (UI 차단 없음)
-        this.syncTargetedBattleLogs(liveData.memberList);
+        // 백그라운드에서 클랜원 50명 전체 배틀로그 비동기 순차 수집 (기록 없음 방지 & UI 차단 없음)
+        this.fetchAllMembersBattleLogs(liveData.memberList);
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
@@ -995,7 +991,7 @@ class ClanManagerApp {
     return seenDate || battleDate || null;
   }
 
-  // [타협안] 2분 30초(150초) 기준 '접속 중' 판정 및 상대 시간 계산
+  // 5분(300초) 기준 '접속 중' 판정 (클래시 로얄 1판 배틀 시간 3~5분 및 매칭 대기 완벽 커버)
   getOnlineStatus(lastSeenStr, lastBattleStr) {
     const effectiveDate = this.getEffectiveActiveDate(lastSeenStr, lastBattleStr);
     if (!effectiveDate) {
@@ -1005,8 +1001,8 @@ class ClanManagerApp {
     const diffSeconds = Math.max(0, Math.floor((Date.now() - effectiveDate.getTime()) / 1000));
     const diffMinutes = Math.floor(diffSeconds / 60);
 
-    // 1. 2분 30초(150초) 이내 활동 감지 시 -> '🟢 접속 중' (서버 지연 및 시계 오차 흡수)
-    if (diffSeconds <= 150) {
+    // 1. 5분(300초) 이내 활동 감지 시 -> '🟢 접속 중' (연속 배틀 및 로비 활동 보정)
+    if (diffSeconds <= 300) {
       return {
         isOnline: true,
         text: "접속 중",
@@ -1016,7 +1012,7 @@ class ClanManagerApp {
       };
     }
 
-    // 2. 150초 초과 ~ 60분 미만 -> 'N분 전'
+    // 2. 5분 초과 ~ 60분 미만 -> 'N분 전'
     if (diffMinutes < 60) {
       return {
         isOnline: false,
