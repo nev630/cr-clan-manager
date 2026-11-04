@@ -1,12 +1,12 @@
 /**
- * Good Fellas Clan Manager - Core Application Logic (v1.4.2)
+ * Good Fellas Clan Manager - Core Application Logic (v1.4.3)
  * Mobile Optimized, Visual Charts & Gallery Clan Comparison
  * - 3분(180초) 현실적 '접속 중' 판정 윈도우 적용
  * - 트로피 변동 감지 완전 제거 및 슈퍼셀 lastSeen + 배틀로그 2중 검증 체계 확립
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.2 - 3분 접속 윈도우 & lastSeen + 배틀로그 2중 검증 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.3 - 새로고침 시 항상 최신 동기화 & 실시간 캐시 버스터 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -39,7 +39,7 @@ class ClanManagerApp {
   // 로컬스토리지에서 배틀로그 캐시 복원
   loadBattleLogCache() {
     try {
-      const saved = localStorage.getItem("cr_clan_battle_cache_v2");
+      const saved = localStorage.getItem("cr_clan_battle_cache_v3");
       if (saved) {
         const obj = JSON.parse(saved);
         return new Map(Object.entries(obj));
@@ -52,7 +52,7 @@ class ClanManagerApp {
   saveBattleLogCache() {
     try {
       const obj = Object.fromEntries(this.battleLogCache);
-      localStorage.setItem("cr_clan_battle_cache_v2", JSON.stringify(obj));
+      localStorage.setItem("cr_clan_battle_cache_v3", JSON.stringify(obj));
     } catch (e) {}
   }
 
@@ -68,6 +68,7 @@ class ClanManagerApp {
       localStorage.removeItem("cr_manager_settings_v1");
       localStorage.removeItem("cr_manager_cache_ver");
       localStorage.removeItem("cr_clan_donation_cache_v1"); // 잘못된 실시간 접속 왜곡 캐시 완전 제거
+      localStorage.removeItem("cr_clan_battle_cache_v2"); // 구버전 오염 캐시 제거
     } catch (e) {}
 
     // 갤클 비교 프리셋 데이터 사전 로드

@@ -1,5 +1,5 @@
 /**
- * Clash Royale API Client (v1.4.2 Optimized)
+ * Clash Royale API Client (v1.4.3 Always Fresh)
  * - Supercell Clash Royale Official API 지원
  * - Cloudflare Worker / Oracle 프록시 실시간 통신
  * - v1.4.2: 신규 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
@@ -82,17 +82,25 @@ class ClashRoyaleAPI {
   }
 
   async fetchWithAuth(endpoint) {
-    const url = this.buildUrl(endpoint);
+    // 실시간 캐시 버스터(_t) 강제 부착 및 cache: 'no-store' 적용으로 항상 최신 데이터 동기화
+    const sep = endpoint.includes("?") ? "&" : "?";
+    const cacheBustedEndpoint = `${endpoint}${sep}_t=${Date.now()}`;
+    const url = this.buildUrl(cacheBustedEndpoint);
     const headers = { 
       "Accept": "application/json",
-      "Cache-Control": "max-age=10"
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Pragma": "no-cache"
     };
 
     if (this.settings.apiKey) {
       headers["Authorization"] = `Bearer ${this.settings.apiKey.trim()}`;
     }
 
-    const response = await fetch(url, { method: "GET", headers });
+    const response = await fetch(url, { 
+      method: "GET", 
+      headers,
+      cache: "no-store"
+    });
     const rawText = await response.text();
 
     if (!response.ok) {
