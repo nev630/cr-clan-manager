@@ -1,5 +1,5 @@
 /**
- * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.4.2)
+ * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.4.4)
  * 
  * [주요 기능 & 최적화 (v1.4.2)]
  * 1. On-Demand In-Memory TTL 캐시 적용:
@@ -122,7 +122,8 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
     const encodedTag = encodeURIComponent(tag);
     const summaryCacheKey = `clan_summary_${encodedTag}`;
 
-    const cachedSummary = getCached(summaryCacheKey);
+    const force = req.query.force === '1' || req.query.force === 'true';
+    const cachedSummary = !force ? getCached(summaryCacheKey) : null;
     if (cachedSummary) {
       res.setHeader('X-Cache-Status', 'HIT');
       return res.json(cachedSummary);
@@ -145,15 +146,17 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
         const playerEncoded = encodeURIComponent(member.tag);
         const playerCacheKey = `battlelog_${playerEncoded}`;
 
-        let battlelog = getCached(playerCacheKey);
+        let battlelog = (!force ? getCached(playerCacheKey) : null);
         if (!battlelog) {
           try {
-            battlelog = await fetchSupercell(`/v1/players/${playerEncoded}/battlelog`);
-            if (Array.isArray(battlelog)) {
-              setCache(playerCacheKey, battlelog, 30); // 30초 배틀로그 캐시 // 배틀로그 2분 TTL
+            const fetched = await fetchSupercell(`/v1/players/${playerEncoded}/battlelog`);
+            if (Array.isArray(fetched) && fetched.length > 0) {
+              battlelog = fetched;
+              setCache(playerCacheKey, battlelog, 30); // 30초 배틀로그 캐시
             }
           } catch (e) {
-            // 개별 실패 시 건너뜀
+            // 개별 실패 시 기존 캐시(stale)가 있다면 폴백으로 보존
+            battlelog = getCached(playerCacheKey);
           }
         }
 
@@ -182,7 +185,8 @@ app.use('/v1', async (req, res) => {
     const cleanUrl = rawUrl.replace(/([?&])_t=\d+(&?)/, '$1').replace(/[?&]$/, '');
     const cacheKey = `proxy_${cleanUrl}`;
 
-    const cachedData = getCached(cacheKey);
+    const force = req.query.force === '1' || req.query.force === 'true';
+    const cachedData = !force ? getCached(cacheKey) : null;
     if (cachedData) {
       res.setHeader('X-Cache-Status', 'HIT');
       return res.json(cachedData);
@@ -206,11 +210,11 @@ app.use('/v1', async (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    version: '1.4.2',
+    version: '1.4.4',
     cachedEntries: cache.size,
     message: 'Good Fellas Dedicated Oracle CR Proxy is running with In-Memory TTL Cache!'
   });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.4.2 running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.4.4 running on port ${PORT}`));
