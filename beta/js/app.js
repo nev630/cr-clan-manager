@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.0 - 다크/라이트 모드 원형 리플 확장 애니메이션 및 해·달 모핑 토글 도입', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.1 - 120fps GPU 원형 리플 애니메이션 & 라이트 모드 고대비 텍스트/차트 가독성 최적화', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -258,71 +258,53 @@ toggleTheme(e) {
     const isDark = document.documentElement.classList.contains("dark");
     const nextTheme = isDark ? "light" : "dark";
 
-    // 클릭 좌표 획득 (버튼 중심 기준 원형 확장)
-    let x = window.innerWidth / 2;
-    let y = 40;
-    if (e && typeof e.clientX === "number" && e.clientX > 0) {
-      x = e.clientX;
-      y = e.clientY;
-    } else if (this.elements.btnThemeToggle) {
+    // 1. 버튼 중심 물리 좌표 획득 (원형 확장의 발원점)
+    let x = window.innerWidth - 36;
+    let y = 36;
+    if (this.elements.btnThemeToggle) {
       const rect = this.elements.btnThemeToggle.getBoundingClientRect();
       x = rect.left + rect.width / 2;
       y = rect.top + rect.height / 2;
     }
 
-    const endRadius = Math.hypot(
+    // 2. 화면 전체 모서리까지 덮을 수 있는 충분한 직경 계산
+    const maxRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y)
     );
+    const diameter = Math.ceil(maxRadius * 2.3);
 
-    // 아이콘 스핀 회전
+    // 3. 해/달 아이콘 360도 스핀 회전 모핑
     const iconContainer = document.getElementById("theme-toggle-icon");
     if (iconContainer) {
       iconContainer.style.transform = isDark ? "rotate(360deg)" : "rotate(-360deg)";
       setTimeout(() => { iconContainer.style.transform = "none"; }, 500);
     }
 
-    // 1. 최신 브라우저 View Transition API 기반 원형 리플 확장
-    if (document.startViewTransition) {
-      const transition = document.startViewTransition(() => {
-        this.applyTheme(nextTheme);
-      });
-      transition.ready.then(() => {
-        document.documentElement.animate(
-          {
-            clipPath: [
-              `circle(0px at ${x}px ${y}px)`,
-              `circle(${endRadius}px at ${x}px ${y}px)`
-            ]
-          },
-          {
-            duration: 520,
-            easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-            pseudoElement: "::view-transition-new(root)"
-          }
-        );
-      });
-    } else {
-      // 2. 모바일/구형 브라우저 Fallback: 원형 클립패스 오버레이 확장
-      const overlay = document.createElement("div");
-      overlay.className = "theme-ripple-overlay";
-      overlay.style.setProperty("--origin-x", `${x}px`);
-      overlay.style.setProperty("--origin-y", `${y}px`);
-      overlay.style.backgroundColor = nextTheme === "light" ? "#f8fafc" : "#090b10";
-      document.body.appendChild(overlay);
+    // 4. 버터처럼 매끄러운 120fps GPU 합성기(Compositor) 기반 원형 리플 확장
+    const ripple = document.createElement("div");
+    ripple.className = "theme-ripple-circle";
+    ripple.style.width = `${diameter}px`;
+    ripple.style.height = `${diameter}px`;
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    ripple.style.backgroundColor = nextTheme === "light" ? "#f1f5f9" : "#090b10";
+    document.body.appendChild(ripple);
 
-      requestAnimationFrame(() => {
-        overlay.classList.add("expanding");
-      });
+    // DOM 반영 강제 후 가속 스케일 확장 트리거
+    ripple.getBoundingClientRect();
+    ripple.style.transform = "translate3d(-50%, -50%, 0) scale(1)";
 
-      setTimeout(() => {
-        this.applyTheme(nextTheme);
-        setTimeout(() => {
-          overlay.style.opacity = "0";
-          setTimeout(() => overlay.remove(), 250);
-        }, 100);
-      }, 300);
-    }
+    // 화면이 덮이는 전환 골든 타임(220ms)에 테마 클래스 즉시 교체
+    setTimeout(() => {
+      this.applyTheme(nextTheme);
+    }, 220);
+
+    // 전체 확장이 끝나는 시점에 부드럽게 페이드아웃 및 제거
+    setTimeout(() => {
+      ripple.style.opacity = "0";
+      setTimeout(() => ripple.remove(), 240);
+    }, 450);
   }
 
   applyTheme(theme) {
@@ -339,13 +321,14 @@ toggleTheme(e) {
       localStorage.setItem("cr_theme", theme);
     } catch (e) {}
 
-    // 활성 차트 테마 색상 동적 갱신
+    // 활성 차트 테마 색상(눈금선, 라벨, 범례) 즉시 동적 갱신
     if (this.currentData?.memberList) {
       this.renderCharts(this.currentData.memberList, false);
     }
     if (this.compareClansData?.length > 0) {
       this.renderCompareCharts(this.compareClansData, false);
     }
+    this.applyFilterAndRender();
   }
 
   toggleSortOrder() {
@@ -946,7 +929,7 @@ toggleTheme(e) {
           datasets: [{
             data: chartData,
             backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(59, 130, 246, 0.85)", "rgba(244, 63, 94, 0.85)"],
-            borderColor: "#0f121a",
+            borderColor: document.documentElement.classList.contains("light") ? "#ffffff" : "#0f121a",
             borderWidth: 2,
             hoverOffset: 4
           }]
@@ -961,10 +944,23 @@ toggleTheme(e) {
             easing: 'easeOutQuart'
           },
           plugins: {
-            legend: { position: "bottom", labels: { color: "#94a3b8", boxWidth: 8, padding: 10, font: { size: 10 } } },
+            legend: { 
+              position: "bottom", 
+              labels: { 
+                color: document.documentElement.classList.contains("light") ? "#0f172a" : "#94a3b8", 
+                boxWidth: 8, 
+                padding: 10, 
+                font: { size: 10, weight: "bold" } 
+              } 
+            },
             tooltip: {
-              backgroundColor: "#171b26", titleColor: "#f8fafc", bodyColor: "#94a3b8",
-              borderColor: "rgba(255,255,255,0.1)", borderWidth: 1, padding: 8, displayColors: true,
+              backgroundColor: document.documentElement.classList.contains("light") ? "#ffffff" : "#171b26", 
+              titleColor: document.documentElement.classList.contains("light") ? "#0f172a" : "#f8fafc", 
+              bodyColor: document.documentElement.classList.contains("light") ? "#334155" : "#94a3b8",
+              borderColor: document.documentElement.classList.contains("light") ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)", 
+              borderWidth: 1, 
+              padding: 8, 
+              displayColors: true,
               callbacks: { label: (c) => ` ${c.label}: ${c.raw}명` }
             }
           },
@@ -1027,10 +1023,20 @@ toggleTheme(e) {
 
     if (this.charts.compareDonations) {
       const chart = this.charts.compareDonations;
+      const isLight = document.documentElement.classList.contains("light");
       chart.data.labels = labels;
       chart.data.datasets[0].data = donationData;
       chart.data.datasets[0].backgroundColor = backgroundColors;
       chart.data.datasets[0].borderColor = borderColors;
+      
+      // 테마별 눈금 및 그리드 색상 동적 반영
+      if (chart.options.scales?.y?.ticks) {
+        chart.options.scales.y.ticks.color = isLight ? "#475569" : "#94a3b8";
+        chart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)";
+      }
+      if (chart.options.scales?.x?.ticks) {
+        chart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
+      }
       chart.resize();
 
       if (triggerAnimation) {
@@ -1057,7 +1063,7 @@ toggleTheme(e) {
               ctx.font = "bold 12px Pretendard, -apple-system, sans-serif";
               ctx.textAlign = "center";
               ctx.textBaseline = "bottom";
-              ctx.fillStyle = "#ffffff";
+              ctx.fillStyle = document.documentElement.classList.contains("light") ? "#0f172a" : "#ffffff";
               const suffix = options?.suffix || "";
               const text = `${typeof rawVal === "number" ? rawVal.toLocaleString() : rawVal}${suffix}`;
               ctx.fillText(text, element.x, element.y - 6);
