@@ -169,23 +169,80 @@ body {
   border-right-width: 1px;
   border-bottom-width: 0;
   transition: transform 0.2s ease, filter 0.2s ease;
+  overflow: hidden;
 }
 .podium-step:hover {
   filter: brightness(1.1);
   transform: translateY(-2px);
 }
+
+/* 아래에서 위로 솟아오르는 차트 애니메이션 (Chart.js easeOutQuart 감각) */
+@keyframes podiumRise1st {
+  0% { height: 0; opacity: 0.2; }
+  100% { height: 7rem; opacity: 1; }
+}
+@media (min-width: 640px) {
+  @keyframes podiumRise1st {
+    0% { height: 0; opacity: 0.2; }
+    100% { height: 8rem; opacity: 1; }
+  }
+}
+
+@keyframes podiumRise2nd {
+  0% { height: 0; opacity: 0.2; }
+  100% { height: 5rem; opacity: 1; }
+}
+@media (min-width: 640px) {
+  @keyframes podiumRise2nd {
+    0% { height: 0; opacity: 0.2; }
+    100% { height: 6rem; opacity: 1; }
+  }
+}
+
+@keyframes podiumRise3rd {
+  0% { height: 0; opacity: 0.2; }
+  100% { height: 3.5rem; opacity: 1; }
+}
+@media (min-width: 640px) {
+  @keyframes podiumRise3rd {
+    0% { height: 0; opacity: 0.2; }
+    100% { height: 4rem; opacity: 1; }
+  }
+}
+
+@keyframes podiumHeaderRise {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.podium-header {
+  animation: podiumHeaderRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes runnerSlideUp {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.podium-runner-item {
+  animation: runnerSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 .podium-1st {
   border-color: #fbbf24 rgba(251, 191, 36, 0.2) transparent rgba(251, 191, 36, 0.2);
   background: linear-gradient(180deg, rgba(251, 191, 36, 0.15) 0%, rgba(15, 18, 26, 0.95) 100%);
   box-shadow: 0 -4px 20px rgba(245, 158, 11, 0.15);
+  animation: podiumRise1st 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .podium-2nd {
   border-color: #cbd5e1 rgba(203, 213, 225, 0.15) transparent rgba(203, 213, 225, 0.15);
   background: linear-gradient(180deg, rgba(203, 213, 225, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+  animation: podiumRise2nd 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
 }
 .podium-3rd {
   border-color: #d97706 rgba(217, 119, 6, 0.15) transparent rgba(217, 119, 6, 0.15);
   background: linear-gradient(180deg, rgba(217, 119, 6, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+  animation: podiumRise3rd 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
 }
 
 /* 차트 래퍼 높이 */
