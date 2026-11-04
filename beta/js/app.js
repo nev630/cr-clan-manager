@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.11 - 대시보드 탭 복귀 시 시상대 상향 Rise 애니메이션 재생 추가', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.12 - 헤더 및 비교 탭 수동 새로고침 버튼 제거 및 UI 간소화', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -130,8 +130,6 @@ class ClanManagerApp {
       btnSortOrder: document.getElementById("btn-sort-order"),
       sortOrderText: document.getElementById("sort-order-text"),
       sortOrderIcon: document.getElementById("sort-order-icon"),
-      btnManualSync: document.getElementById("btn-manual-sync"),
-      btnRefreshCompare: document.getElementById("btn-refresh-compare"),
       
       viewDashboard: document.getElementById("view-dashboard"),
       viewCompare: document.getElementById("view-compare"),
@@ -140,7 +138,6 @@ class ClanManagerApp {
       tabContextHint: document.getElementById("tab-context-hint"),
       btnQuickCompare: document.getElementById("btn-quick-compare"),
       syncDot: document.getElementById("sync-dot"),
-      syncSpinIcon: document.getElementById("sync-spin-icon"),
       clanName: document.getElementById("clan-name"),
       clanTag: document.getElementById("clan-tag"),
       clanDesc: document.getElementById("clan-desc"),
@@ -155,7 +152,6 @@ class ClanManagerApp {
       podiumContainer: document.getElementById("podium-container"),
       podiumRunnersContainer: document.getElementById("podium-runners-container"),
       chartActivity: document.getElementById("chart-activity"),
-      compareRefreshIcon: document.getElementById("compare-refresh-icon"),
       chartCompareDonations: document.getElementById("chart-compare-donations"),
       compareSummaryList: document.getElementById("compare-summary-list"),
       memberTableBody: document.getElementById("member-table-body"),
@@ -223,7 +219,7 @@ class ClanManagerApp {
   }
 
   bindEvents() {
-    const { searchInput, sortKeySelect, btnSortOrder, btnManualSync, btnRefreshCompare } = this.elements;
+    const { searchInput, sortKeySelect, btnSortOrder } = this.elements;
     
     if (searchInput) {
       let searchTimeout;
@@ -247,13 +243,7 @@ class ClanManagerApp {
       btnSortOrder.addEventListener("click", () => this.toggleSortOrder());
     }
 
-    if (btnManualSync) {
-      btnManualSync.addEventListener("click", () => this.autoSyncLive(true));
-    }
 
-    if (btnRefreshCompare) {
-      btnRefreshCompare.addEventListener("click", () => this.syncCompareLive());
-    }
 
 
   }
@@ -463,9 +453,9 @@ class ClanManagerApp {
     }
     this.lastSyncTime = now;
 
-    const { syncDot: dot, syncSpinIcon: spinIcon } = this.elements;
+    const { syncDot: dot } = this.elements;
     if (dot) dot.className = "status-dot amber live-pulse";
-    if (spinIcon && isManual) spinIcon.classList.add("animate-spin");
+    
 
     const isInitial = !this.elements.initialSyncModal?.dataset?.dismissed;
     if (isInitial) {
@@ -544,7 +534,7 @@ class ClanManagerApp {
         alert(`데이터 갱신 실패: ${err.message}`);
       }
     } finally {
-      if (spinIcon) spinIcon.classList.remove("animate-spin");
+      
       if (isInitial) {
         this.hideInitialSyncModal();
       }
@@ -553,7 +543,7 @@ class ClanManagerApp {
 
   // 타 갤클 비교 데이터 백그라운드 프리페치 및 실시간 동기화
   async syncCompareLive() {
-    const icon = this.elements.compareRefreshIcon;
+    
     try {
       if (window.crApi && typeof window.crApi.fetchMultipleClans === "function") {
         const liveClans = await window.crApi.fetchMultipleClans(this.compareTags);
@@ -565,7 +555,7 @@ class ClanManagerApp {
     } catch (e) {
       console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
     } finally {
-      if (icon) icon.classList.remove("animate-spin");
+      
       if (this.activeMainTab === "compare") {
         this.renderComparisonView(false);
       }
