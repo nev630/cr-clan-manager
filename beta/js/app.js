@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.10 - 초기 대시보드 진입 시 시상대 환영 애니메이션 타이밍 완벽 동기화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.11 - 대시보드 탭 복귀 시 시상대 상향 Rise 애니메이션 재생 추가', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -310,6 +310,15 @@ class ClanManagerApp {
       
       if (tabHint) {
         tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Good Fellas 단독 뷰</span>`;
+      }
+
+      // 타 갤클 비교 탭에서 대시보드로 복귀할 때 시상대 상향 솟아오름 애니메이션 재생
+      if (this.currentData?.memberList) {
+        this.renderPodium(this.currentData.memberList, true);
+        setTimeout(() => {
+          this.elements.podiumContainer?.classList.remove("podium-animate");
+          this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+        }, 850);
       }
     }
 
