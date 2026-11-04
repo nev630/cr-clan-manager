@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.6 - 커스텀 갤클 추가 입력 UI 제거 및 뷰 정돈', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.7 - 갤클 비교 2열 와이드 최적화 및 Top 7 시상대 은/동 왕관 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -715,9 +715,13 @@ class ClanManagerApp {
     const runners = sorted.slice(3);
 
     podiumContainer.innerHTML = `
-      <!-- 2등 은메달 (좌측) -->
+      <!-- 2등 은메달 & 은빛 왕관 (좌측) -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center">
         <div class="text-center mb-1 w-full px-1">
+          <div class="inline-flex items-center gap-1 text-[11px] text-slate-300 font-semibold mb-0.5">
+            <svg class="w-3.5 h-3.5 inline-block text-slate-300" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+            <span>2위</span>
+          </div>
           <div class="text-xs text-slate-300 font-semibold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
           <div class="text-[11px] font-bold text-slate-300">${(second.donations || 0).toLocaleString()}개</div>
         </div>
@@ -725,11 +729,12 @@ class ClanManagerApp {
           <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
         </div>
       </div>
-      <!-- 1등 금메달 (중앙) -->
+      <!-- 1등 금메달 & 금빛 왕관 (중앙) -->
       <div class="flex-1 max-w-[145px] flex flex-col items-center">
         <div class="text-center mb-1 w-full px-1">
           <div class="inline-flex items-center gap-1 text-[11px] text-amber-400 font-semibold mb-0.5">
-            <span>👑 1위</span>
+            <svg class="w-3.5 h-3.5 inline-block text-amber-400" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+            <span>1위</span>
           </div>
           <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
           <div class="text-xs font-black text-amber-400">${(first.donations || 0).toLocaleString()}개</div>
@@ -738,9 +743,13 @@ class ClanManagerApp {
           <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
         </div>
       </div>
-      <!-- 3등 동메달 (우측) -->
+      <!-- 3등 동메달 & 동빛 왕관 (우측) -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center">
         <div class="text-center mb-1 w-full px-1">
+          <div class="inline-flex items-center gap-1 text-[11px] text-amber-600 font-semibold mb-0.5">
+            <svg class="w-3.5 h-3.5 inline-block text-amber-600" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+            <span>3위</span>
+          </div>
           <div class="text-xs text-amber-600/90 font-semibold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
           <div class="text-[11px] font-bold text-amber-600">${(third.donations || 0).toLocaleString()}개</div>
         </div>
@@ -987,19 +996,17 @@ class ClanManagerApp {
                 <span class="font-bold text-white text-sm sm:text-base tracking-tight truncate">${this.escapeHtml(c.name)}</span>
                 ${isHome ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">내 클랜</span>' : ''}
               </div>
-              <div class="text-[11px] font-mono text-slate-500 mt-0.5">${this.escapeHtml(c.tag)}</div>
+              <div class="text-[11px] font-mono text-slate-500 mt-0.5 flex items-center gap-1.5">
+                <span>${this.escapeHtml(c.tag)}</span>
+                <span class="text-slate-600">·</span>
+                <span class="text-slate-400 font-sans">${c.membersCount}<span class="text-slate-500 font-normal">/50명</span></span>
+              </div>
             </div>
           </div>
-          <div class="flex items-center gap-3 sm:gap-6 shrink-0">
-            <div class="text-right">
-              <div class="text-[10px] text-slate-500">인원수</div>
-              <div class="text-xs sm:text-sm font-bold text-slate-200 font-mono mt-0.5">${c.membersCount}<span class="text-slate-500 font-normal">/50</span></div>
-            </div>
-            <div class="text-right hidden sm:block">
-              <div class="text-[10px] text-slate-500">주간 지원량</div>
-              <div class="text-sm sm:text-base font-black text-amber-400 font-mono mt-0.5">${c.donationsWeekly.toLocaleString()}개</div>
-              <div class="mt-1">${diffBadge}</div>
-            </div>
+          <div class="text-right shrink-0">
+            <div class="text-[10px] text-slate-500">주간 지원량</div>
+            <div class="text-xs sm:text-sm font-black text-amber-400 font-mono mt-0.5">${c.donationsWeekly.toLocaleString()}개</div>
+            <div class="mt-1">${diffBadge}</div>
           </div>
         </div>
       `;
