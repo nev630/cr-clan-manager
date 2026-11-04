@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.14 - 도넛 차트 animateRotate & animateScale 온디맨드 재생 완벽 수정', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.5 - 원형 리플 테마전환 애니메이션 정상 가동 & 멀티 브라우저 2중 보장', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -128,6 +128,7 @@ class ClanManagerApp {
       searchInput: document.getElementById("search-input"),
       sortKeySelect: document.getElementById("sort-key-select"),
       btnSortOrder: document.getElementById("btn-sort-order"),
+      btnThemeToggle: document.getElementById("btn-theme-toggle"),
       sortOrderText: document.getElementById("sort-order-text"),
       sortOrderIcon: document.getElementById("sort-order-icon"),
       
@@ -244,9 +245,160 @@ class ClanManagerApp {
       btnSortOrder.addEventListener("click", () => this.toggleSortOrder());
     }
 
+    if (this.elements.btnThemeToggle) {
+      this.elements.btnThemeToggle.addEventListener("click", (e) => this.toggleTheme(e));
+    }
 
 
 
+
+  }
+
+toggleTheme(e) {
+    const isDark = document.documentElement.classList.contains("dark");
+    const nextTheme = isDark ? "light" : "dark";
+
+    // 1. 버튼 중심 좌표 획득 (원형 파동 발원점)
+    let x = window.innerWidth - 36;
+    let y = 36;
+    const btn = this.elements.btnThemeToggle || document.getElementById("btn-theme-toggle");
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      x = Math.round(rect.left + rect.width / 2);
+      y = Math.round(rect.top + rect.height / 2);
+    } else if (e && typeof e.clientX === "number") {
+      x = Math.round(e.clientX);
+      y = Math.round(e.clientY);
+    }
+
+    // 2. 화면 전체 모서리까지 덮는 최대 반경 계산
+    const endRadius = Math.ceil(Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    ));
+
+    // CSS 변수 주입 (Safari 18 및 Chromium View Transitions API 연동)
+    document.documentElement.style.setProperty("--theme-x", `${x}px`);
+    document.documentElement.style.setProperty("--theme-y", `${y}px`);
+    document.documentElement.style.setProperty("--theme-r", `${endRadius}px`);
+
+    // 3. 해/달 아이콘 360도 스핀 모핑 애니메이션
+    const iconContainer = document.getElementById("theme-toggle-icon");
+    if (iconContainer) {
+      iconContainer.style.transform = isDark ? "rotate(360deg)" : "rotate(-360deg)";
+      setTimeout(() => { iconContainer.style.transform = "none"; }, 500);
+    }
+
+    // 4. 원형 리플 테마 전환 실행 (View Transitions API + Fallback Ripple)
+    if (typeof document.startViewTransition === "function") {
+      const transition = document.startViewTransition(() => {
+        this.applyTheme(nextTheme);
+      });
+
+      if (transition.ready && typeof document.documentElement.animate === "function") {
+        transition.ready.then(() => {
+          try {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${endRadius}px at ${x}px ${y}px)`
+                ]
+              },
+              {
+                duration: 450,
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                pseudoElement: "::view-transition-new(root)"
+              }
+            );
+          } catch (err) {
+            // CSS @keyframes fallback handles the animation
+          }
+        });
+      }
+    } else {
+      // 5. Fallback: View Transitions 미지원 브라우저용 원형 발광 파동 효과
+      this.triggerFallbackRipple(x, y, endRadius, nextTheme);
+      this.applyTheme(nextTheme);
+    }
+  }
+
+  triggerFallbackRipple(x, y, radius, theme) {
+    const ring = document.createElement("div");
+    ring.style.position = "fixed";
+    ring.style.left = `${x}px`;
+    ring.style.top = `${y}px`;
+    ring.style.width = "10px";
+    ring.style.height = "10px";
+    ring.style.borderRadius = "50%";
+    ring.style.transform = "translate(-50%, -50%) scale(1)";
+    ring.style.border = theme === "light" ? "3px solid rgba(245, 158, 11, 0.6)" : "3px solid rgba(99, 102, 241, 0.6)";
+    ring.style.boxShadow = theme === "light" 
+      ? "0 0 35px 15px rgba(245, 158, 11, 0.25)" 
+      : "0 0 35px 15px rgba(99, 102, 241, 0.25)";
+    ring.style.pointerEvents = "none";
+    ring.style.zIndex = "999999";
+    ring.style.transition = "transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease-out";
+    ring.style.opacity = "1";
+    document.body.appendChild(ring);
+
+    requestAnimationFrame(() => {
+      ring.style.transform = `translate(-50%, -50%) scale(${radius / 5})`;
+      ring.style.opacity = "0";
+    });
+
+    setTimeout(() => {
+      ring.remove();
+    }, 500);
+  }
+
+  applyTheme(theme) {
+    const isDark = theme === "dark";
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
+    }
+
+    try {
+      localStorage.setItem("cr_theme", theme);
+    } catch (e) {}
+
+    const isLight = !isDark;
+
+    // 1. 도넛 차트 테마 색상(테두리, 범례 텍스트, 툴팁) 즉시 완벽 동기화 (다크 모드 시 어두운 텍스트 묻힘 버그 해결)
+    if (this.charts.activity) {
+      const donutChart = this.charts.activity;
+      donutChart.data.datasets[0].borderColor = isLight ? "#ffffff" : "#0f121a";
+      if (donutChart.options.plugins?.legend?.labels) {
+        donutChart.options.plugins.legend.labels.color = isLight ? "#0f172a" : "#94a3b8";
+      }
+      if (donutChart.options.plugins?.tooltip) {
+        donutChart.options.plugins.tooltip.backgroundColor = isLight ? "#ffffff" : "#171b26";
+        donutChart.options.plugins.tooltip.titleColor = isLight ? "#0f172a" : "#f8fafc";
+        donutChart.options.plugins.tooltip.bodyColor = isLight ? "#334155" : "#94a3b8";
+        donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)";
+      }
+      donutChart.update('none');
+    }
+
+    // 2. 비교 막대 차트 테마 색상 즉시 동기화
+    if (this.charts.compareDonations) {
+      const compareChart = this.charts.compareDonations;
+      if (compareChart.options.scales?.y?.ticks) {
+        compareChart.options.scales.y.ticks.color = isLight ? "#475569" : "#94a3b8";
+        compareChart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)";
+      }
+      if (compareChart.options.scales?.x?.ticks) {
+        compareChart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
+      }
+      compareChart.update('none');
+    }
+
+    // 3. 멤버 리스트 및 통계 UI 재렌더링
+    this.applyFilterAndRender();
   }
 
   toggleSortOrder() {
@@ -738,7 +890,7 @@ class ClanManagerApp {
     podiumContainer.className = triggerAnimation ? `${basePodiumClasses} podium-animate` : basePodiumClasses;
 
     podiumContainer.innerHTML = `
-      <!-- 2등 은메달 (은빛 왕관만 단독 배치) -->
+      <!-- 2등 은메달 (은빛 왕관 유지, 이름/개수는 기본 텍스트 색상) -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center">
         <div class="podium-header text-center mb-1.5 w-full px-1" style="animation-delay: 0.06s">
           <div class="flex items-center justify-center mb-1">
@@ -746,14 +898,14 @@ class ClanManagerApp {
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
-          <div class="text-xs text-slate-300 font-semibold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
+          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
           <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-2nd w-full h-20 sm:h-24">
           <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
         </div>
       </div>
-      <!-- 1등 금메달 (금빛 왕관만 단독 배치) -->
+      <!-- 1등 금메달 (금빛 왕관 유지, 이름/개수는 기본 텍스트 색상) -->
       <div class="flex-1 max-w-[145px] flex flex-col items-center">
         <div class="podium-header text-center mb-1.5 w-full px-1">
           <div class="flex items-center justify-center mb-1">
@@ -762,13 +914,13 @@ class ClanManagerApp {
             </svg>
           </div>
           <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs font-black text-amber-400 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
+          <div class="text-xs font-bold text-slate-300 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-1st w-full h-28 sm:h-32">
           <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
         </div>
       </div>
-      <!-- 3등 동메달 (동빛 왕관만 단독 배치) -->
+      <!-- 3등 동메달 (동빛 왕관 유지, 이름/개수는 기본 텍스트 색상) -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center">
         <div class="podium-header text-center mb-1.5 w-full px-1" style="animation-delay: 0.12s">
           <div class="flex items-center justify-center mb-1">
@@ -776,8 +928,8 @@ class ClanManagerApp {
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
-          <div class="text-xs text-amber-600/90 font-semibold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-[11px] font-bold text-amber-600 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
+          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
+          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-3rd w-full h-14 sm:h-16">
           <span class="text-lg sm:text-xl font-black text-amber-600/80 font-mono mb-1">3</span>
@@ -847,7 +999,7 @@ class ClanManagerApp {
           datasets: [{
             data: chartData,
             backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(59, 130, 246, 0.85)", "rgba(244, 63, 94, 0.85)"],
-            borderColor: "#0f121a",
+            borderColor: document.documentElement.classList.contains("light") ? "#ffffff" : "#0f121a",
             borderWidth: 2,
             hoverOffset: 4
           }]
@@ -862,10 +1014,23 @@ class ClanManagerApp {
             easing: 'easeOutQuart'
           },
           plugins: {
-            legend: { position: "bottom", labels: { color: "#94a3b8", boxWidth: 8, padding: 10, font: { size: 10 } } },
+            legend: { 
+              position: "bottom", 
+              labels: { 
+                color: document.documentElement.classList.contains("light") ? "#0f172a" : "#94a3b8", 
+                boxWidth: 8, 
+                padding: 10, 
+                font: { size: 10, weight: "bold" } 
+              } 
+            },
             tooltip: {
-              backgroundColor: "#171b26", titleColor: "#f8fafc", bodyColor: "#94a3b8",
-              borderColor: "rgba(255,255,255,0.1)", borderWidth: 1, padding: 8, displayColors: true,
+              backgroundColor: document.documentElement.classList.contains("light") ? "#ffffff" : "#171b26", 
+              titleColor: document.documentElement.classList.contains("light") ? "#0f172a" : "#f8fafc", 
+              bodyColor: document.documentElement.classList.contains("light") ? "#334155" : "#94a3b8",
+              borderColor: document.documentElement.classList.contains("light") ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)", 
+              borderWidth: 1, 
+              padding: 8, 
+              displayColors: true,
               callbacks: { label: (c) => ` ${c.label}: ${c.raw}명` }
             }
           },
@@ -928,10 +1093,20 @@ class ClanManagerApp {
 
     if (this.charts.compareDonations) {
       const chart = this.charts.compareDonations;
+      const isLight = document.documentElement.classList.contains("light");
       chart.data.labels = labels;
       chart.data.datasets[0].data = donationData;
       chart.data.datasets[0].backgroundColor = backgroundColors;
       chart.data.datasets[0].borderColor = borderColors;
+      
+      // 테마별 눈금 및 그리드 색상 동적 반영
+      if (chart.options.scales?.y?.ticks) {
+        chart.options.scales.y.ticks.color = isLight ? "#475569" : "#94a3b8";
+        chart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)";
+      }
+      if (chart.options.scales?.x?.ticks) {
+        chart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
+      }
       chart.resize();
 
       if (triggerAnimation) {
@@ -958,7 +1133,7 @@ class ClanManagerApp {
               ctx.font = "bold 12px Pretendard, -apple-system, sans-serif";
               ctx.textAlign = "center";
               ctx.textBaseline = "bottom";
-              ctx.fillStyle = "#ffffff";
+              ctx.fillStyle = document.documentElement.classList.contains("light") ? "#0f172a" : "#ffffff";
               const suffix = options?.suffix || "";
               const text = `${typeof rawVal === "number" ? rawVal.toLocaleString() : rawVal}${suffix}`;
               ctx.fillText(text, element.x, element.y - 6);
