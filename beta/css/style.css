@@ -562,14 +562,18 @@ html.dark #icon-moon {
 }
 
 /* ============================================================
-   버터처럼 부드러운 120fps GPU 원형 리플 확장 애니메이션
+   부드럽고 자연스러운 실키 크로스페이드(Silky Crossfade) 테마 전환
    ============================================================ */
-.theme-ripple-circle {
-  position: fixed;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 999999;
-  will-change: transform, opacity;
-  transform: translate3d(-50%, -50%, 0) scale(0);
-  transition: transform 0.46s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease-out;
+body,
+.surface-card,
+.mobile-member-card,
+.podium-step,
+.main-nav-btn,
+.filter-chip,
+#search-input,
+#sort-key-select,
+#btn-sort-order,
+header,
+nav {
+  transition: background-color 0.28s ease, border-color 0.28s ease, color 0.22s ease, box-shadow 0.28s ease !important;
 }

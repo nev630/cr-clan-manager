@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.2 - 스타일시트 무결성 완전 복원 & 시상대 단상·도넛 차트·고대비 라이트 테마 정상화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.3 - 테마 전환 부자연스러움 및 도넛 차트 범례·테두리 색상 오류 완전 해결', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -258,53 +258,15 @@ toggleTheme(e) {
     const isDark = document.documentElement.classList.contains("dark");
     const nextTheme = isDark ? "light" : "dark";
 
-    // 1. 버튼 중심 물리 좌표 획득 (원형 확장의 발원점)
-    let x = window.innerWidth - 36;
-    let y = 36;
-    if (this.elements.btnThemeToggle) {
-      const rect = this.elements.btnThemeToggle.getBoundingClientRect();
-      x = rect.left + rect.width / 2;
-      y = rect.top + rect.height / 2;
-    }
-
-    // 2. 화면 전체 모서리까지 덮을 수 있는 충분한 직경 계산
-    const maxRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y)
-    );
-    const diameter = Math.ceil(maxRadius * 2.3);
-
-    // 3. 해/달 아이콘 360도 스핀 회전 모핑
+    // 해/달 아이콘 360도 스핀 회전 모핑 애니메이션
     const iconContainer = document.getElementById("theme-toggle-icon");
     if (iconContainer) {
       iconContainer.style.transform = isDark ? "rotate(360deg)" : "rotate(-360deg)";
       setTimeout(() => { iconContainer.style.transform = "none"; }, 500);
     }
 
-    // 4. 버터처럼 매끄러운 120fps GPU 합성기(Compositor) 기반 원형 리플 확장
-    const ripple = document.createElement("div");
-    ripple.className = "theme-ripple-circle";
-    ripple.style.width = `${diameter}px`;
-    ripple.style.height = `${diameter}px`;
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
-    ripple.style.backgroundColor = nextTheme === "light" ? "#f1f5f9" : "#090b10";
-    document.body.appendChild(ripple);
-
-    // DOM 반영 강제 후 가속 스케일 확장 트리거
-    ripple.getBoundingClientRect();
-    ripple.style.transform = "translate3d(-50%, -50%, 0) scale(1)";
-
-    // 화면이 덮이는 전환 골든 타임(220ms)에 테마 클래스 즉시 교체
-    setTimeout(() => {
-      this.applyTheme(nextTheme);
-    }, 220);
-
-    // 전체 확장이 끝나는 시점에 부드럽게 페이드아웃 및 제거
-    setTimeout(() => {
-      ripple.style.opacity = "0";
-      setTimeout(() => ripple.remove(), 240);
-    }, 450);
+    // 인위적인 화면 암전/오버레이 없이 0.28초 실키 크로스페이드로 즉각 자연스럽게 전환
+    this.applyTheme(nextTheme);
   }
 
   applyTheme(theme) {
@@ -321,13 +283,38 @@ toggleTheme(e) {
       localStorage.setItem("cr_theme", theme);
     } catch (e) {}
 
-    // 활성 차트 테마 색상(눈금선, 라벨, 범례) 즉시 동적 갱신
-    if (this.currentData?.memberList) {
-      this.renderCharts(this.currentData.memberList, false);
+    const isLight = !isDark;
+
+    // 1. 도넛 차트 테마 색상(테두리, 범례 텍스트, 툴팁) 즉시 완벽 동기화 (다크 모드 시 어두운 텍스트 묻힘 버그 해결)
+    if (this.charts.activity) {
+      const donutChart = this.charts.activity;
+      donutChart.data.datasets[0].borderColor = isLight ? "#ffffff" : "#0f121a";
+      if (donutChart.options.plugins?.legend?.labels) {
+        donutChart.options.plugins.legend.labels.color = isLight ? "#0f172a" : "#94a3b8";
+      }
+      if (donutChart.options.plugins?.tooltip) {
+        donutChart.options.plugins.tooltip.backgroundColor = isLight ? "#ffffff" : "#171b26";
+        donutChart.options.plugins.tooltip.titleColor = isLight ? "#0f172a" : "#f8fafc";
+        donutChart.options.plugins.tooltip.bodyColor = isLight ? "#334155" : "#94a3b8";
+        donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)";
+      }
+      donutChart.update('none');
     }
-    if (this.compareClansData?.length > 0) {
-      this.renderCompareCharts(this.compareClansData, false);
+
+    // 2. 비교 막대 차트 테마 색상 즉시 동기화
+    if (this.charts.compareDonations) {
+      const compareChart = this.charts.compareDonations;
+      if (compareChart.options.scales?.y?.ticks) {
+        compareChart.options.scales.y.ticks.color = isLight ? "#475569" : "#94a3b8";
+        compareChart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)";
+      }
+      if (compareChart.options.scales?.x?.ticks) {
+        compareChart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
+      }
+      compareChart.update('none');
     }
+
+    // 3. 멤버 리스트 및 통계 UI 재렌더링
     this.applyFilterAndRender();
   }
 
