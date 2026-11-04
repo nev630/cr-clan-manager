@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.13 - 클랜원 접속 분포 파이차트 진입 및 탭 복귀 시 회전·확장 애니메이션 연동', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.14 - 도넛 차트 animateRotate & animateScale 온디맨드 재생 완벽 수정', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -826,19 +826,18 @@ class ClanManagerApp {
 
     const chartData = [seenToday, seen1to2d, seenDormant];
 
-    if (this.charts.activity) {
-      const chart = this.charts.activity;
-      chart.data.datasets[0].data = chartData;
+    // Chart.js의 doughnut animateRotate & animateScale은 초기 마운트 시에만 발동하므로,
+    // triggerAnimation이 true(처음 진입 및 탭 복귀)일 때는 기존 차트를 destroy하고 새로 생성하여
+    // 100% 확실하게 회전 및 스케일 확장 애니메이션이 눈앞에서 재생되도록 보장
+    if (triggerAnimation && this.charts.activity) {
+      this.charts.activity.destroy();
+      this.charts.activity = null;
+    }
 
-      if (triggerAnimation) {
-        chart.reset();
-        chart.update({
-          duration: 650,
-          easing: 'easeOutQuart'
-        });
-      } else {
-        chart.update('none');
-      }
+    if (this.charts.activity) {
+      // 20초 주기 백그라운드 자동 갱신 시에는 화면 흔들림 없이 데이터만 정적으로 업데이트
+      this.charts.activity.data.datasets[0].data = chartData;
+      this.charts.activity.update('none');
     } else {
       const ctx = activityCanvas.getContext("2d");
       this.charts.activity = new Chart(ctx, {
@@ -847,21 +846,21 @@ class ClanManagerApp {
           labels: ["오늘 접속", "1~2일 전", "3일+ 미접속"],
           datasets: [{
             data: chartData,
-            backgroundColor: ["rgba(16, 185, 129, 0.8)", "rgba(59, 130, 246, 0.8)", "rgba(244, 63, 94, 0.85)"],
+            backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(59, 130, 246, 0.85)", "rgba(244, 63, 94, 0.85)"],
             borderColor: "#0f121a",
             borderWidth: 2,
-            hoverOffset: 3
+            hoverOffset: 4
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: triggerAnimation ? {
+          animation: {
             animateRotate: true,
             animateScale: true,
-            duration: 650,
+            duration: 750,
             easing: 'easeOutQuart'
-          } : false,
+          },
           plugins: {
             legend: { position: "bottom", labels: { color: "#94a3b8", boxWidth: 8, padding: 10, font: { size: 10 } } },
             tooltip: {
