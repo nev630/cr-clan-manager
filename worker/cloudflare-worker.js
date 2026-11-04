@@ -1,10 +1,10 @@
 /**
- * Clash Royale API Cloudflare Worker Proxy (v1.4.2)
+ * Clash Royale API Cloudflare Worker Proxy (v1.4.5)
  * 
  * [목적]
  * 1. 브라우저의 CORS 제한 해결 및 HTTPS -> HTTP 종단 처리
  * 2. 슈퍼셀 Developer API의 IP 화이트리스트 통과를 위해 오라클 서울 인스턴스(168.110.63.115) 경유
- * 3. v1.4.2: 신규 /v1/clans/:tag/summary 지원 및 브라우저/Edge 캐시 협력
+ * 3. v1.4.5: X-Forwarded-For 클라이언트 IP 전달 & Cache-Control: no-store, no-cache 강제 적용
  */
 
 export default {
@@ -55,7 +55,7 @@ export default {
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(JSON.stringify({
         status: "online",
-        version: "1.4.2",
+        version: "1.4.5",
         message: "Clash Royale API Proxy (Oracle Dedicated Instance with TTL Cache) is active!",
         timestamp: new Date().toISOString()
       }), {
@@ -70,17 +70,28 @@ export default {
     const targetPath = url.pathname.startsWith("/v1") ? url.pathname : `/v1${url.pathname}`;
     const targetUrl = `http://168.110.63.115.sslip.io${targetPath}${url.search}`;
 
+    // 클라이언트 실제 IP 추출 및 전달
+    const clientIp = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "";
+
+    const forwardHeaders = {
+      "Accept": "application/json",
+      "X-Forwarded-For": clientIp
+    };
+
+    const authHeader = request.headers.get("Authorization");
+    if (authHeader) {
+      forwardHeaders["Authorization"] = authHeader;
+    }
+
     try {
       const apiResponse = await fetch(targetUrl, {
         method: request.method,
-        headers: {
-          "Accept": "application/json"
-        }
+        headers: forwardHeaders
       });
 
       const responseBody = await apiResponse.text();
 
-      // 3. CORS 및 캐시 헤더를 붙여서 응답 반환
+      // 3. CORS 및 무캐시 헤더를 부착하여 응답 반환 (실시간 동기화 보장)
       const cacheStatus = apiResponse.headers.get("x-cache-status") || "DYNAMIC";
 
       return new Response(responseBody, {
@@ -91,7 +102,9 @@ export default {
           "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key, Cache-Control, Pragma",
           "X-Proxy-Cache": cacheStatus,
-          "Cache-Control": "public, max-age=10, stale-while-revalidate=20"
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0"
         }
       });
     } catch (err) {

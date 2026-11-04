@@ -1,17 +1,18 @@
 /**
- * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.4.4)
+ * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.4.5)
  * 
- * [주요 기능 & 최적화 (v1.4.2)]
- * 1. On-Demand In-Memory TTL 캐시 적용:
- *    - 클랜 정보: 60초 TTL
- *    - 배틀로그: 120초(2분) TTL
+ * [주요 기능 & 최적화 (v1.4.5)]
+ * 1. On-Demand In-Memory TTL 캐시 & Stale-Fallback 메커니즘:
+ *    - 클랜 정보: 20초 TTL
+ *    - 배틀로그: 30초 TTL (호출 실패 시 Stale 캐시 안전 보존)
  *    - 슈퍼셀 공식 API 429(Rate Limit) 원천 차단 및 N배 트래픽 완충
  * 2. 신규 단일 통합 엔드포인트 (/v1/clans/:clanTag/summary):
- *    - 클랜 기본 정보 + 50명 클랜원의 최근 배틀 시각/유형을 서버에서 병렬 수집 후 1번에 반환
- *    - 클라이언트에서 50번 순차 요청하던 것을 단 1회 네트워크 요청으로 축소
+ *    - 클랜 기본 정보 + 50명 클랜원의 최근 배틀 시각/유형을 서버에서 병렬 수집 후 1번에 번들링
+ *    - 청크 간 60ms 딜레이를 두어 슈퍼셀 공식 API의 레이트 리밋(429) 원천 방지
  * 3. 보안 및 안정성 강화:
  *    - SUPERCELL_API_KEY 환경변수 지원 (process.env.SUPERCELL_API_KEY)
- *    - IP별 기본 요청 제한(Rate Limiting) 내장
+ *    - X-Forwarded-For 다중 IP 분할 처리로 개별 사용자별 정확한 Rate Limiting
+ *    - 범용 프록시 호출 시 내부 관리용 force 쿼리 파라미터 자동 정제
  * 
  * [실행 환경]
  * - Oracle Cloud Always Free Ubuntu 24.04 (South Korea Central - Seoul)
@@ -36,7 +37,8 @@ app.use((req, res, next) => {
 // 2. 가벼운 인메모리 요청 제한기 (IP당 초당 최대 30회)
 const rateLimitMap = new Map();
 app.use((req, res, next) => {
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = (forwarded ? String(forwarded).split(',')[0].trim() : null) || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
   const entry = rateLimitMap.get(ip) || { count: 0, resetAt: now + 1000 };
 
@@ -61,14 +63,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// 3. 인메모리 TTL 캐시 시스템
+// 3. 인메모리 TTL 캐시 시스템 (Stale Fallback 보존 지원)
 const cache = new Map();
 
-function getCached(key) {
+function getCached(key, allowStale = false) {
   const item = cache.get(key);
   if (!item) return null;
   if (Date.now() > item.expiresAt) {
-    cache.delete(key);
+    if (allowStale) return item.data;
     return null;
   }
   return item.data;
@@ -80,10 +82,11 @@ function setCache(key, data, ttlSeconds) {
     expiresAt: Date.now() + (ttlSeconds * 1000)
   });
   
-  if (cache.size > 1000) {
+  if (cache.size > 1500) {
     const now = Date.now();
     for (const [k, v] of cache.entries()) {
-      if (now > v.expiresAt) cache.delete(k);
+      // 만료된 지 10분이 넘은 캐시만 최종 정리
+      if (now > v.expiresAt + 600000) cache.delete(k);
     }
   }
 }
@@ -135,7 +138,7 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
       return res.status(502).json({ error: 'Failed to retrieve clan members' });
     }
 
-    // B. 멤버별 최근 배틀로그 병렬 수집 (서버 캐시 우선 적용)
+    // B. 멤버별 최근 배틀로그 병렬 수집 (서버 캐시 우선 적용 & 청크 간 레이트 리밋 방지 딜레이)
     const members = clanData.memberList;
     const chunkSize = 10;
 
@@ -155,8 +158,8 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
               setCache(playerCacheKey, battlelog, 30); // 30초 배틀로그 캐시
             }
           } catch (e) {
-            // 개별 실패 시 기존 캐시(stale)가 있다면 폴백으로 보존
-            battlelog = getCached(playerCacheKey);
+            // 개별 실패 시 직전 캐시(stale)가 있다면 안전하게 폴백으로 보존
+            battlelog = getCached(playerCacheKey, true);
           }
         }
 
@@ -165,10 +168,15 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
           member.lastBattleType = battlelog[0].type || 'Battle';
         }
       }));
+
+      // 슈퍼셀 API 레이트 리밋(429) 방지를 위한 청크 간 미세 딜레이
+      if (i + chunkSize < members.length) {
+        await new Promise(r => setTimeout(r, 60));
+      }
     }
 
-    // C. 60초간 서버 캐싱 후 반환
-    setCache(summaryCacheKey, clanData, 20); // 20초 초고속 캐시
+    // C. 20초간 서버 캐싱 후 반환
+    setCache(summaryCacheKey, clanData, 20);
     res.setHeader('X-Cache-Status', 'MISS');
     res.json(clanData);
   } catch (err) {
@@ -181,8 +189,14 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
 app.use('/v1', async (req, res) => {
   try {
     const rawUrl = req.originalUrl;
-    // _t 타임스탬프 캐시버스터를 제거하여 정규화된 캐시 키 생성
-    const cleanUrl = rawUrl.replace(/([?&])_t=\d+(&?)/, '$1').replace(/[?&]$/, '');
+    // _t 타임스탬프 및 내부 force 파라미터를 정제하여 슈퍼셀 호출 URL 구성
+    const cleanUrl = rawUrl
+      .replace(/([?&])_t=\d+(&?)/, '$1')
+      .replace(/([?&])force=(?:1|true)(&?)/, '$1')
+      .replace(/[?&]+$/, '')
+      .replace(/\?&/, '?')
+      .replace(/&&/, '&');
+
     const cacheKey = `proxy_${cleanUrl}`;
 
     const force = req.query.force === '1' || req.query.force === 'true';
@@ -195,8 +209,8 @@ app.use('/v1', async (req, res) => {
     const data = await fetchSupercell(cleanUrl);
 
     // 엔드포인트 유형별 TTL 차등 적용
-    let ttl = 20; // 기본 1분
-    if (cleanUrl.includes('/battlelog')) ttl = 30; // 배틀로그 2분
+    let ttl = 20; // 기본 20초
+    if (cleanUrl.includes('/battlelog')) ttl = 30; // 배틀로그 30초
 
     setCache(cacheKey, data, ttl);
     res.setHeader('X-Cache-Status', 'MISS');
@@ -210,11 +224,11 @@ app.use('/v1', async (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    version: '1.4.4',
+    version: '1.4.5',
     cachedEntries: cache.size,
     message: 'Good Fellas Dedicated Oracle CR Proxy is running with In-Memory TTL Cache!'
   });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.4.4 running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.4.5 running on port ${PORT}`));

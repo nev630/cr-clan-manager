@@ -39,7 +39,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=1.4.3" />
+  <link rel="stylesheet" href="css/style.css?v=1.4.14" />
 
   <style>
     /* 단색 심플 로딩바 초부드러운 이징 */
@@ -75,10 +75,6 @@
         <div class="flex items-center justify-center p-2 rounded-full bg-white/[0.03] border border-white/[0.06] shrink-0" title="실시간 상태">
           <span class="status-dot green live-pulse" id="sync-dot"></span>
         </div>
-
-        <button id="btn-manual-sync" class="p-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition shrink-0" title="수동 갱신">
-          <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="sync-spin-icon"></i>
-        </button>
       </div>
     </header>
 
@@ -235,12 +231,14 @@
     <!-- ========================================== -->
     <div id="view-compare" class="tab-view hidden space-y-3.5">
 
-      <!-- 1. 비교 상단 헤더 타이틀 -->
-      <div class="pt-1">
-        <h2 class="text-base font-bold text-white tracking-tight">갤러리 클랜 활동성 및 규모 비교</h2>
-        <p class="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap">
-          <span class="text-indigo-400 font-semibold">Good Fellas</span> vs <span class="text-emerald-400 font-semibold">Vandros</span> vs <span class="text-rose-400 font-semibold">딜넣는 도둑</span>
-        </p>
+      <!-- 1. 비교 상단 헤더 타이틀 & 새로고침 버튼 -->
+      <div class="pt-1 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white tracking-tight">갤러리 클랜 활동성 및 규모 비교</h2>
+          <p class="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap">
+            <span class="text-indigo-400 font-semibold">Good Fellas</span> vs <span class="text-emerald-400 font-semibold">Vandros</span> vs <span class="text-rose-400 font-semibold">딜넣는 도둑</span>
+          </p>
+        </div>
       </div>
 
       <!-- 2. 모바일 세로 1열 적층: 상단 차트 + 하단 핵심 현황 -->
@@ -330,7 +328,7 @@
   </div>
 
   <!-- Scripts with Cache Busting -->
-  <script src="js/api.js?v=1.4.3"></script>
-  <script src="js/app.js?v=1.4.3"></script>
+  <script src="js/api.js?v=1.4.14"></script>
+  <script src="js/app.js?v=1.4.14"></script>
 </body>
 </html>
