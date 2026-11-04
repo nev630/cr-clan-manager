@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.1 - 120fps GPU 원형 리플 애니메이션 & 라이트 모드 고대비 텍스트/차트 가독성 최적화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.2 - 스타일시트 무결성 완전 복원 & 시상대 단상·도넛 차트·고대비 라이트 테마 정상화', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
