@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.5 - 전방위 버그 수정 & 백그라운드 동기화 최적화 & UI 정합성 확립', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.6 - 커스텀 갤클 추가 입력 UI 제거 및 뷰 정돈', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -132,8 +132,7 @@ class ClanManagerApp {
       sortOrderIcon: document.getElementById("sort-order-icon"),
       btnManualSync: document.getElementById("btn-manual-sync"),
       btnRefreshCompare: document.getElementById("btn-refresh-compare"),
-      btnAddCompareClan: document.getElementById("btn-add-compare-clan"),
-      inputCustomClanTag: document.getElementById("input-custom-clan-tag"),
+      
       viewDashboard: document.getElementById("view-dashboard"),
       viewCompare: document.getElementById("view-compare"),
       tabBtnDashboard: document.getElementById("tab-btn-dashboard"),
@@ -214,7 +213,7 @@ class ClanManagerApp {
   }
 
   bindEvents() {
-    const { searchInput, sortKeySelect, btnSortOrder, btnManualSync, btnRefreshCompare, btnAddCompareClan, inputCustomClanTag } = this.elements;
+    const { searchInput, sortKeySelect, btnSortOrder, btnManualSync, btnRefreshCompare } = this.elements;
     
     if (searchInput) {
       let searchTimeout;
@@ -246,12 +245,7 @@ class ClanManagerApp {
       btnRefreshCompare.addEventListener("click", () => this.syncCompareLive());
     }
 
-    if (btnAddCompareClan && inputCustomClanTag) {
-      btnAddCompareClan.addEventListener("click", () => this.handleCustomClanAdd());
-      inputCustomClanTag.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") this.handleCustomClanAdd();
-      });
-    }
+
   }
 
   toggleSortOrder() {
