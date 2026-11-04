@@ -562,7 +562,7 @@ html.dark #icon-moon {
 }
 
 /* ============================================================
-   네이티브 뷰 트랜지션 기반 원형 확장 애니메이션 (Circular Ripple Reveal)
+   다크/라이트 모드 네이티브 원형 리플 확장 애니메이션 (Circular Ripple View Transition)
    ============================================================ */
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -574,4 +574,16 @@ html.dark #icon-moon {
 }
 ::view-transition-new(root) {
   z-index: 999999;
+  animation: theme-circle-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes theme-circle-reveal {
+  0% {
+    clip-path: circle(0px at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
+    -webkit-clip-path: circle(0px at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
+  }
+  100% {
+    clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
+    -webkit-clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
+  }
 }

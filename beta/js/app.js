@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.4 - 시상대 텍스트 기본색상 정돈 & 클랜설명 폭 확장 & 네이티브 원형 리플 테마전환', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.5 - 원형 리플 테마전환 애니메이션 정상 가동 & 멀티 브라우저 2중 보장', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -258,15 +258,98 @@ toggleTheme(e) {
     const isDark = document.documentElement.classList.contains("dark");
     const nextTheme = isDark ? "light" : "dark";
 
-    // 해/달 아이콘 360도 스핀 회전 모핑 애니메이션
+    // 1. 버튼 중심 좌표 획득 (원형 파동 발원점)
+    let x = window.innerWidth - 36;
+    let y = 36;
+    const btn = this.elements.btnThemeToggle || document.getElementById("btn-theme-toggle");
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      x = Math.round(rect.left + rect.width / 2);
+      y = Math.round(rect.top + rect.height / 2);
+    } else if (e && typeof e.clientX === "number") {
+      x = Math.round(e.clientX);
+      y = Math.round(e.clientY);
+    }
+
+    // 2. 화면 전체 모서리까지 덮는 최대 반경 계산
+    const endRadius = Math.ceil(Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    ));
+
+    // CSS 변수 주입 (Safari 18 및 Chromium View Transitions API 연동)
+    document.documentElement.style.setProperty("--theme-x", `${x}px`);
+    document.documentElement.style.setProperty("--theme-y", `${y}px`);
+    document.documentElement.style.setProperty("--theme-r", `${endRadius}px`);
+
+    // 3. 해/달 아이콘 360도 스핀 모핑 애니메이션
     const iconContainer = document.getElementById("theme-toggle-icon");
     if (iconContainer) {
       iconContainer.style.transform = isDark ? "rotate(360deg)" : "rotate(-360deg)";
       setTimeout(() => { iconContainer.style.transform = "none"; }, 500);
     }
 
-    // 인위적인 화면 암전/오버레이 없이 0.28초 실키 크로스페이드로 즉각 자연스럽게 전환
-    this.applyTheme(nextTheme);
+    // 4. 원형 리플 테마 전환 실행 (View Transitions API + Fallback Ripple)
+    if (typeof document.startViewTransition === "function") {
+      const transition = document.startViewTransition(() => {
+        this.applyTheme(nextTheme);
+      });
+
+      if (transition.ready && typeof document.documentElement.animate === "function") {
+        transition.ready.then(() => {
+          try {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${endRadius}px at ${x}px ${y}px)`
+                ]
+              },
+              {
+                duration: 450,
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                pseudoElement: "::view-transition-new(root)"
+              }
+            );
+          } catch (err) {
+            // CSS @keyframes fallback handles the animation
+          }
+        });
+      }
+    } else {
+      // 5. Fallback: View Transitions 미지원 브라우저용 원형 발광 파동 효과
+      this.triggerFallbackRipple(x, y, endRadius, nextTheme);
+      this.applyTheme(nextTheme);
+    }
+  }
+
+  triggerFallbackRipple(x, y, radius, theme) {
+    const ring = document.createElement("div");
+    ring.style.position = "fixed";
+    ring.style.left = `${x}px`;
+    ring.style.top = `${y}px`;
+    ring.style.width = "10px";
+    ring.style.height = "10px";
+    ring.style.borderRadius = "50%";
+    ring.style.transform = "translate(-50%, -50%) scale(1)";
+    ring.style.border = theme === "light" ? "3px solid rgba(245, 158, 11, 0.6)" : "3px solid rgba(99, 102, 241, 0.6)";
+    ring.style.boxShadow = theme === "light" 
+      ? "0 0 35px 15px rgba(245, 158, 11, 0.25)" 
+      : "0 0 35px 15px rgba(99, 102, 241, 0.25)";
+    ring.style.pointerEvents = "none";
+    ring.style.zIndex = "999999";
+    ring.style.transition = "transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease-out";
+    ring.style.opacity = "1";
+    document.body.appendChild(ring);
+
+    requestAnimationFrame(() => {
+      ring.style.transform = `translate(-50%, -50%) scale(${radius / 5})`;
+      ring.style.opacity = "0";
+    });
+
+    setTimeout(() => {
+      ring.remove();
+    }, 500);
   }
 
   applyTheme(theme) {
