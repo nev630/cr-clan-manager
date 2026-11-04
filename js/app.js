@@ -1,12 +1,12 @@
 /**
- * Good Fellas Clan Manager - Core Application Logic (v1.4.3)
+ * Good Fellas Clan Manager - Core Application Logic (v1.4.4)
  * Mobile Optimized, Visual Charts & Gallery Clan Comparison
  * - 3분(180초) 현실적 '접속 중' 판정 윈도우 적용
  * - 트로피 변동 감지 완전 제거 및 슈퍼셀 lastSeen + 배틀로그 2중 검증 체계 확립
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.3 - 새로고침 시 항상 최신 동기화 & 실시간 캐시 버스터 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.4 - 배틀로그 캐시 덮어쓰기 해결 & 최신 타임스탬프 보존 & 20초 초고속 동기화', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -39,7 +39,7 @@ class ClanManagerApp {
   // 로컬스토리지에서 배틀로그 캐시 복원
   loadBattleLogCache() {
     try {
-      const saved = localStorage.getItem("cr_clan_battle_cache_v3");
+      const saved = localStorage.getItem("cr_clan_battle_cache_v4");
       if (saved) {
         const obj = JSON.parse(saved);
         return new Map(Object.entries(obj));
@@ -52,7 +52,7 @@ class ClanManagerApp {
   saveBattleLogCache() {
     try {
       const obj = Object.fromEntries(this.battleLogCache);
-      localStorage.setItem("cr_clan_battle_cache_v3", JSON.stringify(obj));
+      localStorage.setItem("cr_clan_battle_cache_v4", JSON.stringify(obj));
     } catch (e) {}
   }
 
@@ -67,8 +67,9 @@ class ClanManagerApp {
       localStorage.removeItem("cr_manager_clan_cache_v1");
       localStorage.removeItem("cr_manager_settings_v1");
       localStorage.removeItem("cr_manager_cache_ver");
-      localStorage.removeItem("cr_clan_donation_cache_v1"); // 잘못된 실시간 접속 왜곡 캐시 완전 제거
-      localStorage.removeItem("cr_clan_battle_cache_v2"); // 구버전 오염 캐시 제거
+      localStorage.removeItem("cr_clan_donation_cache_v1");
+      localStorage.removeItem("cr_clan_battle_cache_v2");
+      localStorage.removeItem("cr_clan_battle_cache_v3"); // v3 동결 캐시 정리
     } catch (e) {}
 
     // 갤클 비교 프리셋 데이터 사전 로드
@@ -85,13 +86,13 @@ class ClanManagerApp {
     this.autoSyncLive(true);
     this.syncCompareLive();
 
-    // 1분 주기 자동 최신 동기화 타이머 (30초 쿨타운 적용)
+    // 20초 주기 자동 최신 동기화 타이머 (초고속 실시간 모니터링)
     setInterval(() => {
       if (document.visibilityState === 'visible') {
         this.autoSyncLive(false);
         this.syncCompareLive();
       }
-    }, 60000);
+    }, 20000);
 
     // 화면 탭 활성화 시 즉각 동기화 (30초 쿨타운 적용)
     document.addEventListener('visibilitychange', () => {
@@ -344,14 +345,23 @@ class ClanManagerApp {
     return null;
   }
 
-  // 캐시된 배틀로그 즉시 바인딩 (기록 없음 방지)
+  // 캐시된 배틀로그 지능형 바인딩: 캐시가 멤버의 기존 배틀시간보다 더 최신일 때만 반영 (서버 최신값 보호)
   bindCachedBattleLogs(members) {
     if (!Array.isArray(members)) return;
     members.forEach((m) => {
       if (this.battleLogCache.has(m.tag)) {
         const c = this.battleLogCache.get(m.tag);
-        m.lastBattleTime = c.time;
-        m.lastBattleType = c.type;
+        if (!m.lastBattleTime) {
+          m.lastBattleTime = c.time;
+          m.lastBattleType = c.type;
+        } else {
+          const memberDate = this.parseDateSafe(m.lastBattleTime);
+          const cachedDate = this.parseDateSafe(c.time);
+          if (cachedDate && (!memberDate || cachedDate.getTime() > memberDate.getTime())) {
+            m.lastBattleTime = c.time;
+            m.lastBattleType = c.type;
+          }
+        }
       }
     });
   }
@@ -428,26 +438,37 @@ class ClanManagerApp {
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
 
     try {
+      // 수동 클릭 시 force=true를 전달하여 서버 및 브라우저 캐시 강제 우회
       const liveData = await window.crApi.fetchClanFullData(tag, (partialData) => {
         if (partialData?.memberList) {
           this.bindCachedBattleLogs(partialData.memberList);
         }
         this.renderClan(partialData);
-      });
+      }, isManual);
 
       if (liveData && liveData.memberList) {
-        // A. 서버 요약에서 수신된 배틀로그 로컬 캐시 동기화
+        // 1. 서버 원본 기준으로 배틀로그가 누락된 멤버 선별 (캐시 바인딩 전에 먼저 추출하여 보충 조회 보장)
+        const missingBattleMembers = liveData.memberList.filter((m) => !m.lastBattleTime);
+
+        // 2. 서버 요약에서 수신된 최신 배틀로그를 로컬 캐시에 즉시 동기화
+        let hasCacheUpdated = false;
         liveData.memberList.forEach((m) => {
           if (m.lastBattleTime) {
-            this.battleLogCache.set(m.tag, {
-              time: m.lastBattleTime,
-              type: m.lastBattleType || "Battle"
-            });
+            const existing = this.battleLogCache.get(m.tag);
+            if (!existing || existing.time !== m.lastBattleTime) {
+              this.battleLogCache.set(m.tag, {
+                time: m.lastBattleTime,
+                type: m.lastBattleType || "Battle"
+              });
+              hasCacheUpdated = true;
+            }
           }
         });
-        this.saveBattleLogCache();
+        if (hasCacheUpdated) {
+          this.saveBattleLogCache();
+        }
 
-        // 기존 캐시된 배틀로그를 아직 배틀시간이 비어있는 멤버에게 보충 바인딩
+        // 3. 서버에 배틀시간이 비어있던 멤버에게만 보충 바인딩
         this.bindCachedBattleLogs(liveData.memberList);
 
         this.renderClan(liveData);
@@ -461,8 +482,7 @@ class ClanManagerApp {
 
         if (dot) dot.className = "status-dot green live-pulse";
 
-        // B. 서버에서 배틀로그가 누락된 멤버만 선별하여 백그라운드 추가 수집
-        const missingBattleMembers = liveData.memberList.filter((m) => !m.lastBattleTime);
+        // 4. 배틀로그 누락 멤버가 있다면 백그라운드에서 개별 핀포인트 수집
         if (missingBattleMembers.length > 0) {
           this.fetchAllMembersBattleLogs(missingBattleMembers);
         }
@@ -1090,7 +1110,7 @@ class ClanManagerApp {
     const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
     const diffMinutes = Math.floor(diffSeconds / 60);
 
-    if (diffSeconds <= 150) return "방금 전";
+    if (diffSeconds <= 180) return "방금 전";
     if (diffMinutes < 60) return `${diffMinutes}분 전`;
 
     const diffHours = Math.floor(diffMinutes / 60);
@@ -1248,7 +1268,7 @@ class ClanManagerApp {
       const battleDate = this.parseDateSafe(member.lastBattleTime);
       if (battleDate) {
         const battleSecsAgo = Math.floor((now - battleDate.getTime()) / 1000);
-        if (battleSecsAgo <= 150) battleTextColor = "text-emerald-400 font-bold";
+        if (battleSecsAgo <= 180) battleTextColor = "text-emerald-400 font-bold";
         else if (battleSecsAgo < 86400) battleTextColor = "text-indigo-300 font-semibold";
         else if (battleSecsAgo >= 604800) battleTextColor = "text-rose-400 font-bold";
         else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/80 font-medium";

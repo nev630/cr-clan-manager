@@ -1,5 +1,5 @@
 /**
- * Clash Royale API Client (v1.4.3 Always Fresh)
+ * Clash Royale API Client (v1.4.4 Instant Sync & Timestamp Guard)
  * - Supercell Clash Royale Official API 지원
  * - Cloudflare Worker / Oracle 프록시 실시간 통신
  * - v1.4.2: 신규 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
@@ -120,9 +120,10 @@ class ClashRoyaleAPI {
   }
 
   // 1. 신규 단일 통합 요약 조회 (클랜 + 50명 배틀로그 원샷 반환)
-  async fetchClanSummary(clanTag) {
+  async fetchClanSummary(clanTag, force = false) {
     try {
-      return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}/summary`);
+      const q = force ? '?force=1' : '';
+      return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}/summary${q}`);
     } catch (e) {
       console.warn("단일 통합 요약 엔드포인트 미지원 또는 응답 지연 -> 일반 조회로 폴백:", e.message);
       return null;
@@ -158,9 +159,9 @@ class ClashRoyaleAPI {
     return maxTrophies;
   }
 
-  async fetchClanFullData(clanTag, onPartialData = null) {
-    // 1. 단일 통합 요약 엔드포인트 우선 시도
-    const summaryData = await this.fetchClanSummary(clanTag);
+  async fetchClanFullData(clanTag, onPartialData = null, force = false) {
+    // 1. 단일 통합 요약 엔드포인트 우선 시도 (수동 새로고침 시 force=true로 서버 캐시 즉시 우회)
+    const summaryData = await this.fetchClanSummary(clanTag, force);
     if (summaryData && summaryData.memberList) {
       if (typeof onPartialData === "function") {
         onPartialData(summaryData);
