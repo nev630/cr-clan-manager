@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.14 - 도넛 차트 animateRotate & animateScale 온디맨드 재생 완벽 수정', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.0 - 다크/라이트 모드 원형 리플 확장 애니메이션 및 해·달 모핑 토글 도입', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -128,6 +128,7 @@ class ClanManagerApp {
       searchInput: document.getElementById("search-input"),
       sortKeySelect: document.getElementById("sort-key-select"),
       btnSortOrder: document.getElementById("btn-sort-order"),
+      btnThemeToggle: document.getElementById("btn-theme-toggle"),
       sortOrderText: document.getElementById("sort-order-text"),
       sortOrderIcon: document.getElementById("sort-order-icon"),
       
@@ -244,9 +245,107 @@ class ClanManagerApp {
       btnSortOrder.addEventListener("click", () => this.toggleSortOrder());
     }
 
+    if (this.elements.btnThemeToggle) {
+      this.elements.btnThemeToggle.addEventListener("click", (e) => this.toggleTheme(e));
+    }
 
 
 
+
+  }
+
+toggleTheme(e) {
+    const isDark = document.documentElement.classList.contains("dark");
+    const nextTheme = isDark ? "light" : "dark";
+
+    // 클릭 좌표 획득 (버튼 중심 기준 원형 확장)
+    let x = window.innerWidth / 2;
+    let y = 40;
+    if (e && typeof e.clientX === "number" && e.clientX > 0) {
+      x = e.clientX;
+      y = e.clientY;
+    } else if (this.elements.btnThemeToggle) {
+      const rect = this.elements.btnThemeToggle.getBoundingClientRect();
+      x = rect.left + rect.width / 2;
+      y = rect.top + rect.height / 2;
+    }
+
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    // 아이콘 스핀 회전
+    const iconContainer = document.getElementById("theme-toggle-icon");
+    if (iconContainer) {
+      iconContainer.style.transform = isDark ? "rotate(360deg)" : "rotate(-360deg)";
+      setTimeout(() => { iconContainer.style.transform = "none"; }, 500);
+    }
+
+    // 1. 최신 브라우저 View Transition API 기반 원형 리플 확장
+    if (document.startViewTransition) {
+      const transition = document.startViewTransition(() => {
+        this.applyTheme(nextTheme);
+      });
+      transition.ready.then(() => {
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(0px at ${x}px ${y}px)`,
+              `circle(${endRadius}px at ${x}px ${y}px)`
+            ]
+          },
+          {
+            duration: 520,
+            easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+            pseudoElement: "::view-transition-new(root)"
+          }
+        );
+      });
+    } else {
+      // 2. 모바일/구형 브라우저 Fallback: 원형 클립패스 오버레이 확장
+      const overlay = document.createElement("div");
+      overlay.className = "theme-ripple-overlay";
+      overlay.style.setProperty("--origin-x", `${x}px`);
+      overlay.style.setProperty("--origin-y", `${y}px`);
+      overlay.style.backgroundColor = nextTheme === "light" ? "#f8fafc" : "#090b10";
+      document.body.appendChild(overlay);
+
+      requestAnimationFrame(() => {
+        overlay.classList.add("expanding");
+      });
+
+      setTimeout(() => {
+        this.applyTheme(nextTheme);
+        setTimeout(() => {
+          overlay.style.opacity = "0";
+          setTimeout(() => overlay.remove(), 250);
+        }, 100);
+      }, 300);
+    }
+  }
+
+  applyTheme(theme) {
+    const isDark = theme === "dark";
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
+    }
+
+    try {
+      localStorage.setItem("cr_theme", theme);
+    } catch (e) {}
+
+    // 활성 차트 테마 색상 동적 갱신
+    if (this.currentData?.memberList) {
+      this.renderCharts(this.currentData.memberList, false);
+    }
+    if (this.compareClansData?.length > 0) {
+      this.renderCompareCharts(this.compareClansData, false);
+    }
   }
 
   toggleSortOrder() {
