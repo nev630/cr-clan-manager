@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.4 - 배틀로그 캐시 덮어쓰기 해결 & 최신 타임스탬프 보존 & 20초 초고속 동기화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.5 - 전방위 버그 수정 & 백그라운드 동기화 최적화 & UI 정합성 확립', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -39,7 +39,7 @@ class ClanManagerApp {
   // 로컬스토리지에서 배틀로그 캐시 복원
   loadBattleLogCache() {
     try {
-      const saved = localStorage.getItem("cr_clan_battle_cache_v4");
+      const saved = localStorage.getItem("cr_clan_battle_cache_v5");
       if (saved) {
         const obj = JSON.parse(saved);
         return new Map(Object.entries(obj));
@@ -52,7 +52,7 @@ class ClanManagerApp {
   saveBattleLogCache() {
     try {
       const obj = Object.fromEntries(this.battleLogCache);
-      localStorage.setItem("cr_clan_battle_cache_v4", JSON.stringify(obj));
+      localStorage.setItem("cr_clan_battle_cache_v5", JSON.stringify(obj));
     } catch (e) {}
   }
 
@@ -69,7 +69,8 @@ class ClanManagerApp {
       localStorage.removeItem("cr_manager_cache_ver");
       localStorage.removeItem("cr_clan_donation_cache_v1");
       localStorage.removeItem("cr_clan_battle_cache_v2");
-      localStorage.removeItem("cr_clan_battle_cache_v3"); // v3 동결 캐시 정리
+      localStorage.removeItem("cr_clan_battle_cache_v3");
+      localStorage.removeItem("cr_clan_battle_cache_v4"); // v4 캐시 정리
     } catch (e) {}
 
     // 갤클 비교 프리셋 데이터 사전 로드
@@ -109,6 +110,13 @@ class ClanManagerApp {
         this.renderDesktopTable();
       }
     }, 60000);
+
+    // 화면 회전 및 리사이즈 대응
+    window.addEventListener('resize', () => {
+      if (this.currentData && window.innerWidth >= 1024) {
+        this.renderDesktopTable();
+      }
+    });
   }
 
   cacheDOM() {
@@ -301,6 +309,9 @@ class ClanManagerApp {
       }
     }
 
+    if (tabName === "dashboard" && this.charts.activity) {
+      this.charts.activity.resize();
+    }
     if (window.lucide) window.lucide.createIcons();
     if (typeof window.scrollTo === "function") { window.scrollTo({ top: 0, behavior: "smooth" }); }
   }
@@ -351,15 +362,21 @@ class ClanManagerApp {
     members.forEach((m) => {
       if (this.battleLogCache.has(m.tag)) {
         const c = this.battleLogCache.get(m.tag);
+        if (c.time === "none") {
+          m._noBattles = true;
+          return;
+        }
         if (!m.lastBattleTime) {
           m.lastBattleTime = c.time;
           m.lastBattleType = c.type;
+          m._fromCache = true;
         } else {
           const memberDate = this.parseDateSafe(m.lastBattleTime);
           const cachedDate = this.parseDateSafe(c.time);
           if (cachedDate && (!memberDate || cachedDate.getTime() > memberDate.getTime())) {
             m.lastBattleTime = c.time;
             m.lastBattleType = c.type;
+            m._fromCache = true;
           }
         }
       }
@@ -398,6 +415,13 @@ class ClanManagerApp {
               time: newTime,
               type: newType
             });
+            hasNewData = true;
+          }
+        } else if (Array.isArray(battlelog) && battlelog.length === 0) {
+          // 배틀 이력이 없는 멤버는 sentinel 기록하여 매 20초 재호출 방지
+          if (!this.battleLogCache.has(m.tag) || this.battleLogCache.get(m.tag).time !== "none") {
+            this.battleLogCache.set(m.tag, { time: "none", type: "None" });
+            m._noBattles = true;
             hasNewData = true;
           }
         }
@@ -448,7 +472,8 @@ class ClanManagerApp {
 
       if (liveData && liveData.memberList) {
         // 1. 서버 원본 기준으로 배틀로그가 누락된 멤버 선별 (캐시 바인딩 전에 먼저 추출하여 보충 조회 보장)
-        const missingBattleMembers = liveData.memberList.filter((m) => !m.lastBattleTime);
+        // 서버에서 배틀로그를 주지 못했거나 캐시로부터만 바인딩된 멤버 선별 (배틀 이력 없음 확인된 멤버 제외)
+        const missingBattleMembers = liveData.memberList.filter((m) => (!m.lastBattleTime || m._fromCache) && !m._noBattles);
 
         // 2. 서버 요약에서 수신된 최신 배틀로그를 로컬 캐시에 즉시 동기화
         let hasCacheUpdated = false;
@@ -684,7 +709,11 @@ class ClanManagerApp {
     if (!podiumContainer) return;
 
     const sorted = [...members].sort((a, b) => (b.donations || 0) - (a.donations || 0)).slice(0, 7);
-    if (sorted.length < 3) return;
+    if (sorted.length < 3) {
+      podiumContainer.innerHTML = `<div class="text-center py-6 text-xs text-slate-500">표시할 클랜원이 부족합니다.</div>`;
+      if (runnersContainer) runnersContainer.innerHTML = "";
+      return;
+    }
 
     const first = sorted[0];
     const second = sorted[1];
@@ -842,8 +871,8 @@ class ClanManagerApp {
 
     const labels = clans.map((c) => c.name);
     const donationData = clans.map((c) => c.donationsWeekly);
-    const backgroundColors = clans.map((c) => c.isHome ? "rgba(99, 102, 241, 0.85)" : c.name.includes("Vandros") ? "rgba(16, 185, 129, 0.85)" : "rgba(244, 63, 94, 0.85)");
-    const borderColors = clans.map((c) => c.isHome ? "#6366f1" : c.name.includes("Vandros") ? "#10b981" : "#f43f5e");
+    const backgroundColors = clans.map((c) => c.isHome ? "rgba(99, 102, 241, 0.85)" : (c.name || "").includes("Vandros") ? "rgba(16, 185, 129, 0.85)" : "rgba(244, 63, 94, 0.85)");
+    const borderColors = clans.map((c) => c.isHome ? "#6366f1" : (c.name || "").includes("Vandros") ? "#10b981" : "#f43f5e");
 
     const donationCanvas = this.elements.chartCompareDonations;
     if (!donationCanvas) return;
@@ -1138,7 +1167,7 @@ class ClanManagerApp {
     if (this.activeFilter === "dormant") {
       list = list.filter((m) => {
         const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
-        if (!effectiveDate) return false;
+        if (!effectiveDate) return true; // 활동 기록 없는 멤버도 상단 통계와 일관되게 미접속자로 포함
         return (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24) >= 3;
       });
     } else if (this.activeFilter === "low-donations") {
@@ -1251,7 +1280,11 @@ class ClanManagerApp {
     const container = this.elements.memberMobileList;
     if (!container) return;
     if (this.filteredMembers.length === 0) {
-      container.innerHTML = "";
+      container.innerHTML = `
+        <div class="py-14 text-center text-slate-500">
+          <p class="text-xs font-medium">일치하는 클랜원이 없습니다.</p>
+        </div>
+      `;
       return;
     }
 

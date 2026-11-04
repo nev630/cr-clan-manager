@@ -39,7 +39,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=1.4.3" />
+  <link rel="stylesheet" href="css/style.css?v=1.4.5" />
 
   <style>
     /* 단색 심플 로딩바 초부드러운 이징 */
@@ -235,12 +235,17 @@
     <!-- ========================================== -->
     <div id="view-compare" class="tab-view hidden space-y-3.5">
 
-      <!-- 1. 비교 상단 헤더 타이틀 -->
-      <div class="pt-1">
-        <h2 class="text-base font-bold text-white tracking-tight">갤러리 클랜 활동성 및 규모 비교</h2>
-        <p class="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap">
-          <span class="text-indigo-400 font-semibold">Good Fellas</span> vs <span class="text-emerald-400 font-semibold">Vandros</span> vs <span class="text-rose-400 font-semibold">딜넣는 도둑</span>
-        </p>
+      <!-- 1. 비교 상단 헤더 타이틀 & 새로고침 버튼 -->
+      <div class="pt-1 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white tracking-tight">갤러리 클랜 활동성 및 규모 비교</h2>
+          <p class="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap">
+            <span class="text-indigo-400 font-semibold">Good Fellas</span> vs <span class="text-emerald-400 font-semibold">Vandros</span> vs <span class="text-rose-400 font-semibold">딜넣는 도둑</span>
+          </p>
+        </div>
+        <button id="btn-refresh-compare" class="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition shrink-0" title="비교 데이터 새로고침">
+          <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="compare-refresh-icon"></i>
+        </button>
       </div>
 
       <!-- 2. 모바일 세로 1열 적층: 상단 차트 + 하단 핵심 현황 -->
@@ -267,6 +272,25 @@
 
           <div class="divide-y divide-white/[0.04] flex-1 flex flex-col justify-around" id="compare-summary-list">
             <!-- JavaScript 동적 렌더링 -->
+          </div>
+        </section>
+
+        <!-- C. 커스텀 갤클 추가 입력창 -->
+        <section class="surface-card p-3">
+          <div class="flex items-center gap-2">
+            <input
+              type="text"
+              id="input-custom-clan-tag"
+              placeholder="새 갤클 태그 입력 (예: #20URG9VCL)"
+              class="flex-1 bg-white/[0.04] border border-white/[0.08] focus:border-indigo-500/50 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none transition uppercase font-mono"
+            />
+            <button
+              id="btn-add-compare-clan"
+              class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition shrink-0 flex items-center gap-1 shadow-sm"
+            >
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>추가</span>
+            </button>
           </div>
         </section>
       </div>
@@ -330,7 +354,7 @@
   </div>
 
   <!-- Scripts with Cache Busting -->
-  <script src="js/api.js?v=1.4.3"></script>
-  <script src="js/app.js?v=1.4.3"></script>
+  <script src="js/api.js?v=1.4.5"></script>
+  <script src="js/app.js?v=1.4.5"></script>
 </body>
 </html>

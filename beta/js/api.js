@@ -1,9 +1,9 @@
 /**
- * Clash Royale API Client (v1.4.4 Instant Sync & Timestamp Guard)
+ * Clash Royale API Client (v1.4.5 Instant Sync & Precision Guard)
  * - Supercell Clash Royale Official API 지원
  * - Cloudflare Worker / Oracle 프록시 실시간 통신
- * - v1.4.2: 신규 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
- * - 지능형 On-Demand 캐시 및 우아한 폴백(Graceful Fallback) 메커니즘
+ * - 신규 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
+ * - 지능형 On-Demand 캐시, 갤클 기본 프리셋 내장 및 우아한 폴백(Graceful Fallback) 메커니즘
  */
 
 class ClashRoyaleAPI {
@@ -38,8 +38,10 @@ class ClashRoyaleAPI {
   // Supercell API 날짜 형식 변환
   parseApiDate(dateStr) {
     if (!dateStr) return null;
+    if (typeof dateStr !== "string") return new Date(dateStr);
     if (dateStr.includes("-")) {
-      return new Date(dateStr);
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? null : d;
     }
     try {
       const year = dateStr.slice(0, 4);
@@ -49,9 +51,11 @@ class ClashRoyaleAPI {
       const hour = timePart.slice(0, 2);
       const minute = timePart.slice(2, 4);
       const second = timePart.slice(4, 6);
-      return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`);
+      const d = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`);
+      return isNaN(d.getTime()) ? null : d;
     } catch {
-      return new Date(dateStr);
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? null : d;
     }
   }
 
@@ -110,7 +114,10 @@ class ClashRoyaleAPI {
           const errJson = JSON.parse(rawText);
           errText = errJson.message || errJson.reason || JSON.stringify(errJson);
         } catch {
-          // Non-JSON 응답인 경우 rawText 유지
+          // Non-JSON 응답인 경우 너무 긴 HTML 에러 페이지는 상태 코드와 축약 메시지로 가공
+          if (rawText.length > 200) {
+            errText = `서버 응답 오류 (${response.statusText || response.status})`;
+          }
         }
       }
       throw new Error(`API 오류 (${response.status}): ${errText || response.statusText}`);
@@ -183,7 +190,45 @@ class ClashRoyaleAPI {
   }
 
   getGalleryClansPreset() {
-    return Array.isArray(window.GALLERY_CLANS_DATA) ? JSON.parse(JSON.stringify(window.GALLERY_CLANS_DATA)) : [];
+    if (Array.isArray(window.GALLERY_CLANS_DATA) && window.GALLERY_CLANS_DATA.length > 0) {
+      return JSON.parse(JSON.stringify(window.GALLERY_CLANS_DATA));
+    }
+    // 네트워크 오류 또는 첫 진입 시 사용할 공식 갤클 기본 프리셋
+    return [
+      {
+        tag: "#G890J9JC",
+        name: "Good Fellas",
+        members: 47,
+        donationsPerWeek: 7600,
+        clanScore: 81500,
+        clanWarTrophies: 3120,
+        requiredTrophies: 0,
+        description: "👑 좋은 친구들 갤러리 - Good Fellas 클랜 실시간 현황",
+        isHome: true
+      },
+      {
+        tag: "#JYQRP2C2",
+        name: "Vandros",
+        members: 50,
+        donationsPerWeek: 13785,
+        clanScore: 135336,
+        clanWarTrophies: 3500,
+        requiredTrophies: 10000,
+        description: "디시인사이드 Vandros 클랜",
+        isHome: false
+      },
+      {
+        tag: "#Q0U22YGQ",
+        name: "딜넣는 도둑",
+        members: 46,
+        donationsPerWeek: 10308,
+        clanScore: 137440,
+        clanWarTrophies: 3400,
+        requiredTrophies: 14000,
+        description: "디시인사이드 딜넣는 도둑 클랜",
+        isHome: false
+      }
+    ];
   }
 
   async fetchMultipleClans(clanTags = ["#G890J9JC", "#JYQRP2C2", "#Q0U22YGQ"]) {
