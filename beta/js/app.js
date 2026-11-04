@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.8 - Top 7 시상대 왕관 레이블 정돈 및 상향 애니메이션 적용', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.9 - 1위 왕관 복원 & 초기 접속 및 수동 갱신 전용 시상대 Rise 애니메이션 정밀화', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -490,7 +490,8 @@ class ClanManagerApp {
         // 3. 서버에 배틀시간이 비어있던 멤버에게만 보충 바인딩
         this.bindCachedBattleLogs(liveData.memberList);
 
-        this.renderClan(liveData);
+        // 수동 새로고침일 때만 차트 솟아오름 애니메이션 즉시 적용 (자동 갱신 시에는 정적 업데이트)
+        this.renderClan(liveData, isManual);
 
         if (isInitial) {
           this.animateProgress(100, "동기화 완료!");
@@ -626,7 +627,7 @@ class ClanManagerApp {
     if (window.lucide) window.lucide.createIcons();
   }
 
-  renderClan(clanData) {
+  renderClan(clanData, triggerAnimation = false) {
     this.currentData = clanData;
     const { clanName: nameEl, clanTag: tagEl, clanDesc: descEl } = this.elements;
 
@@ -649,7 +650,7 @@ class ClanManagerApp {
     }
 
     this.updateStats(clanData);
-    this.renderCharts(clanData.memberList || []);
+    this.renderCharts(clanData.memberList || [], triggerAnimation);
     this.applyFilterAndRender();
   }
 
@@ -692,13 +693,13 @@ class ClanManagerApp {
     if (chipCountLow) chipCountLow.textContent = lowDonationCount;
   }
 
-  renderCharts(members) {
+  renderCharts(members, triggerAnimation = false) {
     if (members.length === 0) return;
-    this.renderPodium(members);
+    this.renderPodium(members, triggerAnimation);
     this.renderActivityDonut(members);
   }
 
-  renderPodium(members) {
+  renderPodium(members, triggerAnimation = false) {
     const { podiumContainer, podiumRunnersContainer: runnersContainer } = this.elements;
     if (!podiumContainer) return;
 
@@ -714,41 +715,51 @@ class ClanManagerApp {
     const third = sorted[2];
     const runners = sorted.slice(3);
 
+    // triggerAnimation이 true일 때만 podium-animate 클래스를 부여하여 상향 솟아오름 애니메이션 발동
+    const basePodiumClasses = "flex items-end justify-center gap-2 pt-4 pb-0 px-1 min-h-[140px]";
+    podiumContainer.className = triggerAnimation ? `${basePodiumClasses} podium-animate` : basePodiumClasses;
+
     podiumContainer.innerHTML = `
-      <!-- 2등 은메달 & 은빛 왕관 (좌측) -->
+      <!-- 2등 은메달 (은빛 왕관만 단독 배치) -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center">
-        <div class="podium-header text-center mb-1 w-full px-1" style="animation-delay: 0.06s">
+        <div class="podium-header text-center mb-1.5 w-full px-1" style="animation-delay: 0.06s">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-slate-300 drop-shadow-[0_0_6px_rgba(203,213,225,0.4)]" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+            <svg class="w-4 h-4 text-slate-300 drop-shadow-[0_0_6px_rgba(203,213,225,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+            </svg>
           </div>
           <div class="text-xs text-slate-300 font-semibold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
-          <div class="text-[11px] font-bold text-slate-300">${(second.donations || 0).toLocaleString()}개</div>
+          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-2nd w-full h-20 sm:h-24">
           <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
         </div>
       </div>
-      <!-- 1등 금메달 & 금빛 왕관 (중앙) -->
+      <!-- 1등 금메달 (금빛 왕관만 단독 배치) -->
       <div class="flex-1 max-w-[145px] flex flex-col items-center">
-        <div class="podium-header text-center mb-1 w-full px-1">
+        <div class="podium-header text-center mb-1.5 w-full px-1">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4.5 h-4.5 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+            <svg class="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+            </svg>
           </div>
           <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs font-black text-amber-400">${(first.donations || 0).toLocaleString()}개</div>
+          <div class="text-xs font-black text-amber-400 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-1st w-full h-28 sm:h-32">
           <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
         </div>
       </div>
-      <!-- 3등 동메달 & 동빛 왕관 (우측) -->
+      <!-- 3등 동메달 (동빛 왕관만 단독 배치) -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center">
-        <div class="podium-header text-center mb-1 w-full px-1" style="animation-delay: 0.12s">
+        <div class="podium-header text-center mb-1.5 w-full px-1" style="animation-delay: 0.12s">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-amber-600 drop-shadow-[0_0_6px_rgba(217,119,6,0.4)]" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+            <svg class="w-4 h-4 text-amber-600 drop-shadow-[0_0_6px_rgba(217,119,6,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+            </svg>
           </div>
           <div class="text-xs text-amber-600/90 font-semibold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-[11px] font-bold text-amber-600">${(third.donations || 0).toLocaleString()}개</div>
+          <div class="text-[11px] font-bold text-amber-600 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-3rd w-full h-14 sm:h-16">
           <span class="text-lg sm:text-xl font-black text-amber-600/80 font-mono mb-1">3</span>
@@ -757,8 +768,11 @@ class ClanManagerApp {
     `;
 
     if (runnersContainer) {
+      const baseRunnerClasses = "grid grid-cols-2 gap-1.5 pt-3 mt-3 border-t border-white/[0.04]";
+      runnersContainer.className = triggerAnimation ? `${baseRunnerClasses} podium-animate` : baseRunnerClasses;
+
       runnersContainer.innerHTML = runners.map((m, idx) => `
-        <div class="podium-runner-item flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="animation-delay: ${0.2 + idx * 0.05}s">
+        <div class="podium-runner-item flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.18 + idx * 0.05}s` : ''}">
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] font-mono text-slate-500 w-3">${idx + 4}</span>
             <span class="text-[11px] text-slate-300 font-medium truncate">${this.escapeHtml(m.name)}</span>
