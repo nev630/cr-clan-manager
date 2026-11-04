@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.12 - 헤더 및 비교 탭 수동 새로고침 버튼 제거 및 UI 간소화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.13 - 클랜원 접속 분포 파이차트 진입 및 탭 복귀 시 회전·확장 애니메이션 연동', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -203,9 +203,10 @@ class ClanManagerApp {
       modal.style.opacity = "0";
       modal.style.pointerEvents = "none";
 
-      // 모달이 걷히며 본 화면이 드러나는 바로 그 순간 시상대 솟아오름 환영 애니메이션 발동!
+      // 모달이 걷히며 본 화면이 드러나는 바로 그 순간 시상대 솟아오름 및 파이차트 회전·확장 애니메이션 동시 발동!
       if (this.currentData?.memberList) {
         this.renderPodium(this.currentData.memberList, true);
+        this.renderActivityDonut(this.currentData.memberList, true);
         setTimeout(() => {
           this.elements.podiumContainer?.classList.remove("podium-animate");
           this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
@@ -302,9 +303,10 @@ class ClanManagerApp {
         tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Good Fellas 단독 뷰</span>`;
       }
 
-      // 타 갤클 비교 탭에서 대시보드로 복귀할 때 시상대 상향 솟아오름 애니메이션 재생
+      // 타 갤클 비교 탭에서 대시보드로 복귀할 때 시상대 솟아오름 및 파이차트 회전·확장 애니메이션 동시 재생!
       if (this.currentData?.memberList) {
         this.renderPodium(this.currentData.memberList, true);
+        this.renderActivityDonut(this.currentData.memberList, true);
         setTimeout(() => {
           this.elements.podiumContainer?.classList.remove("podium-animate");
           this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
@@ -712,7 +714,7 @@ class ClanManagerApp {
   renderCharts(members, triggerAnimation = false) {
     if (members.length === 0) return;
     this.renderPodium(members, triggerAnimation);
-    this.renderActivityDonut(members);
+    this.renderActivityDonut(members, triggerAnimation);
   }
 
   renderPodium(members, triggerAnimation = false) {
@@ -799,7 +801,7 @@ class ClanManagerApp {
     }
   }
 
-  renderActivityDonut(members) {
+  renderActivityDonut(members, triggerAnimation = false) {
     if (!window.Chart) return;
 
     let seenToday = 0;
@@ -822,9 +824,21 @@ class ClanManagerApp {
     const activityCanvas = this.elements.chartActivity;
     if (!activityCanvas) return;
 
+    const chartData = [seenToday, seen1to2d, seenDormant];
+
     if (this.charts.activity) {
-      this.charts.activity.data.datasets[0].data = [seenToday, seen1to2d, seenDormant];
-      this.charts.activity.update();
+      const chart = this.charts.activity;
+      chart.data.datasets[0].data = chartData;
+
+      if (triggerAnimation) {
+        chart.reset();
+        chart.update({
+          duration: 650,
+          easing: 'easeOutQuart'
+        });
+      } else {
+        chart.update('none');
+      }
     } else {
       const ctx = activityCanvas.getContext("2d");
       this.charts.activity = new Chart(ctx, {
@@ -832,7 +846,7 @@ class ClanManagerApp {
         data: {
           labels: ["오늘 접속", "1~2일 전", "3일+ 미접속"],
           datasets: [{
-            data: [seenToday, seen1to2d, seenDormant],
+            data: chartData,
             backgroundColor: ["rgba(16, 185, 129, 0.8)", "rgba(59, 130, 246, 0.8)", "rgba(244, 63, 94, 0.85)"],
             borderColor: "#0f121a",
             borderWidth: 2,
@@ -842,6 +856,12 @@ class ClanManagerApp {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: triggerAnimation ? {
+            animateRotate: true,
+            animateScale: true,
+            duration: 650,
+            easing: 'easeOutQuart'
+          } : false,
           plugins: {
             legend: { position: "bottom", labels: { color: "#94a3b8", boxWidth: 8, padding: 10, font: { size: 10 } } },
             tooltip: {
