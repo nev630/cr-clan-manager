@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.3 - 테마 전환 부자연스러움 및 도넛 차트 범례·테두리 색상 오류 완전 해결', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.4 - 시상대 텍스트 기본색상 정돈 & 클랜설명 폭 확장 & 네이티브 원형 리플 테마전환', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -807,7 +807,7 @@ toggleTheme(e) {
     podiumContainer.className = triggerAnimation ? `${basePodiumClasses} podium-animate` : basePodiumClasses;
 
     podiumContainer.innerHTML = `
-      <!-- 2등 은메달 (은빛 왕관만 단독 배치) -->
+      <!-- 2등 은메달 (은빛 왕관 유지, 이름/개수는 기본 텍스트 색상) -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center">
         <div class="podium-header text-center mb-1.5 w-full px-1" style="animation-delay: 0.06s">
           <div class="flex items-center justify-center mb-1">
@@ -815,14 +815,14 @@ toggleTheme(e) {
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
-          <div class="text-xs text-slate-300 font-semibold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
+          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
           <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-2nd w-full h-20 sm:h-24">
           <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
         </div>
       </div>
-      <!-- 1등 금메달 (금빛 왕관만 단독 배치) -->
+      <!-- 1등 금메달 (금빛 왕관 유지, 이름/개수는 기본 텍스트 색상) -->
       <div class="flex-1 max-w-[145px] flex flex-col items-center">
         <div class="podium-header text-center mb-1.5 w-full px-1">
           <div class="flex items-center justify-center mb-1">
@@ -831,13 +831,13 @@ toggleTheme(e) {
             </svg>
           </div>
           <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs font-black text-amber-400 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
+          <div class="text-xs font-bold text-slate-300 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-1st w-full h-28 sm:h-32">
           <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
         </div>
       </div>
-      <!-- 3등 동메달 (동빛 왕관만 단독 배치) -->
+      <!-- 3등 동메달 (동빛 왕관 유지, 이름/개수는 기본 텍스트 색상) -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center">
         <div class="podium-header text-center mb-1.5 w-full px-1" style="animation-delay: 0.12s">
           <div class="flex items-center justify-center mb-1">
@@ -845,8 +845,8 @@ toggleTheme(e) {
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
-          <div class="text-xs text-amber-600/90 font-semibold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-[11px] font-bold text-amber-600 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
+          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
+          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-3rd w-full h-14 sm:h-16">
           <span class="text-lg sm:text-xl font-black text-amber-600/80 font-mono mb-1">3</span>

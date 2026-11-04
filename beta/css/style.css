@@ -562,18 +562,16 @@ html.dark #icon-moon {
 }
 
 /* ============================================================
-   부드럽고 자연스러운 실키 크로스페이드(Silky Crossfade) 테마 전환
+   네이티브 뷰 트랜지션 기반 원형 확장 애니메이션 (Circular Ripple Reveal)
    ============================================================ */
-body,
-.surface-card,
-.mobile-member-card,
-.podium-step,
-.main-nav-btn,
-.filter-chip,
-#search-input,
-#sort-key-select,
-#btn-sort-order,
-header,
-nav {
-  transition: background-color 0.28s ease, border-color 0.28s ease, color 0.22s ease, box-shadow 0.28s ease !important;
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 999999;
 }
