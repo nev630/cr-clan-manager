@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.4.9 - 1위 왕관 복원 & 초기 접속 및 수동 갱신 전용 시상대 Rise 애니메이션 정밀화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.4.10 - 초기 대시보드 진입 시 시상대 환영 애니메이션 타이밍 완벽 동기화', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -200,16 +200,26 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    this.animateProgress(100, "동기화 완료!", 250);
+    this.animateProgress(100, "동기화 완료!", 200);
 
     setTimeout(() => {
-      modal.style.transition = "opacity 0.4s ease, visibility 0.4s ease";
+      modal.style.transition = "opacity 0.45s ease, visibility 0.45s ease";
       modal.style.opacity = "0";
       modal.style.pointerEvents = "none";
+
+      // 모달이 걷히며 본 화면이 드러나는 바로 그 순간 시상대 솟아오름 환영 애니메이션 발동!
+      if (this.currentData?.memberList) {
+        this.renderPodium(this.currentData.memberList, true);
+        setTimeout(() => {
+          this.elements.podiumContainer?.classList.remove("podium-animate");
+          this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+        }, 850);
+      }
+
       setTimeout(() => {
         modal.classList.add("hidden");
-      }, 400);
-    }, 450);
+      }, 450);
+    }, 250);
   }
 
   bindEvents() {
@@ -490,8 +500,15 @@ class ClanManagerApp {
         // 3. 서버에 배틀시간이 비어있던 멤버에게만 보충 바인딩
         this.bindCachedBattleLogs(liveData.memberList);
 
-        // 수동 새로고침일 때만 차트 솟아오름 애니메이션 즉시 적용 (자동 갱신 시에는 정적 업데이트)
-        this.renderClan(liveData, isManual);
+        // 수동 새로고침일 때만 차트 솟아오름 애니메이션 적용 (초기 진입은 모달 해제 시 발동, 자동 갱신은 정적 유지)
+        const shouldAnimateManual = isManual && !isInitial;
+        this.renderClan(liveData, shouldAnimateManual);
+        if (shouldAnimateManual) {
+          setTimeout(() => {
+            this.elements.podiumContainer?.classList.remove("podium-animate");
+            this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+          }, 850);
+        }
 
         if (isInitial) {
           this.animateProgress(100, "동기화 완료!");
