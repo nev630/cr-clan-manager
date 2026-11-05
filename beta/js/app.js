@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.7.3 - 데이터 로드 완료 시 로딩바 빛줄기 스윕(Shimmer Beam Sweep) 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.7.4 - 이모티콘 슬롯머신 룰렛(Emote Slot Machine) 로딩 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -192,47 +192,76 @@ class ClanManagerApp {
     const container = document.getElementById("loading-emotes-container");
     if (!container) return;
 
-    // 12종 공식 인게임 이모트 풀에서 3개 비복원 무작위 추출
+    // 8종 공식 인게임 이모트 풀에서 3개 비복원 무작위 추출 (최종 당첨 타겟 이모티콘 3종)
     const shuffled = [...CR_EMOTES_POOL].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, 3);
 
-    // 1. 레이아웃 덜컹거림(CLS) 방지: 3개 슬롯(w-16 h-16 / w-20 h-20)의 투명 자리부터 고정 예약
+    // 1. 레이아웃 덜컹거림(CLS) 방지: 3개 슬롯 창(w-16 h-16 / w-20 h-20)의 투명 자리부터 고정 예약
     container.innerHTML = selected.map((_, idx) => `
-      <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0" id="emote-slot-${idx}"></div>
+      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${idx}"></div>
     `).join("");
 
-    // 2. Promise.all로 3장의 이미지를 브라우저 메모리에 병렬 동시 프리로드 (최대 300ms 타임아웃 안전망)
-    const preloadPromises = selected.map((emote, idx) => {
+    // 2. 8종 이모트 전체를 브라우저 메모리에 병렬 동시 사전 프리로드 (최대 300ms 타임아웃 안전망)
+    const preloadPromises = CR_EMOTES_POOL.map((emote) => {
       return new Promise((resolve) => {
         const img = new Image();
         img.src = emote.url;
-        img.onload = () => resolve({ emote, idx, img });
-        img.onerror = () => resolve({ emote, idx, img });
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
       });
     });
 
     const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 300));
     await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
 
-    // 3. 3장의 이미지가 모두 준비된 바로 그 순간, 1프레임에 동시에 화면에 일괄 주입!
-    // 하얀 상자 바닥선(Baseline) 수평 일직선 강제 정렬: 독립 래퍼에 offsetY 보정 적용
-    container.innerHTML = selected.map((emote, idx) => `
-      <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
-        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${emote.offsetY || 0}px);">
-          <img src="${emote.url}" 
-               alt="${emote.name}" 
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] emote-bounce emote-delay-${idx} loading-emote-item pointer-events-none select-none" />
-        </div>
-      </div>
-    `).join("");
+    // 3. 슬롯머신 릴(Reel Strip) 구축:
+    // Slot 0: 6개 더미 + 타겟 = 총 7개 (0.65초 멈춤)
+    // Slot 1: 8개 더미 + 타겟 = 총 9개 (0.90초 멈춤)
+    // Slot 2: 10개 더미 + 타겟 = 총 11개 (1.15초 멈춤)
+    const reelCounts = [7, 9, 11];
 
-    // 4. 이모트 3장이 화면에 나타나는 바로 그 순간, 하단 로딩바도 동시에 노출 (선노출 방지)
+    container.innerHTML = selected.map((targetEmote, slotIdx) => {
+      const count = reelCounts[slotIdx];
+      const reelItems = [];
+      // 타겟 이전의 더미 아이템들을 풀에서 무작위 선택하여 채움
+      for (let i = 0; i < count - 1; i++) {
+        const dummy = CR_EMOTES_POOL[Math.floor(Math.random() * CR_EMOTES_POOL.length)];
+        reelItems.push(dummy);
+      }
+      // 마지막 아이템은 최종 결정된 타겟 이모티콘
+      reelItems.push(targetEmote);
+
+      const itemsHtml = reelItems.map((item) => `
+        <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+          <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
+            <img src="${item.url}" 
+                 alt="${item.name}" 
+                 class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
+          </div>
+        </div>
+      `).join("");
+
+      return `
+        <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${slotIdx}">
+          <div class="slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-spin-${slotIdx}">
+            ${itemsHtml}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // 4. 슬롯머신이 돌아가는 동안 각 릴이 멈추는 시점마다 골드 락(Lock) 이펙트 점등!
+    setTimeout(() => document.getElementById("slot-window-0")?.classList.add("slot-locked"), 650);
+    setTimeout(() => document.getElementById("slot-window-1")?.classList.add("slot-locked"), 900);
+    setTimeout(() => document.getElementById("slot-window-2")?.classList.add("slot-locked"), 1150);
+
+    // 5. 슬롯 창들이 화면에 나타나는 바로 그 순간, 하단 로딩바도 동시에 노출 (선노출 방지)
     const progressContainer = document.getElementById("initial-sync-progress-container");
     if (progressContainer) {
       progressContainer.style.opacity = "1";
     }
 
-    // 5. 세 이모트가 모두 화면에 완벽히 등장한 바로 그 시점부터 0.85초 최소 노출 타이머 카운트 시작!
+    // 6. 슬롯 릴 회전 시작 시점부터 최소 1.2초 노출 타이머 카운트 시작!
     this.loadingStartTime = Date.now();
   }
 
@@ -268,18 +297,9 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    // 1. 이모지들은 웨이브 바운스를 멈추고 바닥선에 차분하고 정갈하게 안착
-    const container = document.getElementById("loading-emotes-container");
-    if (container) {
-      const items = container.querySelectorAll(".loading-emote-item");
-      items.forEach((item) => {
-        // 기존 개별 웨이브 애니메이션 및 딜레이 클래스 완전 제거
-        item.classList.remove("emote-bounce", "emote-delay-0", "emote-delay-1", "emote-delay-2", "emotes-complete-pop", "emotes-together-jump", "emotes-card-flip");
-        void item.offsetWidth;
-        // 바닥선에 가볍게 안착
-        item.style.transform = "translateY(0) scale(1)";
-        item.style.transition = "transform 0.18s cubic-bezier(0.2, 0.8, 0.4, 1)";
-      });
+    // 1. 슬롯머신 3개 창 전체 골드 락 아우라 확정
+    for (let i = 0; i < 3; i++) {
+      document.getElementById(`slot-window-${i}`)?.classList.add("slot-locked");
     }
 
     // 2. 100% 충전된 로딩바 위로 네온 빛줄기(Shimmer Beam) 관통 스윕 발동!
@@ -755,7 +775,7 @@ toggleTheme(e) {
         if (isInitial) {
           // 최소 850ms(0.85초) 동안 이모트 3마리의 통-통-통 1사이클 웨이브 바운스를 완주 보장!
           const elapsed = Date.now() - (this.loadingStartTime || Date.now());
-          const minDisplayTime = 850;
+          const minDisplayTime = 1200;
           const waitTime = Math.max(0, minDisplayTime - elapsed);
           
           // 하단 초슬림 게이지 바를 웨이브 완주 시점에 맞춰 100%까지 부드럽게 채움
@@ -786,7 +806,7 @@ toggleTheme(e) {
     } finally {
       if (isInitial && (!this.currentData || !this.currentData.memberList)) {
         const elapsed = Date.now() - (this.loadingStartTime || Date.now());
-        const minDisplayTime = 850;
+        const minDisplayTime = 1200;
         const waitTime = Math.max(0, minDisplayTime - elapsed);
         setTimeout(() => {
           this.hideInitialSyncModal();
