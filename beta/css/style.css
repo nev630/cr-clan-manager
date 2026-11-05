@@ -769,3 +769,36 @@ button, .podium-step, .mobile-member-card, .filter-chip {
   animation-delay: 0s !important;
   transform-origin: bottom center !important;
 }
+
+
+/* ============================================================
+   v1.7.1 데이터 로드 완료 시 클래시 로얄 3D 카드 플립(Card Flip) 애니메이션
+   ============================================================ */
+@keyframes emote3DCardFlip {
+  0% {
+    transform: perspective(600px) rotateY(0deg) scale(1);
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+  }
+  35% {
+    /* 카드 반회전 & 입체 팽창 & 황금 섬광 */
+    transform: perspective(600px) rotateY(130deg) scale(1.15);
+    filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.85)) brightness(1.25);
+  }
+  70% {
+    /* 회전 가속 및 네온 인디고 글로우 */
+    transform: perspective(600px) rotateY(260deg) scale(1.08);
+    filter: drop-shadow(0 0 30px rgba(99, 102, 241, 0.85)) brightness(1.2);
+  }
+  100% {
+    /* 360도 완주 & 카드 안착 */
+    transform: perspective(600px) rotateY(360deg) scale(1);
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6)) brightness(1);
+  }
+}
+
+.emotes-card-flip {
+  animation: emote3DCardFlip 0.48s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+  animation-delay: 0s !important;
+  transform-origin: center center !important;
+  backface-visibility: visible !important;
+}

@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.7.0 - 하얀 상자 바닥선(Baseline) 수평 일직선 강제 정렬 캘리브레이션 적용 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.7.1 - 데이터 로드 완료 시 클래시 로얄 3D 카드 플립(Card Flip) 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -268,22 +268,22 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    // 1. 데이터 로드 완료 즉시 3개 이모지 다같이 동시 점프 발동!
+    // 1. 데이터 로드 완료 즉시 3개 이모지 카드 3D 360도 입체 플립(Card Flip) 발동!
     const container = document.getElementById("loading-emotes-container");
     if (container) {
       const items = container.querySelectorAll(".loading-emote-item");
       items.forEach((item) => {
         // 기존 개별 웨이브 애니메이션 및 딜레이 클래스 완전 제거
-        item.classList.remove("emote-bounce", "emote-delay-0", "emote-delay-1", "emote-delay-2", "emotes-complete-pop");
+        item.classList.remove("emote-bounce", "emote-delay-0", "emote-delay-1", "emote-delay-2", "emotes-complete-pop", "emotes-together-jump");
         // 강제 리플로우(reflow)로 애니메이션 동시 시작 보장
         void item.offsetWidth;
-        // 3개 동시 점프 클래스 추가
-        item.classList.add("emotes-together-jump");
+        // 3D 카드 플립 클래스 추가
+        item.classList.add("emotes-card-flip");
       });
     }
 
-    // 2. 세 이모지가 다같이 힘차게 점프하고 착지하는 시점(약 480ms)에 로딩창 페이드아웃 시작
-    await new Promise((resolve) => setTimeout(resolve, 480));
+    // 2. 세 카드가 샤라락 360도 회전을 완주하는 시점(약 450ms)에 로딩창 페이드아웃 시작
+    await new Promise((resolve) => setTimeout(resolve, 450));
 
     modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
     modal.style.opacity = "0";
