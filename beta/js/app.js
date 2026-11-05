@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.6.4 - 3일 미접속 카드 독자 transition 제거 및 테마 전환 색상 일체화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.6.5 - 이모트 하단 초슬림 단색 로딩바 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717" },
@@ -736,6 +736,10 @@ toggleTheme(e) {
           const elapsed = Date.now() - (this.loadingStartTime || Date.now());
           const minDisplayTime = 850;
           const waitTime = Math.max(0, minDisplayTime - elapsed);
+          
+          // 하단 초슬림 게이지 바를 웨이브 완주 시점에 맞춰 100%까지 부드럽게 채움
+          this.animateProgress(100, "", Math.max(200, waitTime));
+
           setTimeout(() => {
             this.hideInitialSyncModal();
           }, waitTime);
