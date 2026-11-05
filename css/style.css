@@ -539,10 +539,24 @@ html.light #initial-sync-modal {
 }
 
 /* ============================================================
-   해 ↔ 달 아이콘 모핑 & 스핀 인터랙션
+   해 ↔ 달 아이콘 모핑 & 실키 스핀 인터랙션 (CSS 단일 파이프라인)
    ============================================================ */
 #btn-theme-toggle {
   touch-action: manipulation;
+}
+#theme-toggle-icon {
+  transition: transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center;
+}
+html.light #theme-toggle-icon {
+  transform: rotate(360deg);
+}
+html.dark #theme-toggle-icon {
+  transform: rotate(0deg);
+}
+#icon-sun, #icon-moon {
+  transition: opacity 0.3s ease, transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center;
 }
 html.light #icon-sun {
   opacity: 1 !important;
@@ -550,11 +564,11 @@ html.light #icon-sun {
 }
 html.light #icon-moon {
   opacity: 0 !important;
-  transform: rotate(-90deg) scale(0.3) !important;
+  transform: rotate(-90deg) scale(0.2) !important;
 }
 html.dark #icon-sun {
   opacity: 0 !important;
-  transform: rotate(90deg) scale(0.3) !important;
+  transform: rotate(90deg) scale(0.2) !important;
 }
 html.dark #icon-moon {
   opacity: 1 !important;
@@ -562,7 +576,7 @@ html.dark #icon-moon {
 }
 
 /* ============================================================
-   다크/라이트 모드 네이티브 원형 리플 확장 애니메이션 (Circular Ripple View Transition)
+   다크/라이트 모드 네이티브 원형 리플 확장 애니메이션 (Single Web Animations API Engine)
    ============================================================ */
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -574,16 +588,143 @@ html.dark #icon-moon {
 }
 ::view-transition-new(root) {
   z-index: 999999;
-  animation: theme-circle-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@keyframes theme-circle-reveal {
+
+/* ============================================================
+   v1.5.7 인터랙션 & 햅틱 반응성 완전 최적화
+   ============================================================ */
+
+/* 1위 시상대 금빛 왕관 럭셔리 네온 오라 (Neon Aura Pulse) */
+@keyframes goldAuraPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7)) drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.65));
+    transform: scale(1.05);
+  }
+}
+.crown-aura-glow {
+  display: inline-block;
+  transform-origin: center;
+  animation: goldAuraPulse 2.8s ease-in-out infinite;
+}
+
+/* 클랜원 카드 스태거(순차) 페이드인 (Staggered Fade-in) - 가시성 및 리듬감 확보 */
+@keyframes cardStaggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.card-stagger-in {
+  animation: cardStaggerIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 타 갤클 비교 격차 뱃지 팝 모션 (Badge Pop) - 탄성 바운스 */
+@keyframes badgePop {
   0% {
-    clip-path: circle(0px at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
-    -webkit-clip-path: circle(0px at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
+    opacity: 0;
+    transform: scale(0.65);
+  }
+  65% {
+    transform: scale(1.18);
   }
   100% {
-    clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
-    -webkit-clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
+    opacity: 1;
+    transform: scale(1);
   }
+}
+.badge-pop {
+  display: inline-block;
+  transform-origin: center;
+  animation: badgePop 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+/* 모바일 터치 하이라이트 제거 및 쫀득한 터치 반응 최적화 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+button, .podium-step, .mobile-member-card, .filter-chip {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.podium-step:active {
+  transform: scale(0.96) !important;
+  transition: transform 0.08s ease;
+}
+.mobile-member-card:active {
+  transform: scale(0.985);
+  background: var(--bg-surface-hover) !important;
+  transition: transform 0.08s ease, background 0.08s ease;
+}
+.filter-chip:active {
+  transform: scale(0.94);
+  transition: transform 0.08s ease;
+}
+#btn-sort-order:active {
+  transform: scale(0.94);
+  transition: transform 0.08s ease;
+}
+#btn-theme-toggle:active {
+  transform: scale(0.90);
+  transition: transform 0.08s ease;
+}
+
+
+/* ============================================================
+   v1.6.1 실제 인게임 이모트 3인방 랜덤 웨이브 바운스 애니메이션
+   ============================================================ */
+@keyframes emoteWaveBounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-16px) scale(1.08);
+  }
+  50% {
+    transform: translateY(0) scale(0.96);
+  }
+  65% {
+    transform: translateY(-4px) scale(1.02);
+  }
+}
+.emote-bounce {
+  animation: emoteWaveBounce 1.1s cubic-bezier(0.28, 0.84, 0.42, 1) infinite;
+  transform-origin: bottom center;
+}
+.emote-delay-0 {
+  animation-delay: 0s;
+}
+.emote-delay-1 {
+  animation-delay: 0.18s;
+}
+.emote-delay-2 {
+  animation-delay: 0.36s;
+}
+
+@keyframes emoteCompletePop {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+  }
+  40% {
+    transform: scale(1.22) translateY(-8px);
+    filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.9)) brightness(1.25);
+  }
+  100% {
+    transform: scale(1.28) translateY(-12px);
+    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 1)) brightness(1.4);
+    opacity: 0;
+  }
+}
+.emotes-complete-pop {
+  animation: emoteCompletePop 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }

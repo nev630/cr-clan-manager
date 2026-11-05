@@ -8,7 +8,7 @@
       <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: https://api-assets.clashroyale.com; connect-src 'self' https://green-disk-88a6.marble593812345.workers.dev https://api.clashroyale.com https://proxy.royaleapi.dev https://corsproxy.io https://api.allorigins.win;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: https://api-assets.clashroyale.com https://static.wikia.nocookie.net; connect-src 'self' https://green-disk-88a6.marble593812345.workers.dev https://api.clashroyale.com https://proxy.royaleapi.dev https://corsproxy.io https://api.allorigins.win;" />
   <title>Good Fellas | 클랜 관리 및 타 갤클 비교 대시보드</title>
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%2310b981%22/></svg>">
@@ -39,7 +39,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=1.5.5" />
+  <link rel="stylesheet" href="css/style.css?v=1.6.3" />
 
   <style>
     /* 단색 심플 로딩바 초부드러운 이징 */
@@ -76,7 +76,7 @@
           <h1 class="text-base font-bold tracking-tight text-white whitespace-nowrap" id="clan-name">Good Fellas</h1>
           <span class="text-[10px] font-mono text-slate-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06] whitespace-nowrap" id="clan-tag">#G890J9JC</span>
         </div>
-        <p class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[275px]" id="clan-desc">
+        <p class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[310px]" id="clan-desc">
           클랜원 주간 지원량 · 마지막 접속 및 배틀 모니터링
         </p>
       </div>
@@ -89,23 +89,21 @@
         </button>
 
         <!-- 테마 전환 버튼 (해/달 360도 회전 모핑) -->
-        <button id="btn-theme-toggle" class="p-2 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300 hover:text-white transition flex items-center justify-center relative overflow-hidden" title="다크 / 라이트 모드 전환" aria-label="테마 전환">
-          <div id="theme-toggle-icon" class="relative w-4 h-4 flex items-center justify-center transition-transform duration-500">
+        <button id="btn-theme-toggle" class="p-2 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300 hover:text-white transition flex items-center justify-center relative overflow-hidden select-none" title="다크 / 라이트 모드 전환" aria-label="테마 전환">
+          <div id="theme-toggle-icon" class="relative w-4 h-4 flex items-center justify-center pointer-events-none">
             <!-- Sun SVG (라이트 모드 시 표시) -->
-            <svg id="icon-sun" class="w-4 h-4 text-amber-500 absolute transition-all duration-500 transform opacity-0 rotate-90 scale-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg id="icon-sun" class="w-4 h-4 text-amber-500 absolute pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="4"/>
               <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
             </svg>
             <!-- Moon SVG (다크 모드 시 표시) -->
-            <svg id="icon-moon" class="w-4 h-4 text-amber-300 absolute transition-all duration-500 transform opacity-100 rotate-0 scale-100" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg id="icon-moon" class="w-4 h-4 text-amber-300 absolute pointer-events-none" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
             </svg>
           </div>
         </button>
 
-        <div class="flex items-center justify-center p-2 rounded-full bg-white/[0.03] border border-white/[0.06] shrink-0" title="실시간 상태">
-          <span class="status-dot green live-pulse" id="sync-dot"></span>
-        </div>
+
       </div>
     </header>
 
@@ -191,7 +189,7 @@
             전체 <span class="text-slate-400 ml-1 font-mono text-[11px]" id="chip-count-all">47</span>
           </button>
           <button class="filter-chip text-xs" data-filter="dormant" onclick="window.app.setFilterTab('dormant', this)">
-            미접속 3일+ <span class="text-rose-400 ml-1 font-mono text-[11px]" id="chip-count-dormant">1</span>
+            미접속 3일+ <span class="text-rose-400 ml-1 font-mono text-[11px]" id="chip-count-dormant">0</span>
           </button>
           <button class="filter-chip text-xs" data-filter="low-donations" onclick="window.app.setFilterTab('low-donations', this)">
             지원 저조 (50 미만) <span class="text-amber-400 ml-1 font-mono text-[11px]" id="chip-count-low">0</span>
@@ -215,8 +213,10 @@
           </select>
 
           <!-- 오름차순 / 내림차순 원클릭 토글 버튼 -->
-          <button id="btn-sort-order" type="button" class="flex items-center gap-1 bg-[#0f121a] hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0" title="정렬 순서 변경">
-            <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-indigo-400" id="sort-order-icon"></i>
+          <button id="btn-sort-order" type="button" class="flex items-center gap-1.5 bg-[#0f121a] hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0 select-none active:scale-95" title="정렬 순서 변경">
+            <span id="sort-order-icon-wrapper" class="inline-flex items-center justify-center transition-transform duration-300 ease-out origin-center">
+              <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-indigo-400" id="sort-order-icon"></i>
+            </span>
             <span id="sort-order-text">내림차순</span>
           </button>
         </div>
@@ -304,32 +304,12 @@
 
   </div>
 
-  <!-- 7. 초기 실시간 동기화 오버레이 팝업 (모바일 규격 유지) -->
+  <!-- 7. 초기 실시간 동기화 오버레이 (실제 인게임 이모트 3인방 랜덤 웨이브 바운스) -->
   <div id="initial-sync-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#090b10]/95 backdrop-blur-md transition-opacity duration-300">
-    <div class="surface-card p-6 rounded-2xl max-w-xs w-full mx-4 text-center border border-white/[0.08] shadow-2xl relative overflow-hidden">
-      <!-- 상단 스피너 & 외곽 레이더 펄스(Ping) 링 -->
-      <div class="relative w-12 h-12 mx-auto mb-3.5 flex items-center justify-center">
-        <div class="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping opacity-60"></div>
-        <div class="relative w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-          <svg class="w-6 h-6 text-emerald-400 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-          </svg>
-        </div>
-      </div>
-
-      <!-- 단일 타이틀 -->
-      <h3 class="text-sm font-bold text-white tracking-tight">클랜 실시간 동기화 중</h3>
-
-      <!-- 단색 심플 로딩바 (초부드러운 이징) -->
-      <div class="w-full bg-white/[0.06] rounded-full h-2.5 overflow-hidden mt-4 relative border border-white/[0.08] shadow-inner p-[1px]">
-        <div id="initial-sync-progress-bar" class="bg-emerald-500 h-full rounded-full" style="width: 0%"></div>
-      </div>
-
-      <!-- 볼드 네온 퍼센트 (상태 텍스트는 숨김 처리) -->
-      <div class="flex items-center justify-center mt-2.5 font-mono">
-        <span id="initial-sync-percent" class="text-emerald-400 font-extrabold text-sm tracking-wider drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">0%</span>
-        <span id="initial-sync-status-msg" class="hidden"></span>
+    <div class="flex flex-col items-center justify-center p-6 select-none pointer-events-none">
+      <!-- 12종 공식 인게임 이모트 중 3개 무작위 가로 웨이브 바운스 컨테이너 -->
+      <div id="loading-emotes-container" class="flex items-center justify-center gap-3.5 sm:gap-5 py-4">
+        <!-- JavaScript에서 매 접속마다 랜덤 3개 인게임 이모트 동적 렌더링 -->
       </div>
     </div>
   </div>
@@ -360,6 +340,6 @@
 
   <!-- Scripts with Cache Busting -->
   <script src="js/api.js?v=1.5.4"></script>
-  <script src="js/app.js?v=1.5.5"></script>
+  <script src="js/app.js?v=1.6.3"></script>
 </body>
 </html>

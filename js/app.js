@@ -6,7 +6,22 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.5 - 원형 리플 테마전환 애니메이션 정상 가동 & 멀티 브라우저 2중 보장', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.6.3 - Promise.all 동시 프리로드 후 이모트 3인방 무결점 일괄 렌더링 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
+
+const CR_EMOTES_POOL = [
+  { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717" },
+  { name: "우는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/a/af/Crying_King.png/revision/latest?cb=20230915211808" },
+  { name: "생각하는 호그라이더", url: "https://static.wikia.nocookie.net/clashroyale/images/b/b0/Hog_Rider_Thinking.png/revision/latest?cb=20230922123138" },
+  { name: "비명 호그라이더", url: "https://static.wikia.nocookie.net/clashroyale/images/b/b6/Hog_Rider_Scream.png/revision/latest?cb=20230922123136" },
+  { name: "이마 짚는 고블린", url: "https://static.wikia.nocookie.net/clashroyale/images/d/dc/Facepalm_Goblin.png/revision/latest?cb=20230918084628" },
+  { name: "댑 마법사", url: "https://static.wikia.nocookie.net/clashroyale/images/d/d9/Dab_Wizard.png/revision/latest?cb=20230921074038" },
+  { name: "브이 프린세스", url: "https://static.wikia.nocookie.net/clashroyale/images/0/0f/Peace_Princess.png/revision/latest?cb=20230920123025" },
+  { name: "팬케이크 미니페카", url: "https://static.wikia.nocookie.net/clashroyale/images/e/e9/Pancakes_Mini_PEKKA.png/revision/latest?cb=20181202220626" },
+  { name: "따봉 일렉트로 마법사", url: "https://static.wikia.nocookie.net/clashroyale/images/3/37/Electro_Wizard_Thumbs-Up.png/revision/latest?cb=20181027033128" },
+  { name: "환호하는 기사", url: "https://static.wikia.nocookie.net/clashroyale/images/5/54/Cheer_Knight.png/revision/latest?cb=20181202220620" },
+  { name: "우는 해골", url: "https://static.wikia.nocookie.net/clashroyale/images/7/73/Crying_Skeleton.png/revision/latest?cb=20180921183431" },
+  { name: "고기 뜯는 자이언트", url: "https://static.wikia.nocookie.net/clashroyale/images/b/bb/Eating_Giant.png/revision/latest?cb=20230920123020" }
+];
 
 class ClanManagerApp {
   constructor() {
@@ -31,7 +46,8 @@ class ClanManagerApp {
 
     this.currentProgress = 0;
     this.lastSyncTime = 0;
-    this.syncThrottleMs = 15000; // 15초 쿨타운 (초고속 실시간 동기화)
+    this.syncThrottleMs = 15000;
+    this.loadingStartTime = Date.now();
 
     this.init();
   }
@@ -59,6 +75,15 @@ class ClanManagerApp {
 
 
   init() {
+    this.loadingStartTime = Date.now();
+    // 12종 공식 인게임 이모트 중 랜덤 3인방 즉시 렌더링
+    this.renderRandomLoadingEmotes();
+
+    // iOS Safari 및 모바일 웹킷 브라우저 :active 터치 탄성 강제 활성화
+    try {
+      document.addEventListener("touchstart", () => {}, { passive: true });
+    } catch (e) {}
+
     this.cacheDOM();
     this.bindEvents();
 
@@ -131,6 +156,7 @@ class ClanManagerApp {
       btnThemeToggle: document.getElementById("btn-theme-toggle"),
       sortOrderText: document.getElementById("sort-order-text"),
       sortOrderIcon: document.getElementById("sort-order-icon"),
+      sortOrderIconWrapper: document.getElementById("sort-order-icon-wrapper"),
       
       viewDashboard: document.getElementById("view-dashboard"),
       viewCompare: document.getElementById("view-compare"),
@@ -165,6 +191,45 @@ class ClanManagerApp {
     this.animateProgress(percent, msg, 350);
   }
 
+  async renderRandomLoadingEmotes() {
+    const container = document.getElementById("loading-emotes-container");
+    if (!container) return;
+
+    // 12종 공식 인게임 이모트 풀에서 3개 비복원 무작위 추출
+    const shuffled = [...CR_EMOTES_POOL].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 3);
+
+    // 1. 레이아웃 덜컹거림(CLS) 방지: 3개 슬롯(w-16 h-16 / w-20 h-20)의 투명 자리부터 고정 예약
+    container.innerHTML = selected.map((_, idx) => `
+      <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0" id="emote-slot-${idx}"></div>
+    `).join("");
+
+    // 2. Promise.all로 3장의 이미지를 브라우저 메모리에 병렬 동시 프리로드 (최대 300ms 타임아웃 안전망)
+    const preloadPromises = selected.map((emote, idx) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.src = emote.url;
+        img.onload = () => resolve({ emote, idx, img });
+        img.onerror = () => resolve({ emote, idx, img });
+      });
+    });
+
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 300));
+    await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
+
+    // 3. 3장의 이미지가 모두 준비된 바로 그 순간, 1프레임에 동시에 화면에 일괄 주입!
+    container.innerHTML = selected.map((emote, idx) => `
+      <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
+        <img src="${emote.url}" 
+             alt="${emote.name}" 
+             class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] emote-bounce emote-delay-${idx} loading-emote-item pointer-events-none select-none" />
+      </div>
+    `).join("");
+
+    // 4. 세 이모트가 모두 화면에 완벽히 등장한 바로 그 시점부터 0.85초 최소 노출 타이머 카운트 시작!
+    this.loadingStartTime = Date.now();
+  }
+
   animateProgress(targetPercent, msg, duration = 350) {
     const startPercent = this.currentProgress || 0;
     const clampedTarget = Math.min(100, Math.max(0, Math.round(targetPercent)));
@@ -197,10 +262,19 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    this.animateProgress(100, "동기화 완료!", 200);
+    // 1. 데이터 수신 완료 즉시 3개 이모트 동시 축하 팝 & 섬광 발동!
+    const container = document.getElementById("loading-emotes-container");
+    if (container) {
+      const items = container.querySelectorAll(".loading-emote-item");
+      items.forEach((item) => {
+        item.classList.remove("emote-bounce");
+        item.classList.add("emotes-complete-pop");
+      });
+    }
 
+    // 2. 이모트가 번쩍 튀어오르는 절정 시점(150ms)에 모달 페이드아웃 시작
     setTimeout(() => {
-      modal.style.transition = "opacity 0.45s ease, visibility 0.45s ease";
+      modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
       modal.style.opacity = "0";
       modal.style.pointerEvents = "none";
 
@@ -216,8 +290,8 @@ class ClanManagerApp {
 
       setTimeout(() => {
         modal.classList.add("hidden");
-      }, 450);
-    }, 250);
+      }, 290);
+    }, 150);
   }
 
   bindEvents() {
@@ -282,14 +356,7 @@ toggleTheme(e) {
     document.documentElement.style.setProperty("--theme-y", `${y}px`);
     document.documentElement.style.setProperty("--theme-r", `${endRadius}px`);
 
-    // 3. 해/달 아이콘 360도 스핀 모핑 애니메이션
-    const iconContainer = document.getElementById("theme-toggle-icon");
-    if (iconContainer) {
-      iconContainer.style.transform = isDark ? "rotate(360deg)" : "rotate(-360deg)";
-      setTimeout(() => { iconContainer.style.transform = "none"; }, 500);
-    }
-
-    // 4. 원형 리플 테마 전환 실행 (View Transitions API + Fallback Ripple)
+    // 3. 원형 리플 테마 전환 실행 (120fps 단일 Web Animations API 엔진, 440ms 실키 확장)
     if (typeof document.startViewTransition === "function") {
       const transition = document.startViewTransition(() => {
         this.applyTheme(nextTheme);
@@ -306,18 +373,18 @@ toggleTheme(e) {
                 ]
               },
               {
-                duration: 450,
-                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                duration: 440,
+                easing: "cubic-bezier(0.16, 1, 0.3, 1)",
                 pseudoElement: "::view-transition-new(root)"
               }
             );
           } catch (err) {
-            // CSS @keyframes fallback handles the animation
+            // Safe fallback
           }
         });
       }
     } else {
-      // 5. Fallback: View Transitions 미지원 브라우저용 원형 발광 파동 효과
+      // 4. Fallback: View Transitions 미지원 환경용 부드러운 파동
       this.triggerFallbackRipple(x, y, endRadius, nextTheme);
       this.applyTheme(nextTheme);
     }
@@ -338,7 +405,7 @@ toggleTheme(e) {
       : "0 0 35px 15px rgba(99, 102, 241, 0.25)";
     ring.style.pointerEvents = "none";
     ring.style.zIndex = "999999";
-    ring.style.transition = "transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease-out";
+    ring.style.transition = "transform 0.44s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.44s ease-out";
     ring.style.opacity = "1";
     document.body.appendChild(ring);
 
@@ -349,7 +416,7 @@ toggleTheme(e) {
 
     setTimeout(() => {
       ring.remove();
-    }, 500);
+    }, 450);
   }
 
   applyTheme(theme) {
@@ -408,15 +475,16 @@ toggleTheme(e) {
   }
 
   updateSortOrderUI() {
-    const { sortOrderText: textEl, sortOrderIcon: iconEl } = this.elements;
+    const { sortOrderText: textEl, sortOrderIconWrapper: iconWrapper, sortOrderIcon: iconEl } = this.elements;
     const isDesc = this.sorting.order === "desc";
     
     if (textEl) {
       textEl.textContent = isDesc ? "내림차순" : "오름차순";
     }
-    if (iconEl) {
-      iconEl.setAttribute("data-lucide", isDesc ? "arrow-down-wide-narrow" : "arrow-up-narrow-wide");
-      if (window.lucide) window.lucide.createIcons();
+    const target = iconWrapper || document.getElementById("sort-order-icon-wrapper") || iconEl || document.getElementById("sort-order-icon");
+    if (target) {
+      target.style.transition = "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)";
+      target.style.transform = isDesc ? "rotate(0deg)" : "rotate(180deg)";
     }
   }
 
@@ -664,10 +732,13 @@ toggleTheme(e) {
         }
 
         if (isInitial) {
-          this.animateProgress(100, "동기화 완료!");
+          // 최소 850ms(0.85초) 동안 이모트 3마리의 통-통-통 1사이클 웨이브 바운스를 완주 보장!
+          const elapsed = Date.now() - (this.loadingStartTime || Date.now());
+          const minDisplayTime = 850;
+          const waitTime = Math.max(0, minDisplayTime - elapsed);
           setTimeout(() => {
             this.hideInitialSyncModal();
-          }, 350);
+          }, waitTime);
         }
 
         if (dot) dot.className = "status-dot green live-pulse";
@@ -690,7 +761,12 @@ toggleTheme(e) {
     } finally {
       
       if (isInitial) {
-        this.hideInitialSyncModal();
+        const elapsed = Date.now() - (this.loadingStartTime || Date.now());
+        const minDisplayTime = 850;
+        const waitTime = Math.max(0, minDisplayTime - elapsed);
+        setTimeout(() => {
+          this.hideInitialSyncModal();
+        }, waitTime);
       }
     }
   }
@@ -824,6 +900,30 @@ toggleTheme(e) {
     this.applyFilterAndRender();
   }
 
+  animateNumber(element, targetVal, duration = 650, suffix = "", prefix = "") {
+    if (!element) return;
+    const hasPrevious = element.dataset.currentValue !== undefined;
+    const startVal = parseInt(element.dataset.currentValue, 10) || 0;
+    if (hasPrevious && startVal === targetVal && element.textContent) return;
+    element.dataset.currentValue = targetVal;
+    
+    const startTime = performance.now();
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      // easeOutExpo 곡선
+      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      const current = Math.round(startVal + (targetVal - startVal) * ease);
+      element.textContent = `${prefix}${current.toLocaleString()}${suffix}`;
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        element.textContent = `${prefix}${targetVal.toLocaleString()}${suffix}`;
+      }
+    };
+    requestAnimationFrame(step);
+  }
+
   updateStats(clanData) {
     const members = Array.isArray(clanData) ? clanData : (clanData?.memberList || []);
     const totalMembers = members.length;
@@ -852,15 +952,15 @@ toggleTheme(e) {
 
     const { statTotalMembers, statMemberVacant, statTotalDonations, statAvgDonations, statDormantCount, chipCountAll, chipCountDormant, chipCountLow } = this.elements;
 
-    if (statTotalMembers) statTotalMembers.textContent = `${totalMembers} / 50`;
+    if (statTotalMembers) this.animateNumber(statTotalMembers, totalMembers, 600, " / 50");
     if (statMemberVacant) statMemberVacant.textContent = `여유 자리: ${50 - totalMembers}석`;
-    if (statTotalDonations) statTotalDonations.textContent = officialWeeklyDonations.toLocaleString();
+    if (statTotalDonations) this.animateNumber(statTotalDonations, officialWeeklyDonations, 700);
     if (statAvgDonations) statAvgDonations.textContent = `1인 평균 ${avgDonations.toLocaleString()}개`;
-    if (statDormantCount) statDormantCount.textContent = `${dormantCount}명`;
+    if (statDormantCount) this.animateNumber(statDormantCount, dormantCount, 500, "명");
     
-    if (chipCountAll) chipCountAll.textContent = totalMembers;
-    if (chipCountDormant) chipCountDormant.textContent = dormantCount;
-    if (chipCountLow) chipCountLow.textContent = lowDonationCount;
+    if (chipCountAll) this.animateNumber(chipCountAll, totalMembers, 400);
+    if (chipCountDormant) this.animateNumber(chipCountDormant, dormantCount, 400);
+    if (chipCountLow) this.animateNumber(chipCountLow, lowDonationCount, 400);
   }
 
   renderCharts(members, triggerAnimation = false) {
@@ -909,7 +1009,7 @@ toggleTheme(e) {
       <div class="flex-1 max-w-[145px] flex flex-col items-center">
         <div class="podium-header text-center mb-1.5 w-full px-1">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="crown-aura-glow w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
@@ -1075,7 +1175,7 @@ toggleTheme(e) {
     sortedByDonations.forEach((c, idx) => { c.donationRank = idx + 1; });
 
     this.renderCompareCharts(sortedByDonations, triggerAnimation);
-    this.renderCompareSummaryList(sortedByDonations);
+    this.renderCompareSummaryList(sortedByDonations, triggerAnimation);
 
     if (window.lucide) window.lucide.createIcons();
   }
@@ -1183,7 +1283,7 @@ toggleTheme(e) {
     }
   }
 
-  renderCompareSummaryList(clans) {
+  renderCompareSummaryList(clans, triggerAnimation = false) {
     const container = this.elements.compareSummaryList;
     if (!container) return;
 
@@ -1195,14 +1295,17 @@ toggleTheme(e) {
       const isHome = c.isHome;
       const diffDonations = c.donationsWeekly - homeDonations;
 
-      let diffBadge = `<span class="text-slate-500 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded">기준</span>`;
+      const popClass = triggerAnimation ? "badge-pop" : "";
+      const animStyle = triggerAnimation ? `style="animation-delay: ${0.12 + idx * 0.08}s"` : "";
+
+      let diffBadge = `<span class="${popClass} text-slate-500 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block" ${animStyle}>기준</span>`;
       if (!isHome) {
         if (diffDonations > 0) {
-          diffBadge = `<span class="text-emerald-400 font-mono text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">+${diffDonations.toLocaleString()}개</span>`;
+          diffBadge = `<span class="${popClass} text-emerald-400 font-mono text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-block" ${animStyle}>+${diffDonations.toLocaleString()}개</span>`;
         } else if (diffDonations < 0) {
-          diffBadge = `<span class="text-rose-400 font-mono text-[11px] font-bold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">${diffDonations.toLocaleString()}개</span>`;
+          diffBadge = `<span class="${popClass} text-rose-400 font-mono text-[11px] font-bold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20 inline-block" ${animStyle}>${diffDonations.toLocaleString()}개</span>`;
         } else {
-          diffBadge = `<span class="text-slate-400 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded">0개</span>`;
+          diffBadge = `<span class="${popClass} text-slate-400 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block" ${animStyle}>0개</span>`;
         }
       }
 
@@ -1533,7 +1636,7 @@ toggleTheme(e) {
       const received = member.donationsReceived || 0;
 
       cardsHtml += `
-        <div class="mobile-member-card">
+        <div class="mobile-member-card card-stagger-in" style="animation-delay: ${Math.min(idx * 0.035, 0.45)}s">
           <!-- 상단: 순위 + 닉네임 + 직급 & 우측 트로피 점수 -->
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
