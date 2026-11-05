@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.6 - LED 제거 & 로딩 싱크 및 마이크로 인터랙션 최적화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.7 - 정렬 회전/터치 햅틱/뱃지 팝/스태거 속도/골드 샤인 완벽 개선', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -59,6 +59,11 @@ class ClanManagerApp {
 
 
   init() {
+    // iOS Safari 및 모바일 웹킷 브라우저 :active 터치 탄성 강제 활성화
+    try {
+      document.addEventListener("touchstart", () => {}, { passive: true });
+    } catch (e) {}
+
     this.cacheDOM();
     this.bindEvents();
 
@@ -131,6 +136,7 @@ class ClanManagerApp {
       btnThemeToggle: document.getElementById("btn-theme-toggle"),
       sortOrderText: document.getElementById("sort-order-text"),
       sortOrderIcon: document.getElementById("sort-order-icon"),
+      sortOrderIconWrapper: document.getElementById("sort-order-icon-wrapper"),
       
       viewDashboard: document.getElementById("view-dashboard"),
       viewCompare: document.getElementById("view-compare"),
@@ -405,15 +411,16 @@ toggleTheme(e) {
   }
 
   updateSortOrderUI() {
-    const { sortOrderText: textEl, sortOrderIcon: iconEl } = this.elements;
+    const { sortOrderText: textEl, sortOrderIconWrapper: iconWrapper, sortOrderIcon: iconEl } = this.elements;
     const isDesc = this.sorting.order === "desc";
     
     if (textEl) {
       textEl.textContent = isDesc ? "내림차순" : "오름차순";
     }
-    if (iconEl) {
-      iconEl.style.transition = "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
-      iconEl.style.transform = isDesc ? "rotate(0deg)" : "rotate(180deg)";
+    const target = iconWrapper || document.getElementById("sort-order-icon-wrapper") || iconEl || document.getElementById("sort-order-icon");
+    if (target) {
+      target.style.transition = "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)";
+      target.style.transform = isDesc ? "rotate(0deg)" : "rotate(180deg)";
     }
   }
 
@@ -927,9 +934,12 @@ toggleTheme(e) {
       <div class="flex-1 max-w-[145px] flex flex-col items-center">
         <div class="podium-header text-center mb-1.5 w-full px-1">
           <div class="flex items-center justify-center mb-1">
-            <svg class="crown-floating w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
+            <div class="crown-shimmer-container">
+              <svg class="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] relative z-10" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+              </svg>
+              <div class="crown-gleam-line"></div>
+            </div>
           </div>
           <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
           <div class="text-xs font-bold text-slate-300 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
@@ -1093,7 +1103,7 @@ toggleTheme(e) {
     sortedByDonations.forEach((c, idx) => { c.donationRank = idx + 1; });
 
     this.renderCompareCharts(sortedByDonations, triggerAnimation);
-    this.renderCompareSummaryList(sortedByDonations);
+    this.renderCompareSummaryList(sortedByDonations, triggerAnimation);
 
     if (window.lucide) window.lucide.createIcons();
   }
@@ -1201,7 +1211,7 @@ toggleTheme(e) {
     }
   }
 
-  renderCompareSummaryList(clans) {
+  renderCompareSummaryList(clans, triggerAnimation = false) {
     const container = this.elements.compareSummaryList;
     if (!container) return;
 
@@ -1213,14 +1223,17 @@ toggleTheme(e) {
       const isHome = c.isHome;
       const diffDonations = c.donationsWeekly - homeDonations;
 
-      let diffBadge = `<span class="badge-pop text-slate-500 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded">기준</span>`;
+      const popClass = triggerAnimation ? "badge-pop" : "";
+      const animStyle = triggerAnimation ? `style="animation-delay: ${0.12 + idx * 0.08}s"` : "";
+
+      let diffBadge = `<span class="${popClass} text-slate-500 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block" ${animStyle}>기준</span>`;
       if (!isHome) {
         if (diffDonations > 0) {
-          diffBadge = `<span class="badge-pop text-emerald-400 font-mono text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-block">+${diffDonations.toLocaleString()}개</span>`;
+          diffBadge = `<span class="${popClass} text-emerald-400 font-mono text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-block" ${animStyle}>+${diffDonations.toLocaleString()}개</span>`;
         } else if (diffDonations < 0) {
-          diffBadge = `<span class="badge-pop text-rose-400 font-mono text-[11px] font-bold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20 inline-block">${diffDonations.toLocaleString()}개</span>`;
+          diffBadge = `<span class="${popClass} text-rose-400 font-mono text-[11px] font-bold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20 inline-block" ${animStyle}>${diffDonations.toLocaleString()}개</span>`;
         } else {
-          diffBadge = `<span class="badge-pop text-slate-400 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block">0개</span>`;
+          diffBadge = `<span class="${popClass} text-slate-400 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block" ${animStyle}>0개</span>`;
         }
       }
 
@@ -1551,7 +1564,7 @@ toggleTheme(e) {
       const received = member.donationsReceived || 0;
 
       cardsHtml += `
-        <div class="mobile-member-card card-stagger-in" style="animation-delay: ${Math.min(idx * 0.02, 0.28)}s">
+        <div class="mobile-member-card card-stagger-in" style="animation-delay: ${Math.min(idx * 0.035, 0.45)}s">
           <!-- 상단: 순위 + 닉네임 + 직급 & 우측 트로피 점수 -->
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
