@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.7.5 - 초기 로딩 35% 프리징 버그 수정 & 2.5초 안전 타임아웃 보장 완결', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.7.6 - 룰렛 하단 로딩바 제거 & 슬롯머신 단독 미니멀 레이아웃 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -255,13 +255,7 @@ class ClanManagerApp {
     setTimeout(() => document.getElementById("slot-window-1")?.classList.add("slot-locked"), 900);
     setTimeout(() => document.getElementById("slot-window-2")?.classList.add("slot-locked"), 1150);
 
-    // 5. 슬롯 창들이 화면에 나타나는 바로 그 순간, 하단 로딩바도 동시에 노출 (선노출 방지)
-    const progressContainer = document.getElementById("initial-sync-progress-container");
-    if (progressContainer) {
-      progressContainer.style.opacity = "1";
-    }
-
-    // 6. 슬롯 릴 회전 시작 시점부터 최소 1.2초 노출 타이머 카운트 시작!
+    // 5. 슬롯 릴 회전 시작 시점부터 최소 1.2초 노출 타이머 카운트 시작!
     this.loadingStartTime = Date.now();
   }
 
@@ -302,14 +296,8 @@ class ClanManagerApp {
       document.getElementById(`slot-window-${i}`)?.classList.add("slot-locked");
     }
 
-    // 2. 100% 충전된 로딩바 위로 네온 빛줄기(Shimmer Beam) 관통 스윕 발동!
-    const progressContainer = document.getElementById("initial-sync-progress-container");
-    if (progressContainer) {
-      progressContainer.classList.add("shimmer-beam-active");
-    }
-
-    // 3. 빛줄기가 오른쪽 끝을 통과하는 순간(약 420ms)에 로딩창 전체 실키 페이드아웃 시작
-    await new Promise((resolve) => setTimeout(resolve, 420));
+    // 2. 3번째 릴 안착 후 골드 락 아우라를 감상(약 280ms)한 뒤 로딩창 실키 페이드아웃 시작
+    await new Promise((resolve) => setTimeout(resolve, 280));
 
     modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
     modal.style.opacity = "0";
