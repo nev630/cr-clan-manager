@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.7.4 - 이모티콘 슬롯머신 룰렛(Emote Slot Machine) 로딩 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.7.5 - 초기 로딩 35% 프리징 버그 수정 & 2.5초 안전 타임아웃 보장 완결', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -727,18 +727,23 @@ toggleTheme(e) {
         this.renderClan(partialData);
       }, isManual);
 
-      // 초기 로딩인 경우: 이모트 3장 프리로드가 완료되어 화면에 노출될 때까지 대기 (로딩바 선노출 방지)
+      // 초기 로딩인 경우: 슬롯머신 릴이 도는 동안 게이지를 35% -> 75%로 지속 전진
       if (isInitial && this.emotesReadyPromise) {
         await this.emotesReadyPromise;
-        // 이모트가 화면에 나타난 직후 게이지 35%로 부드럽게 전진
-        this.animateProgress(35, "서버 연결 완료 · 클랜 정보 요청 중...");
+        this.animateProgress(35, "서버 연결 완료 · 클랜 정보 요청 중...", 200);
+        setTimeout(() => {
+          if (!this.elements.initialSyncModal?.dataset?.dismissed) {
+            this.animateProgress(75, "클랜 데이터 분석 중...", 650);
+          }
+        }, 250);
       }
 
-      const liveData = await dataFetchPromise;
+      // 최대 2.5초 안전 타임아웃 레이스를 통해 네트워크 지연/서버 무응답 시에도 무한 프리징 원천 차단
+      const timeoutFallback = new Promise((resolve) => setTimeout(() => resolve(null), 2500));
+      const liveData = await Promise.race([dataFetchPromise, timeoutFallback]);
 
       if (liveData && liveData.memberList) {
-        // 1. 서버 원본 기준으로 배틀로그가 누락된 멤버 선별 (캐시 바인딩 전에 먼저 추출하여 보충 조회 보장)
-        // 서버에서 배틀로그를 주지 못했거나 캐시로부터만 바인딩된 멤버 선별 (배틀 이력 없음 확인된 멤버 제외)
+        // 1. 서버 원본 기준으로 배틀로그가 누락된 멤버 선별
         const missingBattleMembers = liveData.memberList.filter((m) => (!m.lastBattleTime || m._fromCache) && !m._noBattles);
 
         // 2. 서버 요약에서 수신된 최신 배틀로그를 로컬 캐시에 즉시 동기화
@@ -762,7 +767,6 @@ toggleTheme(e) {
         // 3. 서버에 배틀시간이 비어있던 멤버에게만 보충 바인딩
         this.bindCachedBattleLogs(liveData.memberList);
 
-        // 수동 새로고침일 때만 차트 솟아오름 애니메이션 적용 (초기 진입은 모달 해제 시 발동, 자동 갱신은 정적 유지)
         const shouldAnimateManual = isManual && !isInitial;
         this.renderClan(liveData, shouldAnimateManual);
         if (shouldAnimateManual) {
@@ -772,39 +776,50 @@ toggleTheme(e) {
           }, 850);
         }
 
-        if (isInitial) {
-          // 최소 850ms(0.85초) 동안 이모트 3마리의 통-통-통 1사이클 웨이브 바운스를 완주 보장!
-          const elapsed = Date.now() - (this.loadingStartTime || Date.now());
-          const minDisplayTime = 1200;
-          const waitTime = Math.max(0, minDisplayTime - elapsed);
-          
-          // 하단 초슬림 게이지 바를 웨이브 완주 시점에 맞춰 100%까지 부드럽게 채움
-          this.animateProgress(100, "", Math.max(200, waitTime));
-
-          setTimeout(() => {
-            this.hideInitialSyncModal();
-          }, waitTime);
-        }
-
         if (dot) dot.className = "status-dot green live-pulse";
 
         // 4. 배틀로그 누락 멤버가 있다면 백그라운드에서 개별 핀포인트 수집
         if (missingBattleMembers.length > 0) {
           this.fetchAllMembersBattleLogs(missingBattleMembers);
         }
+      } else if (!this.currentData) {
+        // 네트워크 타임아웃 또는 일시적 오류 시 기본 프리셋 데이터로 복구하여 대시보드 렌더링
+        const presets = window.crApi?.getGalleryClansPreset() || [];
+        const homeClan = presets.find(p => p.isHome) || presets[0];
+        if (homeClan) {
+          this.renderClan({ ...homeClan, memberList: [] });
+        }
+      }
+
+      if (isInitial) {
+        const elapsed = Date.now() - (this.loadingStartTime || Date.now());
+        const minDisplayTime = 1200;
+        const waitTime = Math.max(0, minDisplayTime - elapsed);
+        
+        // 100% 충전 및 모달 해제 보장
+        this.animateProgress(100, "", Math.max(150, waitTime));
+
+        setTimeout(() => {
+          this.hideInitialSyncModal();
+        }, waitTime);
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
       if (dot) dot.className = "status-dot red";
 
       if (!this.currentData) {
+        const presets = window.crApi?.getGalleryClansPreset() || [];
+        const homeClan = presets.find(p => p.isHome) || presets[0];
+        if (homeClan) {
+          this.renderClan({ ...homeClan, memberList: [] });
+        }
         this.renderEmptyState(err.message);
         this.showErrorModal(err);
       } else if (isManual) {
         alert(`데이터 갱신 실패: ${err.message}`);
       }
     } finally {
-      if (isInitial && (!this.currentData || !this.currentData.memberList)) {
+      if (isInitial) {
         const elapsed = Date.now() - (this.loadingStartTime || Date.now());
         const minDisplayTime = 1200;
         const waitTime = Math.max(0, minDisplayTime - elapsed);

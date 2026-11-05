@@ -85,7 +85,7 @@ class ClashRoyaleAPI {
     return `${workerUrl}${endpoint}`;
   }
 
-  async fetchWithAuth(endpoint) {
+  async fetchWithAuth(endpoint, timeoutMs = 6000) {
     // 실시간 캐시 버스터(_t) 강제 부착 및 cache: 'no-store' 적용으로 항상 최신 데이터 동기화
     const sep = endpoint.includes("?") ? "&" : "?";
     const cacheBustedEndpoint = `${endpoint}${sep}_t=${Date.now()}`;
@@ -100,37 +100,49 @@ class ClashRoyaleAPI {
       headers["Authorization"] = `Bearer ${this.settings.apiKey.trim()}`;
     }
 
-    const response = await fetch(url, { 
-      method: "GET", 
-      headers,
-      cache: "no-store"
-    });
-    const rawText = await response.text();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!response.ok) {
-      let errText = rawText;
-      if (rawText) {
-        try {
-          const errJson = JSON.parse(rawText);
-          errText = errJson.message || errJson.reason || JSON.stringify(errJson);
-        } catch {
-          // Non-JSON 응답인 경우 너무 긴 HTML 에러 페이지는 상태 코드와 축약 메시지로 가공
-          if (rawText.length > 200) {
-            errText = `서버 응답 오류 (${response.statusText || response.status})`;
+    try {
+      const response = await fetch(url, { 
+        method: "GET", 
+        headers,
+        cache: "no-store",
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      const rawText = await response.text();
+
+      if (!response.ok) {
+        let errText = rawText;
+        if (rawText) {
+          try {
+            const errJson = JSON.parse(rawText);
+            errText = errJson.message || errJson.reason || JSON.stringify(errJson);
+          } catch {
+            if (rawText.length > 200) {
+              errText = `서버 응답 오류 (${response.statusText || response.status})`;
+            }
           }
         }
+        throw new Error(`API 오류 (${response.status}): ${errText || response.statusText}`);
       }
-      throw new Error(`API 오류 (${response.status}): ${errText || response.statusText}`);
-    }
 
-    return rawText ? JSON.parse(rawText) : null;
+      return rawText ? JSON.parse(rawText) : null;
+    } catch (e) {
+      clearTimeout(timer);
+      if (e.name === "AbortError") {
+        throw new Error(`API 응답 시간 초과 (${timeoutMs / 1000}초)`);
+      }
+      throw e;
+    }
   }
 
   // 1. 신규 단일 통합 요약 조회 (클랜 + 50명 배틀로그 원샷 반환)
   async fetchClanSummary(clanTag, force = false) {
     try {
       const q = force ? '?force=1' : '';
-      return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}/summary${q}`);
+      return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}/summary${q}`, 3500);
     } catch (e) {
       console.warn("단일 통합 요약 엔드포인트 미지원 또는 응답 지연 -> 일반 조회로 폴백:", e.message);
       return null;
