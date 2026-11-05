@@ -39,7 +39,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=1.6.5" />
+  <link rel="stylesheet" href="css/style.css?v=1.6.7" />
 
   <style>
     /* 단색 심플 로딩바 초부드러운 이징 */
@@ -312,8 +312,8 @@
         <!-- JavaScript에서 매 접속마다 랜덤 3개 인게임 이모트 동적 렌더링 -->
       </div>
 
-      <!-- 이모트 하단 초슬림 심플 단색 로딩 바 (너비 144px, 높이 2.5px, 인디고 단색) -->
-      <div class="w-36 max-w-full bg-white/[0.08] rounded-full h-[2.5px] overflow-hidden mt-3 relative">
+      <!-- 이모트 하단 초슬림 심플 단색 로딩 바 (너비 144px, 높이 2.5px, 인디고 단색) - 이모트 프리로드 완료 전 선노출 방지 (opacity: 0) -->
+      <div id="initial-sync-progress-container" class="w-36 max-w-full bg-white/[0.08] rounded-full h-[2.5px] overflow-hidden mt-3 relative transition-opacity duration-200" style="opacity: 0;">
         <div id="initial-sync-progress-bar" class="bg-indigo-500 h-full rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(99,102,241,0.5)]" style="width: 0%"></div>
       </div>
     </div>
@@ -345,6 +345,6 @@
 
   <!-- Scripts with Cache Busting -->
   <script src="js/api.js?v=1.5.4"></script>
-  <script src="js/app.js?v=1.6.5"></script>
+  <script src="js/app.js?v=1.6.7"></script>
 </body>
 </html>

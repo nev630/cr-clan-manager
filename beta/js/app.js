@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.6.5 - 이모트 하단 초슬림 단색 로딩바 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.6.7 - 데이터 로드 완료 시 이모지 3인방 동시 점프 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717" },
@@ -76,8 +76,8 @@ class ClanManagerApp {
 
   init() {
     this.loadingStartTime = Date.now();
-    // 12종 공식 인게임 이모트 중 랜덤 3인방 즉시 렌더링
-    this.renderRandomLoadingEmotes();
+    // 12종 공식 인게임 이모트 중 랜덤 3인방 병렬 프리로드 프로미스 등록
+    this.emotesReadyPromise = this.renderRandomLoadingEmotes();
 
     // iOS Safari 및 모바일 웹킷 브라우저 :active 터치 탄성 강제 활성화
     try {
@@ -146,6 +146,7 @@ class ClanManagerApp {
 
   cacheDOM() {
     this.elements = {
+      initialSyncProgressContainer: document.getElementById("initial-sync-progress-container"),
       initialSyncProgressBar: document.getElementById("initial-sync-progress-bar"),
       initialSyncPercent: document.getElementById("initial-sync-percent"),
       initialSyncStatusMsg: document.getElementById("initial-sync-status-msg"),
@@ -226,7 +227,13 @@ class ClanManagerApp {
       </div>
     `).join("");
 
-    // 4. 세 이모트가 모두 화면에 완벽히 등장한 바로 그 시점부터 0.85초 최소 노출 타이머 카운트 시작!
+    // 4. 이모트 3장이 화면에 나타나는 바로 그 순간, 하단 로딩바도 동시에 노출 (선노출 방지)
+    const progressContainer = document.getElementById("initial-sync-progress-container");
+    if (progressContainer) {
+      progressContainer.style.opacity = "1";
+    }
+
+    // 5. 세 이모트가 모두 화면에 완벽히 등장한 바로 그 시점부터 0.85초 최소 노출 타이머 카운트 시작!
     this.loadingStartTime = Date.now();
   }
 
@@ -257,41 +264,45 @@ class ClanManagerApp {
     }
   }
 
-  hideInitialSyncModal() {
+  async hideInitialSyncModal() {
     const modal = this.elements.initialSyncModal;
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    // 1. 데이터 수신 완료 즉시 3개 이모트 동시 축하 팝 & 섬광 발동!
+    // 1. 데이터 로드 완료 즉시 3개 이모지 다같이 동시 점프 발동!
     const container = document.getElementById("loading-emotes-container");
     if (container) {
       const items = container.querySelectorAll(".loading-emote-item");
       items.forEach((item) => {
-        item.classList.remove("emote-bounce");
-        item.classList.add("emotes-complete-pop");
+        // 기존 개별 웨이브 애니메이션 및 딜레이 클래스 완전 제거
+        item.classList.remove("emote-bounce", "emote-delay-0", "emote-delay-1", "emote-delay-2", "emotes-complete-pop");
+        // 강제 리플로우(reflow)로 애니메이션 동시 시작 보장
+        void item.offsetWidth;
+        // 3개 동시 점프 클래스 추가
+        item.classList.add("emotes-together-jump");
       });
     }
 
-    // 2. 이모트가 번쩍 튀어오르는 절정 시점(150ms)에 모달 페이드아웃 시작
-    setTimeout(() => {
-      modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
-      modal.style.opacity = "0";
-      modal.style.pointerEvents = "none";
+    // 2. 세 이모지가 다같이 힘차게 점프하고 착지하는 시점(약 480ms)에 로딩창 페이드아웃 시작
+    await new Promise((resolve) => setTimeout(resolve, 480));
 
-      // 모달이 걷히며 본 화면이 드러나는 바로 그 순간 시상대 솟아오름 및 파이차트 회전·확장 애니메이션 동시 발동!
-      if (this.currentData?.memberList) {
-        this.renderPodium(this.currentData.memberList, true);
-        this.renderActivityDonut(this.currentData.memberList, true);
-        setTimeout(() => {
-          this.elements.podiumContainer?.classList.remove("podium-animate");
-          this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
-        }, 850);
-      }
+    modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
+    modal.style.opacity = "0";
+    modal.style.pointerEvents = "none";
 
+    // 모달이 걷히며 본 화면이 드러나는 바로 그 순간 시상대 솟아오름 및 파이차트 회전·확장 애니메이션 동시 발동!
+    if (this.currentData?.memberList) {
+      this.renderPodium(this.currentData.memberList, true);
+      this.renderActivityDonut(this.currentData.memberList, true);
       setTimeout(() => {
-        modal.classList.add("hidden");
-      }, 290);
-    }, 150);
+        this.elements.podiumContainer?.classList.remove("podium-animate");
+        this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+      }, 850);
+    }
+
+    setTimeout(() => {
+      modal.classList.add("hidden");
+    }, 290);
   }
 
   bindEvents() {
@@ -680,20 +691,25 @@ toggleTheme(e) {
     
 
     const isInitial = !this.elements.initialSyncModal?.dataset?.dismissed;
-    if (isInitial) {
-      this.animateProgress(30, "서버 연결 완료 · 클랜 정보 요청 중...");
-    }
-
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
 
     try {
-      // 수동 클릭 시 force=true를 전달하여 서버 및 브라우저 캐시 강제 우회
-      const liveData = await window.crApi.fetchClanFullData(tag, (partialData) => {
+      // 수동 클릭 시 force=true를 전달하여 서버 및 브라우저 캐시 강제 우회 (데이터 패치는 지연 없이 즉시 병렬 시작)
+      const dataFetchPromise = window.crApi.fetchClanFullData(tag, (partialData) => {
         if (partialData?.memberList) {
           this.bindCachedBattleLogs(partialData.memberList);
         }
         this.renderClan(partialData);
       }, isManual);
+
+      // 초기 로딩인 경우: 이모트 3장 프리로드가 완료되어 화면에 노출될 때까지 대기 (로딩바 선노출 방지)
+      if (isInitial && this.emotesReadyPromise) {
+        await this.emotesReadyPromise;
+        // 이모트가 화면에 나타난 직후 게이지 35%로 부드럽게 전진
+        this.animateProgress(35, "서버 연결 완료 · 클랜 정보 요청 중...");
+      }
+
+      const liveData = await dataFetchPromise;
 
       if (liveData && liveData.memberList) {
         // 1. 서버 원본 기준으로 배틀로그가 누락된 멤버 선별 (캐시 바인딩 전에 먼저 추출하여 보충 조회 보장)
@@ -763,8 +779,7 @@ toggleTheme(e) {
         alert(`데이터 갱신 실패: ${err.message}`);
       }
     } finally {
-      
-      if (isInitial) {
+      if (isInitial && (!this.currentData || !this.currentData.memberList)) {
         const elapsed = Date.now() - (this.loadingStartTime || Date.now());
         const minDisplayTime = 850;
         const waitTime = Math.max(0, minDisplayTime - elapsed);
