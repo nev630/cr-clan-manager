@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.7.6 - 룰렛 하단 로딩바 제거 & 슬롯머신 단독 미니멀 레이아웃 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.7.7 - 데이터 로딩 완료 연동형 슬롯머신 무한회전 및 땅땅땅 순차 착지 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -194,10 +194,11 @@ class ClanManagerApp {
 
     // 8종 공식 인게임 이모트 풀에서 3개 비복원 무작위 추출 (최종 당첨 타겟 이모티콘 3종)
     const shuffled = [...CR_EMOTES_POOL].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, 3);
+    this.targetEmotes = shuffled.slice(0, 3);
+    this.slotStopTriggered = false;
 
     // 1. 레이아웃 덜컹거림(CLS) 방지: 3개 슬롯 창(w-16 h-16 / w-20 h-20)의 투명 자리부터 고정 예약
-    container.innerHTML = selected.map((_, idx) => `
+    container.innerHTML = this.targetEmotes.map((_, idx) => `
       <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${idx}"></div>
     `).join("");
 
@@ -214,49 +215,93 @@ class ClanManagerApp {
     const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 300));
     await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
 
-    // 3. 슬롯머신 릴(Reel Strip) 구축:
-    // Slot 0: 6개 더미 + 타겟 = 총 7개 (0.65초 멈춤)
-    // Slot 1: 8개 더미 + 타겟 = 총 9개 (0.90초 멈춤)
-    // Slot 2: 10개 더미 + 타겟 = 총 11개 (1.15초 멈춤)
-    const reelCounts = [7, 9, 11];
-
-    container.innerHTML = selected.map((targetEmote, slotIdx) => {
-      const count = reelCounts[slotIdx];
-      const reelItems = [];
-      // 타겟 이전의 더미 아이템들을 풀에서 무작위 선택하여 채움
-      for (let i = 0; i < count - 1; i++) {
-        const dummy = CR_EMOTES_POOL[Math.floor(Math.random() * CR_EMOTES_POOL.length)];
-        reelItems.push(dummy);
-      }
-      // 마지막 아이템은 최종 결정된 타겟 이모티콘
-      reelItems.push(targetEmote);
-
-      const itemsHtml = reelItems.map((item) => `
-        <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
-          <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
-            <img src="${item.url}" 
-                 alt="${item.name}" 
-                 class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
-          </div>
+    // 3. 슬롯머신 릴(Reel Strip) 구축: 무한 고속 회전 릴 (8종 이모트 2회 반복 = 16개 아이템)
+    // 데이터 로드가 끝날 때까지 멈추지 않고 3개 릴이 독립 속도로 계속 돕니다.
+    const loopItems = [...CR_EMOTES_POOL, ...CR_EMOTES_POOL];
+    const itemsHtml = loopItems.map((item) => `
+      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
+          <img src="${item.url}" 
+               alt="${item.name}" 
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
         </div>
-      `).join("");
+      </div>
+    `).join("");
 
-      return `
-        <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${slotIdx}">
-          <div class="slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-spin-${slotIdx}">
-            ${itemsHtml}
-          </div>
+    container.innerHTML = [0, 1, 2].map((slotIdx) => `
+      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${slotIdx}">
+        <div class="slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-spin-infinite-${slotIdx}" id="slot-reel-${slotIdx}">
+          ${itemsHtml}
         </div>
-      `;
-    }).join("");
+      </div>
+    `).join("");
 
-    // 4. 슬롯머신이 돌아가는 동안 각 릴이 멈추는 시점마다 골드 락(Lock) 이펙트 점등!
-    setTimeout(() => document.getElementById("slot-window-0")?.classList.add("slot-locked"), 650);
-    setTimeout(() => document.getElementById("slot-window-1")?.classList.add("slot-locked"), 900);
-    setTimeout(() => document.getElementById("slot-window-2")?.classList.add("slot-locked"), 1150);
-
-    // 5. 슬롯 릴 회전 시작 시점부터 최소 1.2초 노출 타이머 카운트 시작!
+    // 4. 슬롯 릴 회전 시작 시점 기록 (최소 스핀 시간 보장용)
     this.loadingStartTime = Date.now();
+  }
+
+  stopSlotReel(slotIdx, targetEmote) {
+    const reelEl = document.getElementById(`slot-reel-${slotIdx}`);
+    const windowEl = document.getElementById(`slot-window-${slotIdx}`);
+    if (!reelEl || !windowEl) return;
+
+    // 4개 더미 아이템 + 1개 최종 타겟 아이템 (총 5개)
+    // 풀에서 타겟을 제외하거나 무작위로 4개 더미를 추출하고 5번째(인덱스 4)에 최종 타겟 배치
+    const pool = CR_EMOTES_POOL.filter(e => e.name !== targetEmote.name);
+    const dummies = [];
+    for (let i = 0; i < 4; i++) {
+      dummies.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+    const decelItems = [...dummies, targetEmote];
+
+    const decelHtml = decelItems.map((item) => `
+      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
+          <img src="${item.url}" 
+               alt="${item.name}" 
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
+        </div>
+      </div>
+    `).join("");
+
+    // 무한 회전을 즉시 해제하고 기계식 감속 바운스 애니메이션(.slot-stopping) 적용
+    reelEl.className = "slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-stopping";
+    reelEl.innerHTML = decelHtml;
+
+    // 0.42s 감속 완료 시점에 기계식 오버슈트 착지 완료 및 골드 락 아우라(땅!) 발동
+    setTimeout(() => {
+      windowEl.classList.add("slot-locked");
+    }, 420);
+  }
+
+  async triggerSlotStopSequence() {
+    if (this.slotStopTriggered) return;
+    this.slotStopTriggered = true;
+
+    // 최소 스핀 시간 (550ms): 데이터가 0.1초 만에 로드되더라도 룰렛 회전의 즐거움을 온전히 체감할 수 있도록 보장
+    const elapsed = Date.now() - (this.loadingStartTime || Date.now());
+    const minSpinDuration = 550;
+    if (elapsed < minSpinDuration) {
+      await new Promise(r => setTimeout(r, minSpinDuration - elapsed));
+    }
+
+    const targets = this.targetEmotes || CR_EMOTES_POOL.slice(0, 3);
+
+    // 1번 릴 감속 시작 -> 420ms 시점 착! (땅!)
+    this.stopSlotReel(0, targets[0]);
+
+    // 2번 릴 감속 시작 (+180ms) -> 600ms 시점 착! (땅!)
+    await new Promise(r => setTimeout(r, 180));
+    this.stopSlotReel(1, targets[1]);
+
+    // 3번 릴 감속 시작 (+180ms) -> 780ms 시점 착! (땅!)
+    await new Promise(r => setTimeout(r, 180));
+    this.stopSlotReel(2, targets[2]);
+
+    // 3번 릴 착지(420ms) 및 골드 락 아우라 감상(260ms) 후 대시보드로 실키 페이드아웃
+    await new Promise(r => setTimeout(r, 420 + 260));
+
+    await this.hideInitialSyncModal();
   }
 
   animateProgress(targetPercent, msg, duration = 350) {
@@ -715,15 +760,9 @@ toggleTheme(e) {
         this.renderClan(partialData);
       }, isManual);
 
-      // 초기 로딩인 경우: 슬롯머신 릴이 도는 동안 게이지를 35% -> 75%로 지속 전진
+      // 초기 로딩인 경우: 데이터 패치는 이미 병렬 진행 중이며, 이모티콘 준비 대기
       if (isInitial && this.emotesReadyPromise) {
         await this.emotesReadyPromise;
-        this.animateProgress(35, "서버 연결 완료 · 클랜 정보 요청 중...", 200);
-        setTimeout(() => {
-          if (!this.elements.initialSyncModal?.dataset?.dismissed) {
-            this.animateProgress(75, "클랜 데이터 분석 중...", 650);
-          }
-        }, 250);
       }
 
       // 최대 2.5초 안전 타임아웃 레이스를 통해 네트워크 지연/서버 무응답 시에도 무한 프리징 원천 차단
@@ -780,16 +819,8 @@ toggleTheme(e) {
       }
 
       if (isInitial) {
-        const elapsed = Date.now() - (this.loadingStartTime || Date.now());
-        const minDisplayTime = 1200;
-        const waitTime = Math.max(0, minDisplayTime - elapsed);
-        
-        // 100% 충전 및 모달 해제 보장
-        this.animateProgress(100, "", Math.max(150, waitTime));
-
-        setTimeout(() => {
-          this.hideInitialSyncModal();
-        }, waitTime);
+        // 데이터 수신 완료 즉시 룰렛이 땅! 땅! 땅! 순차적으로 멈추며 모달 해제
+        await this.triggerSlotStopSequence();
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
@@ -808,12 +839,7 @@ toggleTheme(e) {
       }
     } finally {
       if (isInitial) {
-        const elapsed = Date.now() - (this.loadingStartTime || Date.now());
-        const minDisplayTime = 1200;
-        const waitTime = Math.max(0, minDisplayTime - elapsed);
-        setTimeout(() => {
-          this.hideInitialSyncModal();
-        }, waitTime);
+        await this.triggerSlotStopSequence();
       }
     }
   }

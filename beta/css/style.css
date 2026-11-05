@@ -845,7 +845,9 @@ button, .podium-step, .mobile-member-card, .filter-chip {
 
 
 /* ============================================================
-   v1.7.4 이모티콘 슬롯머신 룰렛 (Emote Slot Machine) 애니메이션
+   v1.7.7 실시간 데이터 로딩 연동형 슬롯머신 룰렛 애니메이션
+   - 데이터 수신 전: 3개 릴이 각기 다른 속도로 무한 고속 회전 (Infinite Spin)
+   - 데이터 수신 후: 1번 -> 2번 -> 3번 릴이 순차 감속하며 땅! 땅! 땅! 기계식 착지 (Sequential Stop & Lock)
    ============================================================ */
 .slot-window {
   box-shadow: inset 0 3px 12px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.4);
@@ -858,71 +860,55 @@ button, .podium-step, .mobile-member-card, .filter-chip {
   transform: scale(1.03);
 }
 
-@keyframes slotSpinReel0 {
+.slot-reel-strip {
+  will-change: transform, filter;
+}
+
+/* 1. 데이터 로드 대기 중: 16개 아이템(8종x2) 기준 0% -> -50% 무한 루프 회전 */
+@keyframes slotSpinLoop {
   0% {
     transform: translateY(0%);
     filter: blur(2px);
   }
-  65% {
-    filter: blur(0.8px);
-  }
-  86% {
-    /* 기계식 오버슈트 바운스 */
-    transform: translateY(-87.8%);
-    filter: blur(0);
-  }
   100% {
-    transform: translateY(-85.714%);
-    filter: blur(0);
+    transform: translateY(-50%);
+    filter: blur(2px);
   }
 }
 
-@keyframes slotSpinReel1 {
+.slot-spin-infinite-0 {
+  animation: slotSpinLoop 0.24s linear infinite !important;
+}
+
+.slot-spin-infinite-1 {
+  animation: slotSpinLoop 0.21s linear infinite !important;
+}
+
+.slot-spin-infinite-2 {
+  animation: slotSpinLoop 0.26s linear infinite !important;
+}
+
+/* 2. 데이터 수신 완료 시: 5개 아이템(더미4+타겟1) 감속 및 기계식 오버슈트 바운스 착지 (땅!) */
+@keyframes slotStopDecel {
   0% {
     transform: translateY(0%);
     filter: blur(2px);
   }
-  70% {
+  50% {
     filter: blur(0.8px);
   }
-  88% {
-    /* 기계식 오버슈트 바운스 */
-    transform: translateY(-90.6%);
+  82% {
+    /* 기계식 오버슈트 리바운드: -80%를 살짝 지나침 */
+    transform: translateY(-82.6%);
     filter: blur(0);
   }
   100% {
-    transform: translateY(-88.889%);
+    /* 5번째 타겟 아이템 정위치 (4번째 인덱스 = -80%) */
+    transform: translateY(-80%);
     filter: blur(0);
   }
 }
 
-@keyframes slotSpinReel2 {
-  0% {
-    transform: translateY(0%);
-    filter: blur(2px);
-  }
-  75% {
-    filter: blur(0.8px);
-  }
-  90% {
-    /* 기계식 오버슈트 바운스 */
-    transform: translateY(-92.3%);
-    filter: blur(0);
-  }
-  100% {
-    transform: translateY(-90.909%);
-    filter: blur(0);
-  }
-}
-
-.slot-spin-0 {
-  animation: slotSpinReel0 0.65s cubic-bezier(0.18, 0.85, 0.28, 1) forwards !important;
-}
-
-.slot-spin-1 {
-  animation: slotSpinReel1 0.90s cubic-bezier(0.18, 0.85, 0.28, 1) forwards !important;
-}
-
-.slot-spin-2 {
-  animation: slotSpinReel2 1.15s cubic-bezier(0.18, 0.85, 0.28, 1) forwards !important;
+.slot-stopping {
+  animation: slotStopDecel 0.42s cubic-bezier(0.12, 0.8, 0.25, 1) forwards !important;
 }
