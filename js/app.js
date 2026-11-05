@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.7.0 - 하얀 상자 바닥선(Baseline) 수평 일직선 강제 정렬 캘리브레이션 적용 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.7.7 - 데이터 로딩 완료 연동형 슬롯머신 무한회전 및 땅땅땅 순차 착지 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -192,48 +192,116 @@ class ClanManagerApp {
     const container = document.getElementById("loading-emotes-container");
     if (!container) return;
 
-    // 12종 공식 인게임 이모트 풀에서 3개 비복원 무작위 추출
+    // 8종 공식 인게임 이모트 풀에서 3개 비복원 무작위 추출 (최종 당첨 타겟 이모티콘 3종)
     const shuffled = [...CR_EMOTES_POOL].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, 3);
+    this.targetEmotes = shuffled.slice(0, 3);
+    this.slotStopTriggered = false;
 
-    // 1. 레이아웃 덜컹거림(CLS) 방지: 3개 슬롯(w-16 h-16 / w-20 h-20)의 투명 자리부터 고정 예약
-    container.innerHTML = selected.map((_, idx) => `
-      <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0" id="emote-slot-${idx}"></div>
+    // 1. 레이아웃 덜컹거림(CLS) 방지: 3개 슬롯 창(w-16 h-16 / w-20 h-20)의 투명 자리부터 고정 예약
+    container.innerHTML = this.targetEmotes.map((_, idx) => `
+      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${idx}"></div>
     `).join("");
 
-    // 2. Promise.all로 3장의 이미지를 브라우저 메모리에 병렬 동시 프리로드 (최대 300ms 타임아웃 안전망)
-    const preloadPromises = selected.map((emote, idx) => {
+    // 2. 8종 이모트 전체를 브라우저 메모리에 병렬 동시 사전 프리로드 (최대 300ms 타임아웃 안전망)
+    const preloadPromises = CR_EMOTES_POOL.map((emote) => {
       return new Promise((resolve) => {
         const img = new Image();
         img.src = emote.url;
-        img.onload = () => resolve({ emote, idx, img });
-        img.onerror = () => resolve({ emote, idx, img });
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
       });
     });
 
     const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 300));
     await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
 
-    // 3. 3장의 이미지가 모두 준비된 바로 그 순간, 1프레임에 동시에 화면에 일괄 주입!
-    // 하얀 상자 바닥선(Baseline) 수평 일직선 강제 정렬: 독립 래퍼에 offsetY 보정 적용
-    container.innerHTML = selected.map((emote, idx) => `
-      <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
-        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${emote.offsetY || 0}px);">
-          <img src="${emote.url}" 
-               alt="${emote.name}" 
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] emote-bounce emote-delay-${idx} loading-emote-item pointer-events-none select-none" />
+    // 3. 슬롯머신 릴(Reel Strip) 구축: 무한 고속 회전 릴 (8종 이모트 2회 반복 = 16개 아이템)
+    // 데이터 로드가 끝날 때까지 멈추지 않고 3개 릴이 독립 속도로 계속 돕니다.
+    const loopItems = [...CR_EMOTES_POOL, ...CR_EMOTES_POOL];
+    const itemsHtml = loopItems.map((item) => `
+      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
+          <img src="${item.url}" 
+               alt="${item.name}" 
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
         </div>
       </div>
     `).join("");
 
-    // 4. 이모트 3장이 화면에 나타나는 바로 그 순간, 하단 로딩바도 동시에 노출 (선노출 방지)
-    const progressContainer = document.getElementById("initial-sync-progress-container");
-    if (progressContainer) {
-      progressContainer.style.opacity = "1";
+    container.innerHTML = [0, 1, 2].map((slotIdx) => `
+      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${slotIdx}">
+        <div class="slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-spin-infinite-${slotIdx}" id="slot-reel-${slotIdx}">
+          ${itemsHtml}
+        </div>
+      </div>
+    `).join("");
+
+    // 4. 슬롯 릴 회전 시작 시점 기록 (최소 스핀 시간 보장용)
+    this.loadingStartTime = Date.now();
+  }
+
+  stopSlotReel(slotIdx, targetEmote) {
+    const reelEl = document.getElementById(`slot-reel-${slotIdx}`);
+    const windowEl = document.getElementById(`slot-window-${slotIdx}`);
+    if (!reelEl || !windowEl) return;
+
+    // 4개 더미 아이템 + 1개 최종 타겟 아이템 (총 5개)
+    // 풀에서 타겟을 제외하거나 무작위로 4개 더미를 추출하고 5번째(인덱스 4)에 최종 타겟 배치
+    const pool = CR_EMOTES_POOL.filter(e => e.name !== targetEmote.name);
+    const dummies = [];
+    for (let i = 0; i < 4; i++) {
+      dummies.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+    const decelItems = [...dummies, targetEmote];
+
+    const decelHtml = decelItems.map((item) => `
+      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
+          <img src="${item.url}" 
+               alt="${item.name}" 
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
+        </div>
+      </div>
+    `).join("");
+
+    // 무한 회전을 즉시 해제하고 기계식 감속 바운스 애니메이션(.slot-stopping) 적용
+    reelEl.className = "slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-stopping";
+    reelEl.innerHTML = decelHtml;
+
+    // 0.42s 감속 완료 시점에 기계식 오버슈트 착지 완료 및 골드 락 아우라(땅!) 발동
+    setTimeout(() => {
+      windowEl.classList.add("slot-locked");
+    }, 420);
+  }
+
+  async triggerSlotStopSequence() {
+    if (this.slotStopTriggered) return;
+    this.slotStopTriggered = true;
+
+    // 최소 스핀 시간 (550ms): 데이터가 0.1초 만에 로드되더라도 룰렛 회전의 즐거움을 온전히 체감할 수 있도록 보장
+    const elapsed = Date.now() - (this.loadingStartTime || Date.now());
+    const minSpinDuration = 550;
+    if (elapsed < minSpinDuration) {
+      await new Promise(r => setTimeout(r, minSpinDuration - elapsed));
     }
 
-    // 5. 세 이모트가 모두 화면에 완벽히 등장한 바로 그 시점부터 0.85초 최소 노출 타이머 카운트 시작!
-    this.loadingStartTime = Date.now();
+    const targets = this.targetEmotes || CR_EMOTES_POOL.slice(0, 3);
+
+    // 1번 릴 감속 시작 -> 420ms 시점 착! (땅!)
+    this.stopSlotReel(0, targets[0]);
+
+    // 2번 릴 감속 시작 (+180ms) -> 600ms 시점 착! (땅!)
+    await new Promise(r => setTimeout(r, 180));
+    this.stopSlotReel(1, targets[1]);
+
+    // 3번 릴 감속 시작 (+180ms) -> 780ms 시점 착! (땅!)
+    await new Promise(r => setTimeout(r, 180));
+    this.stopSlotReel(2, targets[2]);
+
+    // 3번 릴 착지(420ms) 및 골드 락 아우라 감상(260ms) 후 대시보드로 실키 페이드아웃
+    await new Promise(r => setTimeout(r, 420 + 260));
+
+    await this.hideInitialSyncModal();
   }
 
   animateProgress(targetPercent, msg, duration = 350) {
@@ -268,22 +336,13 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    // 1. 데이터 로드 완료 즉시 3개 이모지 다같이 동시 점프 발동!
-    const container = document.getElementById("loading-emotes-container");
-    if (container) {
-      const items = container.querySelectorAll(".loading-emote-item");
-      items.forEach((item) => {
-        // 기존 개별 웨이브 애니메이션 및 딜레이 클래스 완전 제거
-        item.classList.remove("emote-bounce", "emote-delay-0", "emote-delay-1", "emote-delay-2", "emotes-complete-pop");
-        // 강제 리플로우(reflow)로 애니메이션 동시 시작 보장
-        void item.offsetWidth;
-        // 3개 동시 점프 클래스 추가
-        item.classList.add("emotes-together-jump");
-      });
+    // 1. 슬롯머신 3개 창 전체 골드 락 아우라 확정
+    for (let i = 0; i < 3; i++) {
+      document.getElementById(`slot-window-${i}`)?.classList.add("slot-locked");
     }
 
-    // 2. 세 이모지가 다같이 힘차게 점프하고 착지하는 시점(약 480ms)에 로딩창 페이드아웃 시작
-    await new Promise((resolve) => setTimeout(resolve, 480));
+    // 2. 3번째 릴 안착 후 골드 락 아우라를 감상(약 280ms)한 뒤 로딩창 실키 페이드아웃 시작
+    await new Promise((resolve) => setTimeout(resolve, 280));
 
     modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
     modal.style.opacity = "0";
@@ -701,18 +760,17 @@ toggleTheme(e) {
         this.renderClan(partialData);
       }, isManual);
 
-      // 초기 로딩인 경우: 이모트 3장 프리로드가 완료되어 화면에 노출될 때까지 대기 (로딩바 선노출 방지)
+      // 초기 로딩인 경우: 데이터 패치는 이미 병렬 진행 중이며, 이모티콘 준비 대기
       if (isInitial && this.emotesReadyPromise) {
         await this.emotesReadyPromise;
-        // 이모트가 화면에 나타난 직후 게이지 35%로 부드럽게 전진
-        this.animateProgress(35, "서버 연결 완료 · 클랜 정보 요청 중...");
       }
 
-      const liveData = await dataFetchPromise;
+      // 최대 2.5초 안전 타임아웃 레이스를 통해 네트워크 지연/서버 무응답 시에도 무한 프리징 원천 차단
+      const timeoutFallback = new Promise((resolve) => setTimeout(() => resolve(null), 2500));
+      const liveData = await Promise.race([dataFetchPromise, timeoutFallback]);
 
       if (liveData && liveData.memberList) {
-        // 1. 서버 원본 기준으로 배틀로그가 누락된 멤버 선별 (캐시 바인딩 전에 먼저 추출하여 보충 조회 보장)
-        // 서버에서 배틀로그를 주지 못했거나 캐시로부터만 바인딩된 멤버 선별 (배틀 이력 없음 확인된 멤버 제외)
+        // 1. 서버 원본 기준으로 배틀로그가 누락된 멤버 선별
         const missingBattleMembers = liveData.memberList.filter((m) => (!m.lastBattleTime || m._fromCache) && !m._noBattles);
 
         // 2. 서버 요약에서 수신된 최신 배틀로그를 로컬 캐시에 즉시 동기화
@@ -736,7 +794,6 @@ toggleTheme(e) {
         // 3. 서버에 배틀시간이 비어있던 멤버에게만 보충 바인딩
         this.bindCachedBattleLogs(liveData.memberList);
 
-        // 수동 새로고침일 때만 차트 솟아오름 애니메이션 적용 (초기 진입은 모달 해제 시 발동, 자동 갱신은 정적 유지)
         const shouldAnimateManual = isManual && !isInitial;
         this.renderClan(liveData, shouldAnimateManual);
         if (shouldAnimateManual) {
@@ -746,45 +803,43 @@ toggleTheme(e) {
           }, 850);
         }
 
-        if (isInitial) {
-          // 최소 850ms(0.85초) 동안 이모트 3마리의 통-통-통 1사이클 웨이브 바운스를 완주 보장!
-          const elapsed = Date.now() - (this.loadingStartTime || Date.now());
-          const minDisplayTime = 850;
-          const waitTime = Math.max(0, minDisplayTime - elapsed);
-          
-          // 하단 초슬림 게이지 바를 웨이브 완주 시점에 맞춰 100%까지 부드럽게 채움
-          this.animateProgress(100, "", Math.max(200, waitTime));
-
-          setTimeout(() => {
-            this.hideInitialSyncModal();
-          }, waitTime);
-        }
-
         if (dot) dot.className = "status-dot green live-pulse";
 
         // 4. 배틀로그 누락 멤버가 있다면 백그라운드에서 개별 핀포인트 수집
         if (missingBattleMembers.length > 0) {
           this.fetchAllMembersBattleLogs(missingBattleMembers);
         }
+      } else if (!this.currentData) {
+        // 네트워크 타임아웃 또는 일시적 오류 시 기본 프리셋 데이터로 복구하여 대시보드 렌더링
+        const presets = window.crApi?.getGalleryClansPreset() || [];
+        const homeClan = presets.find(p => p.isHome) || presets[0];
+        if (homeClan) {
+          this.renderClan({ ...homeClan, memberList: [] });
+        }
+      }
+
+      if (isInitial) {
+        // 데이터 수신 완료 즉시 룰렛이 땅! 땅! 땅! 순차적으로 멈추며 모달 해제
+        await this.triggerSlotStopSequence();
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
       if (dot) dot.className = "status-dot red";
 
       if (!this.currentData) {
+        const presets = window.crApi?.getGalleryClansPreset() || [];
+        const homeClan = presets.find(p => p.isHome) || presets[0];
+        if (homeClan) {
+          this.renderClan({ ...homeClan, memberList: [] });
+        }
         this.renderEmptyState(err.message);
         this.showErrorModal(err);
       } else if (isManual) {
         alert(`데이터 갱신 실패: ${err.message}`);
       }
     } finally {
-      if (isInitial && (!this.currentData || !this.currentData.memberList)) {
-        const elapsed = Date.now() - (this.loadingStartTime || Date.now());
-        const minDisplayTime = 850;
-        const waitTime = Math.max(0, minDisplayTime - elapsed);
-        setTimeout(() => {
-          this.hideInitialSyncModal();
-        }, waitTime);
+      if (isInitial) {
+        await this.triggerSlotStopSequence();
       }
     }
   }
@@ -1449,7 +1504,7 @@ toggleTheme(e) {
         text: `${diffHours}시간 전`,
         dotColor: "amber",
         isPulse: false,
-        textColor: "text-amber-300 font-medium"
+        textColor: "text-amber-300 font-semibold"
       };
     }
 
@@ -1470,7 +1525,7 @@ toggleTheme(e) {
       text: `${diffDays}일 전`,
       dotColor: "amber",
       isPulse: false,
-      textColor: "text-amber-300 font-medium"
+      textColor: "text-amber-300 font-semibold"
     };
   }
 

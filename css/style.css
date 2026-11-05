@@ -404,9 +404,15 @@ html.light .text-slate-500 {
   color: #64748b !important;
 }
 
-/* 포인트 색상 고대비 보정 */
+/* 포인트 색상 고대비 보정 (라이트 모드 접속 상태 가독성 극대화) */
+html.light .text-amber-300 {
+  color: #b45309 !important;
+}
 html.light .text-amber-400 {
-  color: #d97706 !important;
+  color: #b45309 !important;
+}
+html.light .status-dot.amber {
+  background-color: #d97706 !important;
 }
 html.light .text-emerald-400 {
   color: #059669 !important;
@@ -768,4 +774,141 @@ button, .podium-step, .mobile-member-card, .filter-chip {
   animation: emoteTogetherJump 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
   animation-delay: 0s !important;
   transform-origin: bottom center !important;
+}
+
+
+/* ============================================================
+   v1.7.1 데이터 로드 완료 시 클래시 로얄 3D 카드 플립(Card Flip) 애니메이션
+   ============================================================ */
+@keyframes emote3DCardFlip {
+  0% {
+    transform: perspective(600px) rotateY(0deg) scale(1);
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+  }
+  35% {
+    /* 카드 반회전 & 입체 팽창 & 황금 섬광 */
+    transform: perspective(600px) rotateY(130deg) scale(1.15);
+    filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.85)) brightness(1.25);
+  }
+  70% {
+    /* 회전 가속 및 네온 인디고 글로우 */
+    transform: perspective(600px) rotateY(260deg) scale(1.08);
+    filter: drop-shadow(0 0 30px rgba(99, 102, 241, 0.85)) brightness(1.2);
+  }
+  100% {
+    /* 360도 완주 & 카드 안착 */
+    transform: perspective(600px) rotateY(360deg) scale(1);
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6)) brightness(1);
+  }
+}
+
+.emotes-card-flip {
+  animation: emote3DCardFlip 0.48s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+  animation-delay: 0s !important;
+  transform-origin: center center !important;
+  backface-visibility: visible !important;
+}
+
+
+/* ============================================================
+   v1.7.3 데이터 로드 완료 시 로딩바 네온 빛줄기 스윕 (Shimmer Beam Sweep)
+   ============================================================ */
+@keyframes shimmerBeamSweep {
+  0% {
+    left: -60px;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+.shimmer-beam-active::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 55px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.95) 45%, rgba(165, 180, 252, 1) 70%, transparent 100%);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 18px rgba(99, 102, 241, 0.85);
+  animation: shimmerBeamSweep 0.42s cubic-bezier(0.2, 0.8, 0.35, 1) forwards !important;
+  pointer-events: none;
+  z-index: 10;
+}
+
+
+/* ============================================================
+   v1.7.7 실시간 데이터 로딩 연동형 슬롯머신 룰렛 애니메이션
+   - 데이터 수신 전: 3개 릴이 각기 다른 속도로 무한 고속 회전 (Infinite Spin)
+   - 데이터 수신 후: 1번 -> 2번 -> 3번 릴이 순차 감속하며 땅! 땅! 땅! 기계식 착지 (Sequential Stop & Lock)
+   ============================================================ */
+.slot-window {
+  box-shadow: inset 0 3px 12px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.slot-window.slot-locked {
+  border-color: rgba(251, 191, 36, 0.7) !important;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 20px rgba(251, 191, 36, 0.4) !important;
+  transform: scale(1.03);
+}
+
+.slot-reel-strip {
+  will-change: transform, filter;
+}
+
+/* 1. 데이터 로드 대기 중: 16개 아이템(8종x2) 기준 0% -> -50% 무한 루프 회전 */
+@keyframes slotSpinLoop {
+  0% {
+    transform: translateY(0%);
+    filter: blur(2px);
+  }
+  100% {
+    transform: translateY(-50%);
+    filter: blur(2px);
+  }
+}
+
+.slot-spin-infinite-0 {
+  animation: slotSpinLoop 0.24s linear infinite !important;
+}
+
+.slot-spin-infinite-1 {
+  animation: slotSpinLoop 0.21s linear infinite !important;
+}
+
+.slot-spin-infinite-2 {
+  animation: slotSpinLoop 0.26s linear infinite !important;
+}
+
+/* 2. 데이터 수신 완료 시: 5개 아이템(더미4+타겟1) 감속 및 기계식 오버슈트 바운스 착지 (땅!) */
+@keyframes slotStopDecel {
+  0% {
+    transform: translateY(0%);
+    filter: blur(2px);
+  }
+  50% {
+    filter: blur(0.8px);
+  }
+  82% {
+    /* 기계식 오버슈트 리바운드: -80%를 살짝 지나침 */
+    transform: translateY(-82.6%);
+    filter: blur(0);
+  }
+  100% {
+    /* 5번째 타겟 아이템 정위치 (4번째 인덱스 = -80%) */
+    transform: translateY(-80%);
+    filter: blur(0);
+  }
+}
+
+.slot-stopping {
+  animation: slotStopDecel 0.42s cubic-bezier(0.12, 0.8, 0.25, 1) forwards !important;
 }
