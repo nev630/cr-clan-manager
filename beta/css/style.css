@@ -574,7 +574,7 @@ html.dark #icon-moon {
 }
 ::view-transition-new(root) {
   z-index: 999999;
-  animation: theme-circle-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: theme-circle-reveal 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes theme-circle-reveal {
@@ -586,4 +586,72 @@ html.dark #icon-moon {
     clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
     -webkit-clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
   }
+}
+
+/* ============================================================
+   v1.5.6 마이크로 인터랙션 & 반응성 최적화 애니메이션
+   ============================================================ */
+
+/* 1위 시상대 금빛 왕관 미세 플로팅 (Floating Crown) */
+@keyframes crownFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.crown-floating {
+  animation: crownFloat 2.4s ease-in-out infinite;
+}
+
+/* 클랜원 카드 스태거(순차) 페이드인 (Staggered Fade-in) */
+@keyframes cardStaggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.card-stagger-in {
+  animation: cardStaggerIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 타 갤클 비교 격차 뱃지 팝 모션 (Badge Pop) */
+@keyframes badgePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.badge-pop {
+  display: inline-block;
+  animation: badgePop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+/* 모바일 터치 탄성 피드백 */
+.podium-step:active {
+  transform: scale(0.97);
+}
+.surface-card:active {
+  transform: scale(0.995);
+}
+.filter-chip:active {
+  transform: scale(0.95);
+}
+#btn-sort-order:active {
+  transform: scale(0.95);
+}
+#btn-theme-toggle:active {
+  transform: scale(0.92);
 }
