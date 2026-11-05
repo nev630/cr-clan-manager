@@ -539,10 +539,24 @@ html.light #initial-sync-modal {
 }
 
 /* ============================================================
-   해 ↔ 달 아이콘 모핑 & 스핀 인터랙션
+   해 ↔ 달 아이콘 모핑 & 실키 스핀 인터랙션 (CSS 단일 파이프라인)
    ============================================================ */
 #btn-theme-toggle {
   touch-action: manipulation;
+}
+#theme-toggle-icon {
+  transition: transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center;
+}
+html.light #theme-toggle-icon {
+  transform: rotate(360deg);
+}
+html.dark #theme-toggle-icon {
+  transform: rotate(0deg);
+}
+#icon-sun, #icon-moon {
+  transition: opacity 0.3s ease, transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center;
 }
 html.light #icon-sun {
   opacity: 1 !important;
@@ -550,11 +564,11 @@ html.light #icon-sun {
 }
 html.light #icon-moon {
   opacity: 0 !important;
-  transform: rotate(-90deg) scale(0.3) !important;
+  transform: rotate(-90deg) scale(0.2) !important;
 }
 html.dark #icon-sun {
   opacity: 0 !important;
-  transform: rotate(90deg) scale(0.3) !important;
+  transform: rotate(90deg) scale(0.2) !important;
 }
 html.dark #icon-moon {
   opacity: 1 !important;
@@ -562,7 +576,7 @@ html.dark #icon-moon {
 }
 
 /* ============================================================
-   다크/라이트 모드 네이티브 원형 리플 확장 애니메이션 (Circular Ripple View Transition)
+   다크/라이트 모드 네이티브 원형 리플 확장 애니메이션 (Single Web Animations API Engine)
    ============================================================ */
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -574,18 +588,6 @@ html.dark #icon-moon {
 }
 ::view-transition-new(root) {
   z-index: 999999;
-  animation: theme-circle-reveal 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes theme-circle-reveal {
-  0% {
-    clip-path: circle(0px at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
-    -webkit-clip-path: circle(0px at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
-  }
-  100% {
-    clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
-    -webkit-clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, calc(100% - 36px)) var(--theme-y, 36px));
-  }
 }
 
 
@@ -593,47 +595,21 @@ html.dark #icon-moon {
    v1.5.7 인터랙션 & 햅틱 반응성 완전 최적화
    ============================================================ */
 
-/* 1위 시상대 금빛 왕관 정교한 골드 샤인(Gleam) 효과 (플로팅 제거 & 보석 광택 적용) */
-.crown-shimmer-container {
-  position: relative;
-  overflow: hidden;
-  border-radius: 6px;
-  padding: 2px 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+/* 1위 시상대 금빛 왕관 럭셔리 네온 오라 (Neon Aura Pulse) */
+@keyframes goldAuraPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7)) drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.65));
+    transform: scale(1.05);
+  }
 }
-.crown-gleam-line {
-  position: absolute;
-  top: -60%;
-  left: -130%;
-  width: 55%;
-  height: 220%;
-  background: linear-gradient(
-    105deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.2) 25%,
-    rgba(255, 245, 170, 0.9) 50%,
-    rgba(255, 255, 255, 0.2) 75%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: rotate(25deg);
-  pointer-events: none;
-  z-index: 20;
-  animation: crownGleam 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-@keyframes crownGleam {
-  0%, 25% {
-    left: -130%;
-    opacity: 0;
-  }
-  35% {
-    opacity: 1;
-  }
-  50%, 100% {
-    left: 140%;
-    opacity: 0;
-  }
+.crown-aura-glow {
+  display: inline-block;
+  transform-origin: center;
+  animation: goldAuraPulse 2.8s ease-in-out infinite;
 }
 
 /* 클랜원 카드 스태거(순차) 페이드인 (Staggered Fade-in) - 가시성 및 리듬감 확보 */
