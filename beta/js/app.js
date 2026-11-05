@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.6.2 - 이모트 3인방 0.85초 최소 노출 보장 & 리드미컬 웨이브 완주 연동', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.6.3 - Promise.all 동시 프리로드 후 이모트 3인방 무결점 일괄 렌더링 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717" },
@@ -191,7 +191,7 @@ class ClanManagerApp {
     this.animateProgress(percent, msg, 350);
   }
 
-  renderRandomLoadingEmotes() {
+  async renderRandomLoadingEmotes() {
     const container = document.getElementById("loading-emotes-container");
     if (!container) return;
 
@@ -199,13 +199,35 @@ class ClanManagerApp {
     const shuffled = [...CR_EMOTES_POOL].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, 3);
 
+    // 1. 레이아웃 덜컹거림(CLS) 방지: 3개 슬롯(w-16 h-16 / w-20 h-20)의 투명 자리부터 고정 예약
+    container.innerHTML = selected.map((_, idx) => `
+      <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0" id="emote-slot-${idx}"></div>
+    `).join("");
+
+    // 2. Promise.all로 3장의 이미지를 브라우저 메모리에 병렬 동시 프리로드 (최대 300ms 타임아웃 안전망)
+    const preloadPromises = selected.map((emote, idx) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.src = emote.url;
+        img.onload = () => resolve({ emote, idx, img });
+        img.onerror = () => resolve({ emote, idx, img });
+      });
+    });
+
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 300));
+    await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
+
+    // 3. 3장의 이미지가 모두 준비된 바로 그 순간, 1프레임에 동시에 화면에 일괄 주입!
     container.innerHTML = selected.map((emote, idx) => `
-      <div class="relative flex flex-col items-center justify-center">
+      <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
         <img src="${emote.url}" 
              alt="${emote.name}" 
              class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] emote-bounce emote-delay-${idx} loading-emote-item pointer-events-none select-none" />
       </div>
     `).join("");
+
+    // 4. 세 이모트가 모두 화면에 완벽히 등장한 바로 그 시점부터 0.85초 최소 노출 타이머 카운트 시작!
+    this.loadingStartTime = Date.now();
   }
 
   animateProgress(targetPercent, msg, duration = 350) {
