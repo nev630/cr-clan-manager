@@ -39,7 +39,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=1.6.0" />
+  <link rel="stylesheet" href="css/style.css?v=1.6.1" />
 
   <style>
     /* 단색 심플 로딩바 초부드러운 이징 */
@@ -304,29 +304,12 @@
 
   </div>
 
-  <!-- 7. 초기 실시간 동기화 오버레이 팝업 (미니멀 마법 상자 테마 - 텍스트 완전 생략) -->
+  <!-- 7. 초기 실시간 동기화 오버레이 (실제 인게임 이모트 3인방 랜덤 웨이브 바운스) -->
   <div id="initial-sync-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#090b10]/95 backdrop-blur-md transition-opacity duration-300">
-    <div class="surface-card p-6 rounded-2xl max-w-xs w-full mx-4 text-center border border-purple-500/25 shadow-[0_0_35px_rgba(168,85,247,0.2)] relative overflow-hidden">
-      <!-- 실제 클래시 로얄 인게임 마법 상자 & 쉐이크/오라 연출 -->
-      <div class="relative w-24 h-24 mx-auto mb-2 flex items-center justify-center">
-        <!-- 보랏빛 마법 오라 펄스 (배경) -->
-        <div class="absolute inset-0 rounded-full bg-purple-600/25 blur-xl animate-pulse"></div>
-        <!-- 실제 인게임 마법 상자 3D PNG 이미지 -->
-        <img src="https://static.wikia.nocookie.net/clashroyale/images/7/7f/Magical_Chest.png/revision/latest?cb=20230411120930" 
-             alt="Magical Chest" 
-             id="loading-magic-chest"
-             class="w-20 h-20 object-contain relative z-10 drop-shadow-[0_4px_16px_rgba(168,85,247,0.65)] chest-wobble select-none pointer-events-none" />
-      </div>
-
-      <!-- 마법 퍼플 단색 심플 게이지 (텍스트 생략 미니멀 디자인) -->
-      <div class="w-full bg-white/[0.06] rounded-full h-2.5 overflow-hidden mt-3 relative border border-purple-500/30 shadow-inner p-[1px]">
-        <div id="initial-sync-progress-bar" class="bg-purple-500 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(168,85,247,0.5)]" style="width: 0%"></div>
-      </div>
-
-      <!-- 볼드 네온 퍼센트 (퍼플 네온 글로우) -->
-      <div class="flex items-center justify-center mt-2.5 font-mono">
-        <span id="initial-sync-percent" class="text-purple-300 font-extrabold text-sm tracking-wider drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]">0%</span>
-        <span id="initial-sync-status-msg" class="hidden"></span>
+    <div class="flex flex-col items-center justify-center p-6 select-none pointer-events-none">
+      <!-- 12종 공식 인게임 이모트 중 3개 무작위 가로 웨이브 바운스 컨테이너 -->
+      <div id="loading-emotes-container" class="flex items-center justify-center gap-3.5 sm:gap-5 py-4">
+        <!-- JavaScript에서 매 접속마다 랜덤 3개 인게임 이모트 동적 렌더링 -->
       </div>
     </div>
   </div>
@@ -357,6 +340,6 @@
 
   <!-- Scripts with Cache Busting -->
   <script src="js/api.js?v=1.5.4"></script>
-  <script src="js/app.js?v=1.6.0"></script>
+  <script src="js/app.js?v=1.6.1"></script>
 </body>
 </html>

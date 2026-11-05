@@ -6,7 +6,22 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.6.0 - 텍스트 생략 미니멀 상자 & 단색 게이지 & 상자 오픈 펀치 연출 최적화', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.6.1 - 12종 공식 인게임 이모트 랜덤 3인방 웨이브 바운스 로딩 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
+
+const CR_EMOTES_POOL = [
+  { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717" },
+  { name: "우는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/a/af/Crying_King.png/revision/latest?cb=20230915211808" },
+  { name: "생각하는 호그라이더", url: "https://static.wikia.nocookie.net/clashroyale/images/b/b0/Hog_Rider_Thinking.png/revision/latest?cb=20230922123138" },
+  { name: "비명 호그라이더", url: "https://static.wikia.nocookie.net/clashroyale/images/b/b6/Hog_Rider_Scream.png/revision/latest?cb=20230922123136" },
+  { name: "이마 짚는 고블린", url: "https://static.wikia.nocookie.net/clashroyale/images/d/dc/Facepalm_Goblin.png/revision/latest?cb=20230918084628" },
+  { name: "댑 마법사", url: "https://static.wikia.nocookie.net/clashroyale/images/d/d9/Dab_Wizard.png/revision/latest?cb=20230921074038" },
+  { name: "브이 프린세스", url: "https://static.wikia.nocookie.net/clashroyale/images/0/0f/Peace_Princess.png/revision/latest?cb=20230920123025" },
+  { name: "팬케이크 미니페카", url: "https://static.wikia.nocookie.net/clashroyale/images/e/e9/Pancakes_Mini_PEKKA.png/revision/latest?cb=20181202220626" },
+  { name: "따봉 일렉트로 마법사", url: "https://static.wikia.nocookie.net/clashroyale/images/3/37/Electro_Wizard_Thumbs-Up.png/revision/latest?cb=20181027033128" },
+  { name: "환호하는 기사", url: "https://static.wikia.nocookie.net/clashroyale/images/5/54/Cheer_Knight.png/revision/latest?cb=20181202220620" },
+  { name: "우는 해골", url: "https://static.wikia.nocookie.net/clashroyale/images/7/73/Crying_Skeleton.png/revision/latest?cb=20180921183431" },
+  { name: "고기 뜯는 자이언트", url: "https://static.wikia.nocookie.net/clashroyale/images/b/bb/Eating_Giant.png/revision/latest?cb=20230920123020" }
+];
 
 class ClanManagerApp {
   constructor() {
@@ -59,6 +74,9 @@ class ClanManagerApp {
 
 
   init() {
+    // 12종 공식 인게임 이모트 중 랜덤 3인방 즉시 렌더링
+    this.renderRandomLoadingEmotes();
+
     // iOS Safari 및 모바일 웹킷 브라우저 :active 터치 탄성 강제 활성화
     try {
       document.addEventListener("touchstart", () => {}, { passive: true });
@@ -171,6 +189,23 @@ class ClanManagerApp {
     this.animateProgress(percent, msg, 350);
   }
 
+  renderRandomLoadingEmotes() {
+    const container = document.getElementById("loading-emotes-container");
+    if (!container) return;
+
+    // 12종 공식 인게임 이모트 풀에서 3개 비복원 무작위 추출
+    const shuffled = [...CR_EMOTES_POOL].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 3);
+
+    container.innerHTML = selected.map((emote, idx) => `
+      <div class="relative flex flex-col items-center justify-center">
+        <img src="${emote.url}" 
+             alt="${emote.name}" 
+             class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] emote-bounce emote-delay-${idx} loading-emote-item pointer-events-none select-none" />
+      </div>
+    `).join("");
+  }
+
   animateProgress(targetPercent, msg, duration = 350) {
     const startPercent = this.currentProgress || 0;
     const clampedTarget = Math.min(100, Math.max(0, Math.round(targetPercent)));
@@ -203,14 +238,17 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    // 1. 실제 인게임 마법 상자 100% 도달 즉시 오픈 펀치 팝 & 섬광 폭발 발동!
-    const chest = document.getElementById("loading-magic-chest");
-    if (chest) {
-      chest.classList.remove("chest-wobble");
-      chest.classList.add("chest-burst");
+    // 1. 데이터 수신 완료 즉시 3개 이모트 동시 축하 팝 & 섬광 발동!
+    const container = document.getElementById("loading-emotes-container");
+    if (container) {
+      const items = container.querySelectorAll(".loading-emote-item");
+      items.forEach((item) => {
+        item.classList.remove("emote-bounce");
+        item.classList.add("emotes-complete-pop");
+      });
     }
 
-    // 2. 상자가 번쩍 터지는 절정 시점(150ms)에 모달 페이드아웃 시작 (시차 연동으로 오픈 손맛 명확히 체감)
+    // 2. 이모트가 번쩍 튀어오르는 절정 시점(150ms)에 모달 페이드아웃 시작
     setTimeout(() => {
       modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
       modal.style.opacity = "0";
