@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.6.7 - 데이터 로드 완료 시 이모지 3인방 동시 점프 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.6.8 - 이모지 풀 전수 검수 및 균일 스케일 9대 얼굴 클로즈업 풀 정비 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717" },
@@ -14,11 +14,8 @@ const CR_EMOTES_POOL = [
   { name: "생각하는 호그라이더", url: "https://static.wikia.nocookie.net/clashroyale/images/b/b0/Hog_Rider_Thinking.png/revision/latest?cb=20230922123138" },
   { name: "비명 호그라이더", url: "https://static.wikia.nocookie.net/clashroyale/images/b/b6/Hog_Rider_Scream.png/revision/latest?cb=20230922123136" },
   { name: "이마 짚는 고블린", url: "https://static.wikia.nocookie.net/clashroyale/images/d/dc/Facepalm_Goblin.png/revision/latest?cb=20230918084628" },
-  { name: "댑 마법사", url: "https://static.wikia.nocookie.net/clashroyale/images/d/d9/Dab_Wizard.png/revision/latest?cb=20230921074038" },
   { name: "브이 프린세스", url: "https://static.wikia.nocookie.net/clashroyale/images/0/0f/Peace_Princess.png/revision/latest?cb=20230920123025" },
-  { name: "팬케이크 미니페카", url: "https://static.wikia.nocookie.net/clashroyale/images/e/e9/Pancakes_Mini_PEKKA.png/revision/latest?cb=20181202220626" },
   { name: "따봉 일렉트로 마법사", url: "https://static.wikia.nocookie.net/clashroyale/images/3/37/Electro_Wizard_Thumbs-Up.png/revision/latest?cb=20181027033128" },
-  { name: "환호하는 기사", url: "https://static.wikia.nocookie.net/clashroyale/images/5/54/Cheer_Knight.png/revision/latest?cb=20181202220620" },
   { name: "우는 해골", url: "https://static.wikia.nocookie.net/clashroyale/images/7/73/Crying_Skeleton.png/revision/latest?cb=20180921183431" },
   { name: "고기 뜯는 자이언트", url: "https://static.wikia.nocookie.net/clashroyale/images/b/bb/Eating_Giant.png/revision/latest?cb=20230920123020" }
 ];
