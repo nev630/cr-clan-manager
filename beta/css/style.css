@@ -588,28 +588,59 @@ html.dark #icon-moon {
   }
 }
 
+
 /* ============================================================
-   v1.5.6 마이크로 인터랙션 & 반응성 최적화 애니메이션
+   v1.5.7 인터랙션 & 햅틱 반응성 완전 최적화
    ============================================================ */
 
-/* 1위 시상대 금빛 왕관 미세 플로팅 (Floating Crown) */
-@keyframes crownFloat {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
+/* 1위 시상대 금빛 왕관 정교한 골드 샤인(Gleam) 효과 (플로팅 제거 & 보석 광택 적용) */
+.crown-shimmer-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
-.crown-floating {
-  animation: crownFloat 2.4s ease-in-out infinite;
+.crown-gleam-line {
+  position: absolute;
+  top: -60%;
+  left: -130%;
+  width: 55%;
+  height: 220%;
+  background: linear-gradient(
+    105deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 25%,
+    rgba(255, 245, 170, 0.9) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  z-index: 20;
+  animation: crownGleam 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes crownGleam {
+  0%, 25% {
+    left: -130%;
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  50%, 100% {
+    left: 140%;
+    opacity: 0;
+  }
 }
 
-/* 클랜원 카드 스태거(순차) 페이드인 (Staggered Fade-in) */
+/* 클랜원 카드 스태거(순차) 페이드인 (Staggered Fade-in) - 가시성 및 리듬감 확보 */
 @keyframes cardStaggerIn {
   from {
     opacity: 0;
-    transform: translateY(5px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -617,17 +648,17 @@ html.dark #icon-moon {
   }
 }
 .card-stagger-in {
-  animation: cardStaggerIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: cardStaggerIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* 타 갤클 비교 격차 뱃지 팝 모션 (Badge Pop) */
+/* 타 갤클 비교 격차 뱃지 팝 모션 (Badge Pop) - 탄성 바운스 */
 @keyframes badgePop {
   0% {
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0.65);
   }
-  70% {
-    transform: scale(1.08);
+  65% {
+    transform: scale(1.18);
   }
   100% {
     opacity: 1;
@@ -636,22 +667,37 @@ html.dark #icon-moon {
 }
 .badge-pop {
   display: inline-block;
-  animation: badgePop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  transform-origin: center;
+  animation: badgePop 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
-/* 모바일 터치 탄성 피드백 */
-.podium-step:active {
-  transform: scale(0.97);
+/* 모바일 터치 하이라이트 제거 및 쫀득한 터치 반응 최적화 */
+* {
+  -webkit-tap-highlight-color: transparent;
 }
-.surface-card:active {
-  transform: scale(0.995);
+button, .podium-step, .mobile-member-card, .filter-chip {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.podium-step:active {
+  transform: scale(0.96) !important;
+  transition: transform 0.08s ease;
+}
+.mobile-member-card:active {
+  transform: scale(0.985);
+  background: var(--bg-surface-hover) !important;
+  transition: transform 0.08s ease, background 0.08s ease;
 }
 .filter-chip:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
+  transition: transform 0.08s ease;
 }
 #btn-sort-order:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
+  transition: transform 0.08s ease;
 }
 #btn-theme-toggle:active {
-  transform: scale(0.92);
+  transform: scale(0.90);
+  transition: transform 0.08s ease;
 }
