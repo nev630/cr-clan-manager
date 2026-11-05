@@ -39,7 +39,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=1.5.7" />
+  <link rel="stylesheet" href="css/style.css?v=1.5.8" />
 
   <style>
     /* 단색 심플 로딩바 초부드러운 이징 */
@@ -89,15 +89,15 @@
         </button>
 
         <!-- 테마 전환 버튼 (해/달 360도 회전 모핑) -->
-        <button id="btn-theme-toggle" class="p-2 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300 hover:text-white transition flex items-center justify-center relative overflow-hidden" title="다크 / 라이트 모드 전환" aria-label="테마 전환">
-          <div id="theme-toggle-icon" class="relative w-4 h-4 flex items-center justify-center transition-transform duration-500">
+        <button id="btn-theme-toggle" class="p-2 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300 hover:text-white transition flex items-center justify-center relative overflow-hidden select-none" title="다크 / 라이트 모드 전환" aria-label="테마 전환">
+          <div id="theme-toggle-icon" class="relative w-4 h-4 flex items-center justify-center pointer-events-none">
             <!-- Sun SVG (라이트 모드 시 표시) -->
-            <svg id="icon-sun" class="w-4 h-4 text-amber-500 absolute transition-all duration-500 transform opacity-0 rotate-90 scale-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg id="icon-sun" class="w-4 h-4 text-amber-500 absolute pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="4"/>
               <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
             </svg>
             <!-- Moon SVG (다크 모드 시 표시) -->
-            <svg id="icon-moon" class="w-4 h-4 text-amber-300 absolute transition-all duration-500 transform opacity-100 rotate-0 scale-100" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg id="icon-moon" class="w-4 h-4 text-amber-300 absolute pointer-events-none" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
             </svg>
           </div>
@@ -189,7 +189,7 @@
             전체 <span class="text-slate-400 ml-1 font-mono text-[11px]" id="chip-count-all">47</span>
           </button>
           <button class="filter-chip text-xs" data-filter="dormant" onclick="window.app.setFilterTab('dormant', this)">
-            미접속 3일+ <span class="text-rose-400 ml-1 font-mono text-[11px]" id="chip-count-dormant">1</span>
+            미접속 3일+ <span class="text-rose-400 ml-1 font-mono text-[11px]" id="chip-count-dormant">0</span>
           </button>
           <button class="filter-chip text-xs" data-filter="low-donations" onclick="window.app.setFilterTab('low-donations', this)">
             지원 저조 (50 미만) <span class="text-amber-400 ml-1 font-mono text-[11px]" id="chip-count-low">0</span>
@@ -360,6 +360,6 @@
 
   <!-- Scripts with Cache Busting -->
   <script src="js/api.js?v=1.5.4"></script>
-  <script src="js/app.js?v=1.5.7"></script>
+  <script src="js/app.js?v=1.5.8"></script>
 </body>
 </html>
