@@ -708,16 +708,21 @@ button, .podium-step, .mobile-member-card, .filter-chip {
     transform: scale(1);
     filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.7));
   }
-  50% {
-    transform: scale(1.18) translateY(-8px);
-    filter: drop-shadow(0 0 28px rgba(251, 191, 36, 0.95)) brightness(1.3);
+  40% {
+    transform: scale(1.26) translateY(-10px);
+    filter: drop-shadow(0 0 35px rgba(251, 191, 36, 1)) drop-shadow(0 0 15px rgba(255, 255, 255, 0.9)) brightness(1.5);
+  }
+  75% {
+    transform: scale(1.32) translateY(-14px);
+    filter: drop-shadow(0 0 50px rgba(255, 255, 255, 1)) brightness(1.7);
+    opacity: 0.8;
   }
   100% {
-    transform: scale(1.25) translateY(-12px);
-    filter: drop-shadow(0 0 45px rgba(255, 255, 255, 1)) brightness(1.5);
+    transform: scale(1.36) translateY(-18px);
+    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) brightness(2);
     opacity: 0;
   }
 }
 .chest-burst {
-  animation: chestOpenBurst 0.35s ease-out forwards !important;
+  animation: chestOpenBurst 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
