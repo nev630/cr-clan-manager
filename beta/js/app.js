@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.8 - 미접속 카운트 정상화 & 120fps 실키 테마리플 & 금빛 네온 오라', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.9 - 실제 인게임 마법 상자(Magical Chest) 로딩 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -203,8 +203,15 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    // 인위적 지연(250ms) 제거: 데이터 도착 즉시 0.25초 부드러운 페이드아웃 시작
-    modal.style.transition = "opacity 0.25s ease, visibility 0.25s ease";
+    // 실제 인게임 마법 상자 100% 도달 시 오픈 광채 폭발(Chest Burst) 연출 발동
+    const chest = document.getElementById("loading-magic-chest");
+    if (chest) {
+      chest.classList.remove("chest-wobble");
+      chest.classList.add("chest-burst");
+    }
+
+    // 데이터 도착 즉시 0.28초 부드러운 페이드아웃 시작
+    modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
     modal.style.opacity = "0";
     modal.style.pointerEvents = "none";
 
@@ -220,7 +227,7 @@ class ClanManagerApp {
 
     setTimeout(() => {
       modal.classList.add("hidden");
-    }, 260);
+    }, 290);
   }
 
   bindEvents() {
