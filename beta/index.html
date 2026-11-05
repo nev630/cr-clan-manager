@@ -8,7 +8,7 @@
       <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: https://api-assets.clashroyale.com; connect-src 'self' https://green-disk-88a6.marble593812345.workers.dev https://api.clashroyale.com https://proxy.royaleapi.dev https://corsproxy.io https://api.allorigins.win;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: https://api-assets.clashroyale.com https://static.wikia.nocookie.net; connect-src 'self' https://green-disk-88a6.marble593812345.workers.dev https://api.clashroyale.com https://proxy.royaleapi.dev https://corsproxy.io https://api.allorigins.win;" />
   <title>Good Fellas | 클랜 관리 및 타 갤클 비교 대시보드</title>
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%2310b981%22/></svg>">
@@ -39,7 +39,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=1.5.8" />
+  <link rel="stylesheet" href="css/style.css?v=1.5.9" />
 
   <style>
     /* 단색 심플 로딩바 초부드러운 이징 */
@@ -304,31 +304,33 @@
 
   </div>
 
-  <!-- 7. 초기 실시간 동기화 오버레이 팝업 (모바일 규격 유지) -->
+  <!-- 7. 초기 실시간 동기화 오버레이 팝업 (실제 인게임 마법 상자 테마) -->
   <div id="initial-sync-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#090b10]/95 backdrop-blur-md transition-opacity duration-300">
-    <div class="surface-card p-6 rounded-2xl max-w-xs w-full mx-4 text-center border border-white/[0.08] shadow-2xl relative overflow-hidden">
-      <!-- 상단 스피너 & 외곽 레이더 펄스(Ping) 링 -->
-      <div class="relative w-12 h-12 mx-auto mb-3.5 flex items-center justify-center">
-        <div class="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping opacity-60"></div>
-        <div class="relative w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-          <svg class="w-6 h-6 text-emerald-400 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-          </svg>
-        </div>
+    <div class="surface-card p-6 rounded-2xl max-w-xs w-full mx-4 text-center border border-purple-500/25 shadow-[0_0_35px_rgba(168,85,247,0.2)] relative overflow-hidden">
+      <!-- 실제 클래시 로얄 인게임 마법 상자 & 쉐이크/오라 연출 -->
+      <div class="relative w-24 h-24 mx-auto mb-3 flex items-center justify-center">
+        <!-- 보랏빛 마법 오라 펄스 (배경) -->
+        <div class="absolute inset-0 rounded-full bg-purple-600/25 blur-xl animate-pulse"></div>
+        <!-- 실제 인게임 마법 상자 3D PNG 이미지 -->
+        <img src="https://static.wikia.nocookie.net/clashroyale/images/7/7f/Magical_Chest.png/revision/latest?cb=20230411120930" 
+             alt="Magical Chest" 
+             id="loading-magic-chest"
+             class="w-20 h-20 object-contain relative z-10 drop-shadow-[0_4px_16px_rgba(168,85,247,0.65)] chest-wobble select-none pointer-events-none" />
       </div>
 
       <!-- 단일 타이틀 -->
-      <h3 class="text-sm font-bold text-white tracking-tight">클랜 실시간 동기화 중</h3>
+      <h3 class="text-sm font-bold text-white tracking-tight flex items-center justify-center gap-1.5">
+        <span>클랜 전장 데이터 동기화 중</span>
+      </h3>
 
-      <!-- 단색 심플 로딩바 (초부드러운 이징) -->
-      <div class="w-full bg-white/[0.06] rounded-full h-2.5 overflow-hidden mt-4 relative border border-white/[0.08] shadow-inner p-[1px]">
-        <div id="initial-sync-progress-bar" class="bg-emerald-500 h-full rounded-full" style="width: 0%"></div>
+      <!-- 마법 상자 퍼플 & 골드 그라데이션 게이지 -->
+      <div class="w-full bg-white/[0.06] rounded-full h-2.5 overflow-hidden mt-4 relative border border-purple-500/30 shadow-inner p-[1px]">
+        <div id="initial-sync-progress-bar" class="bg-gradient-to-r from-purple-500 via-indigo-500 to-amber-400 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
       </div>
 
-      <!-- 볼드 네온 퍼센트 (상태 텍스트는 숨김 처리) -->
+      <!-- 볼드 네온 퍼센트 (퍼플 네온 글로우) -->
       <div class="flex items-center justify-center mt-2.5 font-mono">
-        <span id="initial-sync-percent" class="text-emerald-400 font-extrabold text-sm tracking-wider drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">0%</span>
+        <span id="initial-sync-percent" class="text-purple-300 font-extrabold text-sm tracking-wider drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]">0%</span>
         <span id="initial-sync-status-msg" class="hidden"></span>
       </div>
     </div>
@@ -360,6 +362,6 @@
 
   <!-- Scripts with Cache Busting -->
   <script src="js/api.js?v=1.5.4"></script>
-  <script src="js/app.js?v=1.5.8"></script>
+  <script src="js/app.js?v=1.5.9"></script>
 </body>
 </html>
