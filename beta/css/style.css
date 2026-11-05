@@ -404,9 +404,15 @@ html.light .text-slate-500 {
   color: #64748b !important;
 }
 
-/* 포인트 색상 고대비 보정 */
+/* 포인트 색상 고대비 보정 (라이트 모드 접속 상태 가독성 극대화) */
+html.light .text-amber-300 {
+  color: #b45309 !important;
+}
 html.light .text-amber-400 {
-  color: #d97706 !important;
+  color: #b45309 !important;
+}
+html.light .status-dot.amber {
+  background-color: #d97706 !important;
 }
 html.light .text-emerald-400 {
   color: #059669 !important;
@@ -801,4 +807,38 @@ button, .podium-step, .mobile-member-card, .filter-chip {
   animation-delay: 0s !important;
   transform-origin: center center !important;
   backface-visibility: visible !important;
+}
+
+
+/* ============================================================
+   v1.7.3 데이터 로드 완료 시 로딩바 네온 빛줄기 스윕 (Shimmer Beam Sweep)
+   ============================================================ */
+@keyframes shimmerBeamSweep {
+  0% {
+    left: -60px;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+.shimmer-beam-active::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 55px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.95) 45%, rgba(165, 180, 252, 1) 70%, transparent 100%);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 18px rgba(99, 102, 241, 0.85);
+  animation: shimmerBeamSweep 0.42s cubic-bezier(0.2, 0.8, 0.35, 1) forwards !important;
+  pointer-events: none;
+  z-index: 10;
 }

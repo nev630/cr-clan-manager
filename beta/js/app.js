@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.7.1 - 데이터 로드 완료 시 클래시 로얄 3D 카드 플립(Card Flip) 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.7.3 - 데이터 로드 완료 시 로딩바 빛줄기 스윕(Shimmer Beam Sweep) 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -268,22 +268,28 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    // 1. 데이터 로드 완료 즉시 3개 이모지 카드 3D 360도 입체 플립(Card Flip) 발동!
+    // 1. 이모지들은 웨이브 바운스를 멈추고 바닥선에 차분하고 정갈하게 안착
     const container = document.getElementById("loading-emotes-container");
     if (container) {
       const items = container.querySelectorAll(".loading-emote-item");
       items.forEach((item) => {
         // 기존 개별 웨이브 애니메이션 및 딜레이 클래스 완전 제거
-        item.classList.remove("emote-bounce", "emote-delay-0", "emote-delay-1", "emote-delay-2", "emotes-complete-pop", "emotes-together-jump");
-        // 강제 리플로우(reflow)로 애니메이션 동시 시작 보장
+        item.classList.remove("emote-bounce", "emote-delay-0", "emote-delay-1", "emote-delay-2", "emotes-complete-pop", "emotes-together-jump", "emotes-card-flip");
         void item.offsetWidth;
-        // 3D 카드 플립 클래스 추가
-        item.classList.add("emotes-card-flip");
+        // 바닥선에 가볍게 안착
+        item.style.transform = "translateY(0) scale(1)";
+        item.style.transition = "transform 0.18s cubic-bezier(0.2, 0.8, 0.4, 1)";
       });
     }
 
-    // 2. 세 카드가 샤라락 360도 회전을 완주하는 시점(약 450ms)에 로딩창 페이드아웃 시작
-    await new Promise((resolve) => setTimeout(resolve, 450));
+    // 2. 100% 충전된 로딩바 위로 네온 빛줄기(Shimmer Beam) 관통 스윕 발동!
+    const progressContainer = document.getElementById("initial-sync-progress-container");
+    if (progressContainer) {
+      progressContainer.classList.add("shimmer-beam-active");
+    }
+
+    // 3. 빛줄기가 오른쪽 끝을 통과하는 순간(약 420ms)에 로딩창 전체 실키 페이드아웃 시작
+    await new Promise((resolve) => setTimeout(resolve, 420));
 
     modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
     modal.style.opacity = "0";
@@ -1449,7 +1455,7 @@ toggleTheme(e) {
         text: `${diffHours}시간 전`,
         dotColor: "amber",
         isPulse: false,
-        textColor: "text-amber-300 font-medium"
+        textColor: "text-amber-300 font-semibold"
       };
     }
 
@@ -1470,7 +1476,7 @@ toggleTheme(e) {
       text: `${diffDays}일 전`,
       dotColor: "amber",
       isPulse: false,
-      textColor: "text-amber-300 font-medium"
+      textColor: "text-amber-300 font-semibold"
     };
   }
 
