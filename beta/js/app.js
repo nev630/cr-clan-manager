@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.9 - 실제 인게임 마법 상자(Magical Chest) 로딩 연출 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.6.0 - 텍스트 생략 미니멀 상자 & 단색 게이지 & 상자 오픈 펀치 연출 최적화', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -203,31 +203,33 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    // 실제 인게임 마법 상자 100% 도달 시 오픈 광채 폭발(Chest Burst) 연출 발동
+    // 1. 실제 인게임 마법 상자 100% 도달 즉시 오픈 펀치 팝 & 섬광 폭발 발동!
     const chest = document.getElementById("loading-magic-chest");
     if (chest) {
       chest.classList.remove("chest-wobble");
       chest.classList.add("chest-burst");
     }
 
-    // 데이터 도착 즉시 0.28초 부드러운 페이드아웃 시작
-    modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
-    modal.style.opacity = "0";
-    modal.style.pointerEvents = "none";
-
-    // 모달이 걷히며 본 화면이 드러나는 바로 그 순간 시상대 솟아오름 및 파이차트 회전·확장 애니메이션 동시 발동!
-    if (this.currentData?.memberList) {
-      this.renderPodium(this.currentData.memberList, true);
-      this.renderActivityDonut(this.currentData.memberList, true);
-      setTimeout(() => {
-        this.elements.podiumContainer?.classList.remove("podium-animate");
-        this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
-      }, 850);
-    }
-
+    // 2. 상자가 번쩍 터지는 절정 시점(150ms)에 모달 페이드아웃 시작 (시차 연동으로 오픈 손맛 명확히 체감)
     setTimeout(() => {
-      modal.classList.add("hidden");
-    }, 290);
+      modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
+      modal.style.opacity = "0";
+      modal.style.pointerEvents = "none";
+
+      // 모달이 걷히며 본 화면이 드러나는 바로 그 순간 시상대 솟아오름 및 파이차트 회전·확장 애니메이션 동시 발동!
+      if (this.currentData?.memberList) {
+        this.renderPodium(this.currentData.memberList, true);
+        this.renderActivityDonut(this.currentData.memberList, true);
+        setTimeout(() => {
+          this.elements.podiumContainer?.classList.remove("podium-animate");
+          this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+        }, 850);
+      }
+
+      setTimeout(() => {
+        modal.classList.add("hidden");
+      }, 290);
+    }, 150);
   }
 
   bindEvents() {
