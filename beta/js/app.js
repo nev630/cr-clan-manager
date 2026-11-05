@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.6.1 - 12종 공식 인게임 이모트 랜덤 3인방 웨이브 바운스 로딩 탑재', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.6.2 - 이모트 3인방 0.85초 최소 노출 보장 & 리드미컬 웨이브 완주 연동', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717" },
@@ -46,7 +46,8 @@ class ClanManagerApp {
 
     this.currentProgress = 0;
     this.lastSyncTime = 0;
-    this.syncThrottleMs = 15000; // 15초 쿨타운 (초고속 실시간 동기화)
+    this.syncThrottleMs = 15000;
+    this.loadingStartTime = Date.now();
 
     this.init();
   }
@@ -74,6 +75,7 @@ class ClanManagerApp {
 
 
   init() {
+    this.loadingStartTime = Date.now();
     // 12종 공식 인게임 이모트 중 랜덤 3인방 즉시 렌더링
     this.renderRandomLoadingEmotes();
 
@@ -708,8 +710,13 @@ toggleTheme(e) {
         }
 
         if (isInitial) {
-          // 인위적인 350ms 정지 대기 제거: 지체 없이 즉각 모달 해제 시작
-          this.hideInitialSyncModal();
+          // 최소 850ms(0.85초) 동안 이모트 3마리의 통-통-통 1사이클 웨이브 바운스를 완주 보장!
+          const elapsed = Date.now() - (this.loadingStartTime || Date.now());
+          const minDisplayTime = 850;
+          const waitTime = Math.max(0, minDisplayTime - elapsed);
+          setTimeout(() => {
+            this.hideInitialSyncModal();
+          }, waitTime);
         }
 
         if (dot) dot.className = "status-dot green live-pulse";
@@ -732,7 +739,12 @@ toggleTheme(e) {
     } finally {
       
       if (isInitial) {
-        this.hideInitialSyncModal();
+        const elapsed = Date.now() - (this.loadingStartTime || Date.now());
+        const minDisplayTime = 850;
+        const waitTime = Math.max(0, minDisplayTime - elapsed);
+        setTimeout(() => {
+          this.hideInitialSyncModal();
+        }, waitTime);
       }
     }
   }
