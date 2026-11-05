@@ -6,7 +6,7 @@
  * - 서버 요약 배틀로그 누락 멤버 선별적 백그라운드 보충 수집 적용
  */
 
-console.log('%c[Good Fellas App] v1.5.7 - 정렬 회전/터치 햅틱/뱃지 팝/스태거 속도/골드 샤인 완벽 개선', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.5.8 - 미접속 카운트 정상화 & 120fps 실키 테마리플 & 금빛 네온 오라', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 class ClanManagerApp {
   constructor() {
@@ -285,14 +285,7 @@ toggleTheme(e) {
     document.documentElement.style.setProperty("--theme-y", `${y}px`);
     document.documentElement.style.setProperty("--theme-r", `${endRadius}px`);
 
-    // 3. 해/달 아이콘 360도 스핀 모핑 애니메이션
-    const iconContainer = document.getElementById("theme-toggle-icon");
-    if (iconContainer) {
-      iconContainer.style.transform = isDark ? "rotate(360deg)" : "rotate(-360deg)";
-      setTimeout(() => { iconContainer.style.transform = "none"; }, 300);
-    }
-
-    // 4. 원형 리플 테마 전환 실행 (View Transitions API + Fallback Ripple)
+    // 3. 원형 리플 테마 전환 실행 (120fps 단일 Web Animations API 엔진, 440ms 실키 확장)
     if (typeof document.startViewTransition === "function") {
       const transition = document.startViewTransition(() => {
         this.applyTheme(nextTheme);
@@ -309,18 +302,18 @@ toggleTheme(e) {
                 ]
               },
               {
-                duration: 280,
-                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                duration: 440,
+                easing: "cubic-bezier(0.16, 1, 0.3, 1)",
                 pseudoElement: "::view-transition-new(root)"
               }
             );
           } catch (err) {
-            // CSS @keyframes fallback handles the animation
+            // Safe fallback
           }
         });
       }
     } else {
-      // 5. Fallback: View Transitions 미지원 브라우저용 원형 발광 파동 효과
+      // 4. Fallback: View Transitions 미지원 환경용 부드러운 파동
       this.triggerFallbackRipple(x, y, endRadius, nextTheme);
       this.applyTheme(nextTheme);
     }
@@ -341,7 +334,7 @@ toggleTheme(e) {
       : "0 0 35px 15px rgba(99, 102, 241, 0.25)";
     ring.style.pointerEvents = "none";
     ring.style.zIndex = "999999";
-    ring.style.transition = "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease-out";
+    ring.style.transition = "transform 0.44s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.44s ease-out";
     ring.style.opacity = "1";
     document.body.appendChild(ring);
 
@@ -352,7 +345,7 @@ toggleTheme(e) {
 
     setTimeout(() => {
       ring.remove();
-    }, 300);
+    }, 450);
   }
 
   applyTheme(theme) {
@@ -828,8 +821,9 @@ toggleTheme(e) {
 
   animateNumber(element, targetVal, duration = 650, suffix = "", prefix = "") {
     if (!element) return;
+    const hasPrevious = element.dataset.currentValue !== undefined;
     const startVal = parseInt(element.dataset.currentValue, 10) || 0;
-    if (startVal === targetVal && element.textContent) return;
+    if (hasPrevious && startVal === targetVal && element.textContent) return;
     element.dataset.currentValue = targetVal;
     
     const startTime = performance.now();
@@ -934,12 +928,9 @@ toggleTheme(e) {
       <div class="flex-1 max-w-[145px] flex flex-col items-center">
         <div class="podium-header text-center mb-1.5 w-full px-1">
           <div class="flex items-center justify-center mb-1">
-            <div class="crown-shimmer-container">
-              <svg class="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] relative z-10" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-              </svg>
-              <div class="crown-gleam-line"></div>
-            </div>
+            <svg class="crown-aura-glow w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+            </svg>
           </div>
           <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
           <div class="text-xs font-bold text-slate-300 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
