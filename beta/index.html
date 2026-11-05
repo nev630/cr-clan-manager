@@ -39,7 +39,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted) -->
-  <link rel="stylesheet" href="css/style.css?v=1.5.6" />
+  <link rel="stylesheet" href="css/style.css?v=1.5.7" />
 
   <style>
     /* 단색 심플 로딩바 초부드러운 이징 */
@@ -213,8 +213,10 @@
           </select>
 
           <!-- 오름차순 / 내림차순 원클릭 토글 버튼 -->
-          <button id="btn-sort-order" type="button" class="flex items-center gap-1 bg-[#0f121a] hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0" title="정렬 순서 변경">
-            <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-indigo-400" id="sort-order-icon"></i>
+          <button id="btn-sort-order" type="button" class="flex items-center gap-1.5 bg-[#0f121a] hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0 select-none active:scale-95" title="정렬 순서 변경">
+            <span id="sort-order-icon-wrapper" class="inline-flex items-center justify-center transition-transform duration-300 ease-out origin-center">
+              <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-indigo-400" id="sort-order-icon"></i>
+            </span>
             <span id="sort-order-text">내림차순</span>
           </button>
         </div>
@@ -358,6 +360,6 @@
 
   <!-- Scripts with Cache Busting -->
   <script src="js/api.js?v=1.5.4"></script>
-  <script src="js/app.js?v=1.5.6"></script>
+  <script src="js/app.js?v=1.5.7"></script>
 </body>
 </html>
