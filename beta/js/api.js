@@ -1,9 +1,9 @@
 /**
- * Clash Royale API Client (v1.4.5 Instant Sync & Precision Guard)
+ * Clash Royale API Client (v1.8.0 Instant Sync, Home Cache Reuse & Precision Guard)
  * - Supercell Clash Royale Official API 지원
  * - Cloudflare Worker / Oracle 프록시 실시간 통신
  * - 신규 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
- * - 지능형 On-Demand 캐시, 갤클 기본 프리셋 내장 및 우아한 폴백(Graceful Fallback) 메커니즘
+ * - 타 갤클 비교 시 내 클랜(#G890J9JC) 중복 네트워크 호출 제거 및 즉시 재사용
  */
 
 class ClashRoyaleAPI {
@@ -86,7 +86,6 @@ class ClashRoyaleAPI {
   }
 
   async fetchWithAuth(endpoint, timeoutMs = 6000) {
-    // 실시간 캐시 버스터(_t) 강제 부착 및 cache: 'no-store' 적용으로 항상 최신 데이터 동기화
     const sep = endpoint.includes("?") ? "&" : "?";
     const cacheBustedEndpoint = `${endpoint}${sep}_t=${Date.now()}`;
     const url = this.buildUrl(cacheBustedEndpoint);
@@ -161,23 +160,6 @@ class ClashRoyaleAPI {
     return await this.fetchWithAuth(`/v1/players/${this.encodeTag(playerTag)}/battlelog`);
   }
 
-  extractSeasonalTrophies(playerProfile) {
-    if (!playerProfile) return 0;
-    let maxTrophies = typeof playerProfile.trophies === "number" ? playerProfile.trophies : 0;
-    const progress = playerProfile.progress;
-    if (progress && typeof progress === "object") {
-      for (const key of Object.keys(progress)) {
-        if (key.toLowerCase().includes("seasonal")) {
-          const s = progress[key];
-          if (s && typeof s.trophies === "number" && s.trophies > maxTrophies) {
-            maxTrophies = s.trophies;
-          }
-        }
-      }
-    }
-    return maxTrophies;
-  }
-
   async fetchClanFullData(clanTag, onPartialData = null, force = false) {
     // 1. 단일 통합 요약 엔드포인트 우선 시도 (수동 새로고침 시 force=true로 서버 캐시 즉시 우회)
     const summaryData = await this.fetchClanSummary(clanTag, force);
@@ -205,7 +187,6 @@ class ClashRoyaleAPI {
     if (Array.isArray(window.GALLERY_CLANS_DATA) && window.GALLERY_CLANS_DATA.length > 0) {
       return JSON.parse(JSON.stringify(window.GALLERY_CLANS_DATA));
     }
-    // 네트워크 오류 또는 첫 진입 시 사용할 공식 갤클 기본 프리셋
     return [
       {
         tag: "#G890J9JC",
@@ -243,15 +224,18 @@ class ClashRoyaleAPI {
     ];
   }
 
-  async fetchMultipleClans(clanTags = ["#G890J9JC", "#JYQRP2C2", "#Q0U22YGQ"]) {
+  async fetchMultipleClans(clanTags = ["#G890J9JC", "#JYQRP2C2", "#Q0U22YGQ"], cachedHomeClan = null) {
     const presets = this.getGalleryClansPreset();
     const presetMap = new Map();
     presets.forEach(p => {
       presetMap.set(this.normalizeTag(p.tag), p);
     });
 
+    const homeTagNormalized = this.normalizeTag(this.settings.clanTag || "#G890J9JC");
+
     const promises = clanTags.map(async (rawTag) => {
       const tag = this.normalizeTag(rawTag);
+      const isHome = tag === homeTagNormalized;
       const fallback = presetMap.get(tag) || {
         tag,
         name: tag,
@@ -261,8 +245,20 @@ class ClashRoyaleAPI {
         clanWarTrophies: 0,
         requiredTrophies: 0,
         description: "",
-        isHome: tag === "#G890J9JC"
+        isHome
       };
+
+      // 내 클랜(#G890J9JC) 데이터가 이미 대시보드에서 최신 수신된 경우 중복 API 호출 생략
+      if (isHome && cachedHomeClan && cachedHomeClan.name) {
+        return {
+          ...fallback,
+          ...cachedHomeClan,
+          members: Array.isArray(cachedHomeClan.memberList) ? cachedHomeClan.memberList.length : (cachedHomeClan.members || fallback.members),
+          tag: cachedHomeClan.tag || tag,
+          isHome: true,
+          _isLive: true
+        };
+      }
 
       try {
         const clan = await this.fetchClan(tag);
@@ -271,7 +267,7 @@ class ClashRoyaleAPI {
             ...fallback,
             ...clan,
             tag: clan.tag || tag,
-            isHome: tag === "#G890J9JC",
+            isHome,
             _isLive: true
           };
         }

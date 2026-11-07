@@ -1,28 +1,19 @@
 /**
- * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.4.5)
+ * Good Fellas Clan Manager - Oracle Cloud Dedicated Proxy Server (server.js v1.8.0)
  * 
- * [주요 기능 & 최적화 (v1.4.5)]
- * 1. On-Demand In-Memory TTL 캐시 & Stale-Fallback 메커니즘:
- *    - 클랜 정보: 20초 TTL
- *    - 배틀로그: 30초 TTL (호출 실패 시 Stale 캐시 안전 보존)
- *    - 슈퍼셀 공식 API 429(Rate Limit) 원천 차단 및 N배 트래픽 완충
- * 2. 신규 단일 통합 엔드포인트 (/v1/clans/:clanTag/summary):
+ * [주요 기능 & 최적화 (v1.8.0)]
+ * 1. In-Flight Request Coalescing (동시 요청 병합):
+ *    - 캐시 만료 시점에 다수 사용자가 동시 접속하더라도 진행 중인 동일 요청 Promise를 공유하여
+ *      Supercell API 중복 호출(Request Stampede) 및 429 에러를 원천 차단
+ * 2. On-Demand In-Memory TTL 캐시 & Stale-Fallback 메커니즘:
+ *    - 클랜 정보: 20초 TTL / 배틀로그: 30초 TTL (호출 실패 시 Stale 캐시 안전 보존)
+ * 3. 신규 단일 통합 엔드포인트 (/v1/clans/:clanTag/summary):
  *    - 클랜 기본 정보 + 50명 클랜원의 최근 배틀 시각/유형을 서버에서 병렬 수집 후 1번에 번들링
- *    - 청크 간 60ms 딜레이를 두어 슈퍼셀 공식 API의 레이트 리밋(429) 원천 방지
- * 3. 보안 및 안정성 강화:
- *    - SUPERCELL_API_KEY 환경변수 지원 (process.env.SUPERCELL_API_KEY)
- *    - X-Forwarded-For 다중 IP 분할 처리로 개별 사용자별 정확한 Rate Limiting
- *    - 범용 프록시 호출 시 내부 관리용 force 쿼리 파라미터 자동 정제
- * 
- * [실행 환경]
- * - Oracle Cloud Always Free Ubuntu 24.04 (South Korea Central - Seoul)
- * - Nginx (포트 80) -> Node.js (포트 3000) 리버스 프록시 연동
  */
 
 const express = require('express');
 const app = express();
 
-// Supercell Developer Portal에서 발급받은 API 토큰 (환경변수 우선)
 const SUPERCELL_KEY = process.env.SUPERCELL_API_KEY || 'YOUR_SUPERCELL_API_KEY';
 
 // 1. CORS 허용 헤더 설정
@@ -54,7 +45,6 @@ app.use((req, res, next) => {
     return res.status(429).json({ error: 'Too Many Requests from this IP' });
   }
 
-  // 주기적 정리
   if (rateLimitMap.size > 2000) {
     for (const [k, v] of rateLimitMap.entries()) {
       if (now > v.resetAt) rateLimitMap.delete(k);
@@ -63,8 +53,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// 3. 인메모리 TTL 캐시 시스템 (Stale Fallback 보존 지원)
+// 3. 인메모리 TTL 캐시 및 동시 요청 병합(In-Flight Coalescing) 맵
 const cache = new Map();
+const inFlightRequests = new Map();
 
 function getCached(key, allowStale = false) {
   const item = cache.get(key);
@@ -81,11 +72,10 @@ function setCache(key, data, ttlSeconds) {
     data,
     expiresAt: Date.now() + (ttlSeconds * 1000)
   });
-  
+
   if (cache.size > 1500) {
     const now = Date.now();
     for (const [k, v] of cache.entries()) {
-      // 만료된 지 10분이 넘은 캐시만 최종 정리
       if (now > v.expiresAt + 600000) cache.delete(k);
     }
   }
@@ -116,8 +106,7 @@ async function fetchSupercell(endpoint) {
   }
 }
 
-// 5. 신규 단일 통합 엔드포인트 (/v1/clans/:clanTag/summary)
-// 클랜 정보 + 50명 클랜원의 최근 배틀 시각 및 상태를 서버에서 캐시를 활용해 1번에 번들링
+// 5. 신규 단일 통합 엔드포인트 (/v1/clans/:clanTag/summary) + In-Flight Coalescing 적용
 app.get('/v1/clans/:clanTag/summary', async (req, res) => {
   try {
     let tag = req.params.clanTag.trim();
@@ -132,64 +121,78 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
       return res.json(cachedSummary);
     }
 
-    // A. 클랜 기본 정보 조회
-    const clanData = await fetchSupercell(`/v1/clans/${encodedTag}`);
-    if (!clanData || !clanData.memberList) {
-      return res.status(502).json({ error: 'Failed to retrieve clan members' });
+    // 이미 동일한 클랜 요약 수집이 진행 중이면 중복 호출하지 않고 완료될 Promise를 공유
+    if (!force && inFlightRequests.has(summaryCacheKey)) {
+      const coalescedData = await inFlightRequests.get(summaryCacheKey);
+      res.setHeader('X-Cache-Status', 'COALESCED');
+      return res.json(coalescedData);
     }
 
-    // B. 멤버별 최근 배틀로그 병렬 수집 (서버 캐시 우선 적용 & 청크 간 레이트 리밋 방지 딜레이)
-    const members = clanData.memberList;
-    const chunkSize = 10;
-
-    for (let i = 0; i < members.length; i += chunkSize) {
-      const chunk = members.slice(i, i + chunkSize);
-      await Promise.allSettled(chunk.map(async (member) => {
-        if (!member || !member.tag) return;
-        const playerEncoded = encodeURIComponent(member.tag);
-        const playerCacheKey = `battlelog_${playerEncoded}`;
-
-        let battlelog = (!force ? getCached(playerCacheKey) : null);
-        if (!battlelog) {
-          try {
-            const fetched = await fetchSupercell(`/v1/players/${playerEncoded}/battlelog`);
-            if (Array.isArray(fetched) && fetched.length > 0) {
-              battlelog = fetched;
-              setCache(playerCacheKey, battlelog, 30); // 30초 배틀로그 캐시
-            }
-          } catch (e) {
-            // 개별 실패 시 직전 캐시(stale)가 있다면 안전하게 폴백으로 보존
-            battlelog = getCached(playerCacheKey, true);
-          }
-        }
-
-        if (Array.isArray(battlelog) && battlelog.length > 0) {
-          member.lastBattleTime = battlelog[0].battleTime;
-          member.lastBattleType = battlelog[0].type || 'Battle';
-        }
-      }));
-
-      // 슈퍼셀 API 레이트 리밋(429) 방지를 위한 청크 간 미세 딜레이
-      if (i + chunkSize < members.length) {
-        await new Promise(r => setTimeout(r, 60));
+    const buildSummaryPromise = (async () => {
+      const clanData = await fetchSupercell(`/v1/clans/${encodedTag}`);
+      if (!clanData || !clanData.memberList) {
+        const err = new Error('Failed to retrieve clan members');
+        err.status = 502;
+        throw err;
       }
-    }
 
-    // C. 20초간 서버 캐싱 후 반환
-    setCache(summaryCacheKey, clanData, 20);
-    res.setHeader('X-Cache-Status', 'MISS');
-    res.json(clanData);
+      const members = clanData.memberList;
+      const chunkSize = 10;
+
+      for (let i = 0; i < members.length; i += chunkSize) {
+        const chunk = members.slice(i, i + chunkSize);
+        await Promise.allSettled(chunk.map(async (member) => {
+          if (!member || !member.tag) return;
+          const playerEncoded = encodeURIComponent(member.tag);
+          const playerCacheKey = `battlelog_${playerEncoded}`;
+
+          let battlelog = (!force ? getCached(playerCacheKey) : null);
+          if (!battlelog) {
+            try {
+              const fetched = await fetchSupercell(`/v1/players/${playerEncoded}/battlelog`);
+              if (Array.isArray(fetched) && fetched.length > 0) {
+                battlelog = fetched;
+                setCache(playerCacheKey, battlelog, 30);
+              }
+            } catch (e) {
+              battlelog = getCached(playerCacheKey, true);
+            }
+          }
+
+          if (Array.isArray(battlelog) && battlelog.length > 0) {
+            member.lastBattleTime = battlelog[0].battleTime;
+            member.lastBattleType = battlelog[0].type || 'Battle';
+          }
+        }));
+
+        if (i + chunkSize < members.length) {
+          await new Promise(r => setTimeout(r, 60));
+        }
+      }
+
+      setCache(summaryCacheKey, clanData, 20);
+      return clanData;
+    })();
+
+    inFlightRequests.set(summaryCacheKey, buildSummaryPromise);
+
+    try {
+      const resultData = await buildSummaryPromise;
+      res.setHeader('X-Cache-Status', 'MISS');
+      res.json(resultData);
+    } finally {
+      inFlightRequests.delete(summaryCacheKey);
+    }
   } catch (err) {
     console.error('Error fetching clan summary:', err.message);
     res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-// 6. 범용 슈퍼셀 API 프록시 엔드포인트 (/v1/...) - TTL 캐시 자동 적용
+// 6. 범용 슈퍼셀 API 프록시 엔드포인트 (/v1/...) - TTL 캐시 및 동시 요청 병합 적용
 app.use('/v1', async (req, res) => {
   try {
     const rawUrl = req.originalUrl;
-    // _t 타임스탬프 및 내부 force 파라미터를 정제하여 슈퍼셀 호출 URL 구성
     const cleanUrl = rawUrl
       .replace(/([?&])_t=\d+(&?)/, '$1')
       .replace(/([?&])force=(?:1|true)(&?)/, '$1')
@@ -206,15 +209,29 @@ app.use('/v1', async (req, res) => {
       return res.json(cachedData);
     }
 
-    const data = await fetchSupercell(cleanUrl);
+    if (!force && inFlightRequests.has(cacheKey)) {
+      const coalesced = await inFlightRequests.get(cacheKey);
+      res.setHeader('X-Cache-Status', 'COALESCED');
+      return res.json(coalesced);
+    }
 
-    // 엔드포인트 유형별 TTL 차등 적용
-    let ttl = 20; // 기본 20초
-    if (cleanUrl.includes('/battlelog')) ttl = 30; // 배틀로그 30초
+    const fetchPromise = (async () => {
+      const data = await fetchSupercell(cleanUrl);
+      let ttl = 20;
+      if (cleanUrl.includes('/battlelog')) ttl = 30;
+      setCache(cacheKey, data, ttl);
+      return data;
+    })();
 
-    setCache(cacheKey, data, ttl);
-    res.setHeader('X-Cache-Status', 'MISS');
-    res.json(data);
+    inFlightRequests.set(cacheKey, fetchPromise);
+
+    try {
+      const data = await fetchPromise;
+      res.setHeader('X-Cache-Status', 'MISS');
+      res.json(data);
+    } finally {
+      inFlightRequests.delete(cacheKey);
+    }
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
@@ -224,11 +241,12 @@ app.use('/v1', async (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    version: '1.4.5',
+    version: '1.8.0',
     cachedEntries: cache.size,
-    message: 'Good Fellas Dedicated Oracle CR Proxy is running with In-Memory TTL Cache!'
+    inFlightCount: inFlightRequests.size,
+    message: 'Good Fellas Dedicated Oracle CR Proxy v1.8.0 is running with TTL Cache & Request Coalescing!'
   });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.4.5 running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Proxy server v1.8.0 running on port ${PORT}`));
