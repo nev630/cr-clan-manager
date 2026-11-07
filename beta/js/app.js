@@ -1,5 +1,5 @@
 /**
- * Good Fellas Clan Manager - Core Application Logic (v1.8.2)
+ * Good Fellas Clan Manager - Core Application Logic (v1.8.3)
  * Ultra-Smooth 120fps Animation Engine:
  * - 상단 메인 탭 & 타 갤클 비교 탭에 하드웨어 가속 슬라이딩 필(Segmented Pill) 및 탭 뷰 글라이드 트랜지션 탑재
  * - 팝업 모달(3일+ 미접속 대상자, 클랜원 상세, 동기화 에러) 상시 마운트 + 양방향(열기/닫기) 120fps 스프링 트랜지션 구현
@@ -7,7 +7,7 @@
  * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.2 - 120fps 슬라이딩 탭 & 양방향 스프링 팝업 모달 & GPU 시상대 애니메이션 완성', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.3 - 120fps 슬라이딩 탭 & 양방향 스프링 팝업 모달 & GPU 시상대 애니메이션 완성', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -191,7 +191,6 @@ class ClanManagerApp {
       memberTableBody: document.getElementById("member-table-body"),
       emptyState: document.getElementById("empty-state"),
       memberMobileList: document.getElementById("member-mobile-list"),
-      memberDetailModal: document.getElementById("member-detail-modal"),
       dormantMembersModal: document.getElementById("dormant-members-modal"),
       dormantModalCount: document.getElementById("dormant-modal-count"),
       dormantModalList: document.getElementById("dormant-modal-list"),
@@ -390,7 +389,6 @@ class ClanManagerApp {
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
-        this.closeMemberModal();
         this.closeDormantModal();
         this.closeErrorModal();
       }
@@ -1126,7 +1124,7 @@ class ClanManagerApp {
 
     podiumContainer.innerHTML = `
       <!-- 2등 은메달 -->
-      <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(second.tag)}')">
+      <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.open('https://royaleapi.com/player/' + encodeURIComponent(String('${this.escapeHtml(second.tag)}').replace('#', '')), '_blank')" style="cursor: pointer;" title="RoyaleAPI 전적 열기">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
           <div class="flex items-center justify-center mb-1">
             <svg class="w-4 h-4 text-slate-300 drop-shadow-[0_0_6px_rgba(203,213,225,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1141,7 +1139,7 @@ class ClanManagerApp {
         </div>
       </div>
       <!-- 1등 금메달 -->
-      <div class="flex-1 max-w-[145px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(first.tag)}')">
+      <div class="flex-1 max-w-[145px] flex flex-col items-center" onclick="window.open('https://royaleapi.com/player/' + encodeURIComponent(String('${this.escapeHtml(first.tag)}').replace('#', '')), '_blank')" style="cursor: pointer;" title="RoyaleAPI 전적 열기">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer">
           <div class="flex items-center justify-center mb-1">
             <svg class="crown-aura-glow w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1156,7 +1154,7 @@ class ClanManagerApp {
         </div>
       </div>
       <!-- 3등 동메달 -->
-      <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(third.tag)}')">
+      <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.open('https://royaleapi.com/player/' + encodeURIComponent(String('${this.escapeHtml(third.tag)}').replace('#', '')), '_blank')" style="cursor: pointer;" title="RoyaleAPI 전적 열기">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
           <div class="flex items-center justify-center mb-1">
             <svg class="w-4 h-4 text-amber-600 drop-shadow-[0_0_6px_rgba(217,119,6,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1177,7 +1175,7 @@ class ClanManagerApp {
       runnersContainer.className = triggerAnimation ? `${baseRunnerClasses} podium-animate` : baseRunnerClasses;
 
       runnersContainer.innerHTML = runners.map((m, idx) => `
-        <div onclick="window.app.openMemberModal('${this.escapeHtml(m.tag)}')" class="podium-runner-item cursor-pointer hover:bg-white/[0.05] active:scale-[0.98] transition flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
+        <div onclick="window.open('https://royaleapi.com/player/' + encodeURIComponent(String('${this.escapeHtml(m.tag)}').replace('#', '')), '_blank')" title="RoyaleAPI 전적 열기" class="podium-runner-item cursor-pointer hover:bg-white/[0.05] active:scale-[0.98] transition flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] font-mono text-slate-500 w-3">${idx + 4}</span>
             <span class="text-[11px] text-slate-300 font-medium truncate">${this.escapeHtml(m.name)}</span>
@@ -1527,8 +1525,9 @@ class ClanManagerApp {
         const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
         const donations = member.donations || 0;
 
+        const cleanTag = String(member.tag || '').replace('#', '');
         return `
-          <div class="p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition cursor-pointer flex items-center justify-between gap-2" onclick="window.app.switchFromDormantToMember('${this.escapeHtml(member.tag)}')">
+          <div class="p-3.5 hover:bg-white/[0.03] transition flex items-center justify-between gap-2">
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${idx + 1}</span>
@@ -1541,12 +1540,18 @@ class ClanManagerApp {
                 <span class="font-sans text-slate-400">지원 ${donations.toLocaleString()}개</span>
               </div>
             </div>
-            <div class="text-right shrink-0">
-              <div class="inline-flex items-center gap-1 text-xs ${status.textColor}">
-                <span class="status-dot ${status.dotColor}"></span>
-                <span>${status.text}</span>
+            <div class="flex items-center gap-3 shrink-0">
+              <div class="text-right">
+                <div class="inline-flex items-center gap-1 text-xs ${status.textColor}">
+                  <span class="status-dot ${status.dotColor}"></span>
+                  <span>${status.text}</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono mt-0.5">배틀: ${relativeBattle}</div>
               </div>
-              <div class="text-[10px] text-slate-500 font-mono mt-0.5">배틀: ${relativeBattle}</div>
+              <a href="https://royaleapi.com/player/${encodeURIComponent(cleanTag)}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 text-indigo-300 hover:text-white border border-indigo-500/25 text-[11px] font-medium inline-flex items-center gap-1 transition" title="RoyaleAPI 전적 열기">
+                <span>전적</span>
+                <svg class="w-3 h-3 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>
             </div>
           </div>
         `;
@@ -1558,187 +1563,6 @@ class ClanManagerApp {
 
   closeDormantModal() {
     const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
-    this.closeModalSmooth(modal);
-  }
-
-  // 미접속 대상자 팝업에서 클랜원 클릭 시 끊김 없이 상세 팝업으로 부드럽게 교차 전환
-  switchFromDormantToMember(memberTag) {
-    this.closeDormantModal();
-    setTimeout(() => {
-      this.openMemberModal(memberTag);
-    }, 140);
-  }
-
-  toggleSort(key) {
-    if (this.sorting.key === key) {
-      this.sorting.order = this.sorting.order === "desc" ? "asc" : "desc";
-    } else {
-      this.sorting.key = key;
-      this.sorting.order = "desc";
-    }
-    if (this.elements.sortKeySelect) this.elements.sortKeySelect.value = this.sorting.key;
-    this.updateSortOrderUI();
-    this.applyFilterAndRender(true);
-  }
-
-  parseDateSafe(dateStr) {
-    if (!dateStr) return null;
-    if (window.crApi && typeof window.crApi.parseApiDate === "function") {
-      const d = window.crApi.parseApiDate(dateStr);
-      if (d && !isNaN(d.getTime())) return d;
-    }
-    try {
-      const y = dateStr.slice(0, 4), m = dateStr.slice(4, 6), d = dateStr.slice(6, 8);
-      const h = dateStr.slice(9, 11), min = dateStr.slice(11, 13), s = dateStr.slice(13, 15);
-      const parsed = new Date(Date.UTC(y, m - 1, d, h, min, s));
-      return isNaN(parsed.getTime()) ? null : parsed;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  getEffectiveActiveDate(lastSeenStr, lastBattleStr) {
-    const seenDate = this.parseDateSafe(lastSeenStr);
-    const battleDate = this.parseDateSafe(lastBattleStr);
-
-    let latest = seenDate;
-    if (battleDate && (!latest || battleDate.getTime() > latest.getTime())) {
-      latest = battleDate;
-    }
-    return latest || null;
-  }
-
-  getOnlineStatus(lastSeenStr, lastBattleStr) {
-    const effectiveDate = this.getEffectiveActiveDate(lastSeenStr, lastBattleStr);
-    if (!effectiveDate) {
-      return { isOnline: false, text: "기록 없음", dotColor: "slate", isPulse: false, textColor: "text-slate-500" };
-    }
-
-    const diffSeconds = Math.max(0, Math.floor((Date.now() - effectiveDate.getTime()) / 1000));
-    const diffMinutes = Math.floor(diffSeconds / 60);
-
-    if (diffSeconds <= 180) {
-      return {
-        isOnline: true,
-        text: "접속 중",
-        dotColor: "green",
-        isPulse: true,
-        textColor: "text-emerald-400 font-bold"
-      };
-    }
-
-    if (diffMinutes < 60) {
-      return {
-        isOnline: false,
-        text: `${diffMinutes}분 전`,
-        dotColor: "green",
-        isPulse: false,
-        textColor: "text-slate-300 font-medium"
-      };
-    }
-
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) {
-      return {
-        isOnline: false,
-        text: `${diffHours}시간 전`,
-        dotColor: "amber",
-        isPulse: false,
-        textColor: "text-amber-300 font-semibold"
-      };
-    }
-
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays >= 3) {
-      return {
-        isOnline: false,
-        text: `${diffDays}일 전`,
-        dotColor: "rose",
-        isPulse: false,
-        textColor: "text-rose-400 font-bold"
-      };
-    }
-
-    return {
-      isOnline: false,
-      text: `${diffDays}일 전`,
-      dotColor: "amber",
-      isPulse: false,
-      textColor: "text-amber-300 font-semibold"
-    };
-  }
-
-  formatRelativeTime(dateStr) {
-    const date = this.parseDateSafe(dateStr);
-    if (!date) return "기록 없음";
-
-    const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
-    const diffMinutes = Math.floor(diffSeconds / 60);
-
-    if (diffSeconds <= 180) return "방금 전";
-    if (diffMinutes < 60) return `${diffMinutes}분 전`;
-
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours}시간 전`;
-
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays >= 7) return "7일+ 전";
-    return `${diffDays}일 전`;
-  }
-
-  // 클랜원 상세 팝업 모달 (120fps 스프링 오픈)
-  openMemberModal(memberTag) {
-    if (!this.currentData?.memberList) return;
-    const member = this.currentData.memberList.find((m) => m.tag === memberTag);
-    if (!member) return;
-
-    const modal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
-    if (!modal) return;
-
-    const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
-    const effectiveDate = this.getEffectiveActiveDate(member.lastSeen, member.lastBattleTime);
-    const exactSeen = effectiveDate ? effectiveDate.toLocaleString("ko-KR") : "기록 없음";
-    const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
-    const donations = member.donations || 0;
-    const received = member.donationsReceived || 0;
-    const totalClanDonations = (typeof this.currentData.donationsPerWeek === "number" && this.currentData.donationsPerWeek > 0)
-      ? this.currentData.donationsPerWeek
-      : this.currentData.memberList.reduce((acc, cur) => acc + (cur.donations || 0), 0) || 1;
-    const sharePercent = ((donations / totalClanDonations) * 100).toFixed(1);
-
-    const setElHtml = (id, html) => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = html;
-    };
-    const setElText = (id, text) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = text;
-    };
-
-    setElText("modal-member-rank", `#${member.clanRank || "-"}`);
-    setElText("modal-member-name", member.name || "-");
-    setElHtml("modal-member-role", this.getRoleBadge(member.role));
-    setElText("modal-member-tag", member.tag || "-");
-    setElText("modal-member-trophies", `🏆 ${(member.trophies || 0).toLocaleString()}`);
-
-    setElHtml("modal-member-status", `<span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span><span class="${status.textColor}">${status.text}</span>`);
-    setElText("modal-member-exact-seen", exactSeen);
-    setElText("modal-member-battle", relativeBattle);
-    setElText("modal-member-donations", `${donations.toLocaleString()}개`);
-    setElText("modal-member-Share", `클랜 내 기여 비중 ${sharePercent}%`);
-    setElText("modal-member-received", `${received.toLocaleString()}개`);
-
-    const royaleLink = document.getElementById("btn-royaleapi-link");
-    if (royaleLink) {
-      const cleanTag = String(member.tag || "").replace("#", "");
-      royaleLink.href = `https://royaleapi.com/player/${encodeURIComponent(cleanTag)}`;
-    }
-
-    this.openModalSmooth(modal);
-  }
-
-  closeMemberModal() {
-    const modal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
     this.closeModalSmooth(modal);
   }
 
@@ -1825,7 +1649,7 @@ class ClanManagerApp {
       const received = member.donationsReceived || 0;
 
       rowsHtml += `
-        <tr onclick="window.app.openMemberModal('${this.escapeHtml(member.tag)}')">
+        <tr>
           <td class="text-center font-mono text-xs text-slate-500">${member.clanRank || idx + 1}</td>
           <td>
             <div class="flex items-center gap-1.5">
@@ -1849,6 +1673,12 @@ class ClanManagerApp {
           <td class="text-right">
             <div class="font-bold text-sm ${donations >= 300 ? "text-amber-400" : donations === 0 ? "text-rose-400" : "text-slate-100"}">${donations.toLocaleString()}</div>
             <div class="text-[10px] text-slate-400 font-mono">받음: ${received.toLocaleString()}</div>
+          </td>
+          <td class="text-center">
+            <a href="https://royaleapi.com/player/${encodeURIComponent(String(member.tag || '').replace('#', ''))}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 text-indigo-300 hover:text-white border border-indigo-500/25 text-xs font-medium inline-flex items-center gap-1 transition" title="RoyaleAPI 전적 열기">
+              <span>전적</span>
+              <svg class="w-3 h-3 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
           </td>
         </tr>
       `;
@@ -1898,8 +1728,9 @@ class ClanManagerApp {
       const staggerClass = animateCard ? "card-stagger-in" : "";
       const staggerStyle = animateCard ? `style="animation-delay: ${(idx * 0.024).toFixed(3)}s"` : "";
 
+      const cleanTag = String(member.tag || '').replace('#', '');
       cardsHtml += `
-        <div class="mobile-member-card ${staggerClass}" ${staggerStyle} onclick="window.app.openMemberModal('${this.escapeHtml(member.tag)}')">
+        <div class="mobile-member-card ${staggerClass}" ${staggerStyle}>
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
@@ -1907,7 +1738,13 @@ class ClanManagerApp {
               ${this.getRoleBadge(member.role)}
               <span class="text-[10px] font-mono text-slate-500 truncate hidden sm:inline">${this.escapeHtml(member.tag)}</span>
             </div>
-            <span class="text-xs font-semibold text-amber-400 shrink-0">🏆 ${(member.trophies || 0).toLocaleString()}</span>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-xs font-semibold text-amber-400">🏆 ${(member.trophies || 0).toLocaleString()}</span>
+              <a href="https://royaleapi.com/player/${encodeURIComponent(cleanTag)}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 text-indigo-300 hover:text-white border border-indigo-500/25 text-[11px] font-medium inline-flex items-center gap-1 transition" title="${this.escapeHtml(member.name)} RoyaleAPI 전적 보기" onclick="event.stopPropagation()">
+                <span>전적</span>
+                <svg class="w-3 h-3 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>
+            </div>
           </div>
 
           <div class="grid grid-cols-3 gap-1 pt-2.5 mt-2 border-t border-white/[0.03] items-center">
