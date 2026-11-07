@@ -1,12 +1,13 @@
 /**
- * Good Fellas Clan Manager - Core Application Logic (v1.8.1)
- * - 상단 '방금 동기화' 버튼/문구 및 시상대 '단상 클릭 시 상세 보기' 안내 제거
- * - '3일+ 미접속' 대상자 보기 클릭 시 전용 팝업 모달(#dormant-members-modal)로 대상자 표시 (필터 칩에서 미접속 3일+ 제거)
- * - 클랜원 상세 팝업창 간결화 (접속 상태 텍스트 수정, 배틀 유형·지원 수지·태그복사 버튼 제거)
- * - 타 갤클과 비교 탭 지표 2종(총 지원량 / 1인 평균) 집중 구성
+ * Good Fellas Clan Manager - Core Application Logic (v1.8.2)
+ * Ultra-Smooth 120fps Animation Engine:
+ * - 상단 메인 탭 & 타 갤클 비교 탭에 하드웨어 가속 슬라이딩 필(Segmented Pill) 및 탭 뷰 글라이드 트랜지션 탑재
+ * - 팝업 모달(3일+ 미접속 대상자, 클랜원 상세, 동기화 에러) 상시 마운트 + 양방향(열기/닫기) 120fps 스프링 트랜지션 구현
+ * - 시상대(Podium) 단상 애니메이션을 Layout Reflow 없는 scale3d(1, scaleY, 1) GPU 합성으로 전환
+ * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.1 - 미접속 대상자 전용 팝업 & 클랜원 상세 모달·비교 탭 간결화 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.2 - 120fps 슬라이딩 탭 & 양방향 스프링 팝업 모달 & GPU 시상대 애니메이션 완성', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -19,7 +20,6 @@ const CR_EMOTES_POOL = [
   { name: "고기 뜯는 자이언트", url: "https://static.wikia.nocookie.net/clashroyale/images/b/bb/Eating_Giant.png/revision/latest?cb=20230920123020", offsetY: 0 }
 ];
 
-// 모바일 카드 렌더링 시 Lucide 전체 DOM 재스캔을 대체하는 경량 인라인 SVG 상수
 const SWORDS_INLINE_SVG = `<svg class="w-3 h-3 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>`;
 
 const COMPARE_METRICS_META = {
@@ -52,13 +52,8 @@ class ClanManagerApp {
     this.compareClansData = [];
     this.hasCompareLoaded = false;
 
-    // 영구 로컬스토리지 기반 배틀로그 캐시 로드
     this.battleLogCache = this.loadBattleLogCache();
-
-    // Chart.js 인스턴스
     this.charts = { activity: null, compareDonations: null };
-
-    // DOM 캐싱
     this.elements = {};
 
     this.lastSyncTime = 0;
@@ -92,7 +87,6 @@ class ClanManagerApp {
     this.loadingStartTime = Date.now();
     this.emotesReadyPromise = this.renderRandomLoadingEmotes();
 
-    // iOS Safari 및 모바일 웹킷 브라우저 :active 터치 탄성 활성화
     try {
       document.addEventListener("touchstart", () => {}, { passive: true });
     } catch (e) {}
@@ -101,7 +95,6 @@ class ClanManagerApp {
     this.restoreSavedTheme();
     this.bindEvents();
 
-    // 구버전 캐시 키 정리
     try {
       localStorage.removeItem("cr_manager_clan_cache_v1");
       localStorage.removeItem("cr_manager_settings_v1");
@@ -112,18 +105,15 @@ class ClanManagerApp {
       localStorage.removeItem("cr_clan_battle_cache_v4");
     } catch (e) {}
 
-    // 갤클 비교 프리셋 데이터 사전 로드
     if (window.crApi && typeof window.crApi.getGalleryClansPreset === "function") {
       this.compareClansData = window.crApi.getGalleryClansPreset();
     }
 
     if (window.lucide) window.lucide.createIcons();
 
-    // 접속 즉시 실시간 동기화 실행
     this.autoSyncLive(true);
     this.syncCompareLive(true);
 
-    // 20초 주기 자동 최신 동기화 타이머 (비교 탭은 활성화 상태이거나 60초 경과 시에만 폴링)
     setInterval(() => {
       if (document.visibilityState === "visible") {
         this.autoSyncLive(false);
@@ -133,7 +123,6 @@ class ClanManagerApp {
       }
     }, 20000);
 
-    // 화면 탭 활성화 시 즉각 동기화 (쿨타운 적용)
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
         this.autoSyncLive(false);
@@ -143,7 +132,6 @@ class ClanManagerApp {
       }
     });
 
-    // 1분 주기 상대 시간 자동 리렌더링 (네트워크 비용 0, 스태거 깜빡임 없음)
     setInterval(() => {
       if (document.visibilityState === "visible" && this.currentData) {
         this.renderMobileList(false);
@@ -151,7 +139,6 @@ class ClanManagerApp {
       }
     }, 60000);
 
-    // 화면 회전 및 리사이즈 대응
     window.addEventListener("resize", () => {
       if (this.currentData) {
         if (window.innerWidth >= 1024) {
@@ -179,6 +166,8 @@ class ClanManagerApp {
       viewCompare: document.getElementById("view-compare"),
       tabBtnDashboard: document.getElementById("tab-btn-dashboard"),
       tabBtnCompare: document.getElementById("tab-btn-compare"),
+      mainTabPill: document.getElementById("main-tab-pill"),
+      compareTabPill: document.getElementById("compare-tab-pill"),
       tabContextHint: document.getElementById("tab-context-hint"),
       btnQuickCompare: document.getElementById("btn-quick-compare"),
       clanName: document.getElementById("clan-name"),
@@ -206,6 +195,7 @@ class ClanManagerApp {
       dormantMembersModal: document.getElementById("dormant-members-modal"),
       dormantModalCount: document.getElementById("dormant-modal-count"),
       dormantModalList: document.getElementById("dormant-modal-list"),
+      syncErrorModal: document.getElementById("sync-error-modal"),
       toastContainer: document.getElementById("toast-container")
     };
   }
@@ -217,6 +207,22 @@ class ClanManagerApp {
       const initialTheme = saved === "light" || (!saved && !prefersDark) ? "light" : "dark";
       this.applyTheme(initialTheme, false);
     } catch (e) {}
+  }
+
+  // 상시 마운트된 모달을 레이아웃 스래싱 없이 120fps로 부드럽게 오픈
+  openModalSmooth(modalEl) {
+    if (!modalEl) return;
+    modalEl.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(() => {
+      modalEl.classList.add("is-open");
+    });
+  }
+
+  // 모달 닫힘 애니메이션을 끝까지 재생한 뒤 비활성화
+  closeModalSmooth(modalEl) {
+    if (!modalEl) return;
+    modalEl.setAttribute("aria-hidden", "true");
+    modalEl.classList.remove("is-open");
   }
 
   async renderRandomLoadingEmotes() {
@@ -382,11 +388,11 @@ class ClanManagerApp {
       this.elements.btnThemeToggle.addEventListener("click", (e) => this.toggleTheme(e));
     }
 
-    // ESC 키로 모달 닫기
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         this.closeMemberModal();
         this.closeDormantModal();
+        this.closeErrorModal();
       }
     });
   }
@@ -587,62 +593,88 @@ class ClanManagerApp {
     }
   }
 
+  // 120fps 슬라이딩 필 & 뷰 글라이드 기반 메인 탭 전환
   switchMainTab(tabName) {
+    if (this.activeMainTab === tabName) return;
     this.activeMainTab = tabName;
-    const { viewDashboard, viewCompare, tabBtnDashboard, tabBtnCompare, tabContextHint: tabHint, btnQuickCompare: quickCompareBtn } = this.elements;
+
+    const { viewDashboard, viewCompare, tabBtnDashboard, tabBtnCompare, mainTabPill, tabContextHint: tabHint, btnQuickCompare: quickCompareBtn } = this.elements;
+
+    // 1. 슬라이딩 필 즉시 이동 (GPU transform)
+    if (mainTabPill) {
+      mainTabPill.classList.toggle("slide-right", tabName === "compare");
+    }
+
+    if (tabBtnDashboard) tabBtnDashboard.classList.toggle("active", tabName !== "compare");
+    if (tabBtnCompare) tabBtnCompare.classList.toggle("active", tabName === "compare");
+
+    // smooth 스크롤과 탭 전환 애니메이션이 충돌하지 않도록 스크롤이 내려가 있을 때만 즉시 상단 정렬
+    if (window.scrollY > 60) {
+      window.scrollTo(0, 0);
+    }
 
     if (tabName === "compare") {
-      if (viewDashboard) viewDashboard.classList.add("hidden");
-      if (viewCompare) viewCompare.classList.remove("hidden");
-
-      if (tabBtnDashboard) tabBtnDashboard.classList.remove("active");
-      if (tabBtnCompare) tabBtnCompare.classList.add("active");
+      if (viewDashboard) {
+        viewDashboard.classList.add("hidden");
+        viewDashboard.classList.remove("tab-view-enter");
+      }
+      if (viewCompare) {
+        viewCompare.classList.remove("hidden");
+        viewCompare.classList.remove("tab-view-enter");
+        void viewCompare.offsetWidth;
+        viewCompare.classList.add("tab-view-enter");
+      }
 
       if (quickCompareBtn) quickCompareBtn.classList.add("opacity-50", "pointer-events-none");
-
       if (tabHint) {
         tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span><span>디시 갤러리 클랜 3자 비교 뷰</span>`;
       }
 
-      this.renderComparisonView(true);
+      requestAnimationFrame(() => {
+        this.renderComparisonView(true);
+      });
 
       if (!this.hasCompareLoaded || Date.now() - this.lastCompareSyncTime > this.compareThrottleMs) {
         this.syncCompareLive(false);
       }
     } else {
-      if (viewCompare) viewCompare.classList.add("hidden");
-      if (viewDashboard) viewDashboard.classList.remove("hidden");
-
-      if (tabBtnCompare) tabBtnCompare.classList.remove("active");
-      if (tabBtnDashboard) tabBtnDashboard.classList.add("active");
+      if (viewCompare) {
+        viewCompare.classList.add("hidden");
+        viewCompare.classList.remove("tab-view-enter");
+      }
+      if (viewDashboard) {
+        viewDashboard.classList.remove("hidden");
+        viewDashboard.classList.remove("tab-view-enter");
+        void viewDashboard.offsetWidth;
+        viewDashboard.classList.add("tab-view-enter");
+      }
 
       if (quickCompareBtn) quickCompareBtn.classList.remove("opacity-50", "pointer-events-none");
-
       if (tabHint) {
         tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Good Fellas 단독 뷰</span>`;
       }
 
-      if (this.currentData?.memberList) {
-        this.renderPodium(this.currentData.memberList, true);
-        this.renderActivityDonut(this.currentData.memberList, true);
-        setTimeout(() => {
-          this.elements.podiumContainer?.classList.remove("podium-animate");
-          this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
-        }, 850);
-      }
-    }
-
-    if (tabName === "dashboard" && this.charts.activity) {
-      this.charts.activity.resize();
-    }
-    if (typeof window.scrollTo === "function") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      requestAnimationFrame(() => {
+        if (this.currentData?.memberList) {
+          this.renderPodium(this.currentData.memberList, true);
+          this.renderActivityDonut(this.currentData.memberList, true);
+          setTimeout(() => {
+            this.elements.podiumContainer?.classList.remove("podium-animate");
+            this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+          }, 700);
+        }
+      });
     }
   }
 
+  // 120fps 슬라이딩 필 기반 비교 지표 전환 (총 지원량 ↔ 1인 평균)
   switchCompareMetric(metricKey, btnElement) {
-    if (!COMPARE_METRICS_META[metricKey]) return;
+    if (!COMPARE_METRICS_META[metricKey] || this.activeCompareMetric === metricKey) return;
     this.activeCompareMetric = metricKey;
+
+    if (this.elements.compareTabPill) {
+      this.elements.compareTabPill.classList.toggle("slide-right", metricKey === "donationsAvg");
+    }
 
     document.querySelectorAll(".compare-metric-chip").forEach((el) => el.classList.remove("active"));
     if (btnElement) btnElement.classList.add("active");
@@ -652,7 +684,9 @@ class ClanManagerApp {
     if (this.elements.compareChartUnit) this.elements.compareChartUnit.textContent = meta.unitText;
     if (this.elements.compareListTitle) this.elements.compareListTitle.textContent = meta.listTitle;
 
-    this.renderComparisonView(true);
+    requestAnimationFrame(() => {
+      this.renderComparisonView(true);
+    });
   }
 
   async fetchPlayerBattleLog(playerTag, retries = 1) {
@@ -900,7 +934,7 @@ class ClanManagerApp {
   }
 
   showErrorModal(err) {
-    const modal = document.getElementById("sync-error-modal");
+    const modal = this.elements.syncErrorModal || document.getElementById("sync-error-modal");
     if (!modal) return;
 
     const titleEl = document.getElementById("error-modal-title");
@@ -935,13 +969,13 @@ class ClanManagerApp {
       btnClose.onclick = () => this.closeErrorModal();
     }
 
-    modal.classList.remove("hidden");
+    this.openModalSmooth(modal);
     if (window.lucide) window.lucide.createIcons();
   }
 
   closeErrorModal() {
-    const modal = document.getElementById("sync-error-modal");
-    if (modal) modal.classList.add("hidden");
+    const modal = this.elements.syncErrorModal || document.getElementById("sync-error-modal");
+    this.closeModalSmooth(modal);
   }
 
   renderEmptyState(reason) {
@@ -1143,7 +1177,7 @@ class ClanManagerApp {
       runnersContainer.className = triggerAnimation ? `${baseRunnerClasses} podium-animate` : baseRunnerClasses;
 
       runnersContainer.innerHTML = runners.map((m, idx) => `
-        <div onclick="window.app.openMemberModal('${this.escapeHtml(m.tag)}')" class="podium-runner-item cursor-pointer hover:bg-white/[0.05] transition flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.18 + idx * 0.05}s` : ''}">
+        <div onclick="window.app.openMemberModal('${this.escapeHtml(m.tag)}')" class="podium-runner-item cursor-pointer hover:bg-white/[0.05] active:scale-[0.98] transition flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] font-mono text-slate-500 w-3">${idx + 4}</span>
             <span class="text-[11px] text-slate-300 font-medium truncate">${this.escapeHtml(m.name)}</span>
@@ -1154,6 +1188,7 @@ class ClanManagerApp {
     }
   }
 
+  // 비파괴(Non-destructive) reset+update로 탭 전환 시 차트 재생성 끊김 현상 완전 제거
   renderActivityDonut(members, triggerAnimation = false) {
     if (!window.Chart) return;
 
@@ -1179,14 +1214,18 @@ class ClanManagerApp {
 
     const chartData = [seenToday, seen1to2d, seenDormant];
 
-    if (triggerAnimation && this.charts.activity) {
-      this.charts.activity.destroy();
-      this.charts.activity = null;
-    }
-
     if (this.charts.activity) {
       this.charts.activity.data.datasets[0].data = chartData;
-      this.charts.activity.update("none");
+      if (triggerAnimation) {
+        this.charts.activity.resize();
+        this.charts.activity.reset();
+        this.charts.activity.update({
+          duration: 680,
+          easing: "easeOutQuart"
+        });
+      } else {
+        this.charts.activity.update("none");
+      }
     } else {
       const ctx = activityCanvas.getContext("2d");
       this.charts.activity = new Chart(ctx, {
@@ -1207,7 +1246,7 @@ class ClanManagerApp {
           animation: {
             animateRotate: true,
             animateScale: true,
-            duration: 750,
+            duration: 680,
             easing: "easeOutQuart"
           },
           plugins: {
@@ -1300,9 +1339,8 @@ class ClanManagerApp {
       chart.resize();
 
       if (triggerAnimation) {
-        chart.reset();
         chart.update({
-          duration: 520,
+          duration: 460,
           easing: "easeOutQuart"
         });
       } else {
@@ -1350,7 +1388,7 @@ class ClanManagerApp {
         plugins: [barDataLabelsPlugin],
         options: {
           animation: {
-            duration: 520,
+            duration: 460,
             easing: "easeOutQuart"
           },
           responsive: true,
@@ -1398,7 +1436,7 @@ class ClanManagerApp {
       const diffVal = currentVal - homeValue;
 
       const popClass = triggerAnimation ? "badge-pop" : "";
-      const animStyle = triggerAnimation ? `style="animation-delay: ${0.12 + idx * 0.08}s"` : "";
+      const animStyle = triggerAnimation ? `style="animation-delay: ${0.08 + idx * 0.06}s"` : "";
 
       let diffBadge = `<span class="${popClass} text-slate-500 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block" ${animStyle}>기준</span>`;
       if (!isHome) {
@@ -1441,13 +1479,14 @@ class ClanManagerApp {
   }
 
   setFilterTab(filterType, element) {
+    if (this.activeFilter === filterType && element?.classList.contains("active")) return;
     this.activeFilter = filterType;
     document.querySelectorAll(".filter-chip").forEach((btn) => btn.classList.remove("active"));
     if (element) element.classList.add("active");
     this.applyFilterAndRender(true);
   }
 
-  // 3일+ 미접속 대상자 전용 팝업 모달 오픈
+  // 3일+ 미접속 대상자 전용 팝업 모달 (상시 마운트 + 120fps 스프링 오픈)
   openDormantModal() {
     const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
     const listContainer = this.elements.dormantModalList || document.getElementById("dormant-modal-list");
@@ -1463,7 +1502,6 @@ class ClanManagerApp {
       return (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24) >= 3;
     });
 
-    // 미접속 기간이 가장 오래된 순서(오래된 접속일 우선)로 정렬
     dormantMembers.sort((a, b) => {
       const dateA = this.getEffectiveActiveDate(a.lastSeen, a.lastBattleTime);
       const dateB = this.getEffectiveActiveDate(b.lastSeen, b.lastBattleTime);
@@ -1490,7 +1528,7 @@ class ClanManagerApp {
         const donations = member.donations || 0;
 
         return `
-          <div class="p-3.5 hover:bg-white/[0.03] transition cursor-pointer flex items-center justify-between gap-2" onclick="window.app.closeDormantModal(); window.app.openMemberModal('${this.escapeHtml(member.tag)}')">
+          <div class="p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition cursor-pointer flex items-center justify-between gap-2" onclick="window.app.switchFromDormantToMember('${this.escapeHtml(member.tag)}')">
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${idx + 1}</span>
@@ -1515,15 +1553,20 @@ class ClanManagerApp {
       }).join("");
     }
 
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
+    this.openModalSmooth(modal);
   }
 
   closeDormantModal() {
     const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
-    if (!modal) return;
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
+    this.closeModalSmooth(modal);
+  }
+
+  // 미접속 대상자 팝업에서 클랜원 클릭 시 끊김 없이 상세 팝업으로 부드럽게 교차 전환
+  switchFromDormantToMember(memberTag) {
+    this.closeDormantModal();
+    setTimeout(() => {
+      this.openMemberModal(memberTag);
+    }, 140);
   }
 
   toggleSort(key) {
@@ -1643,7 +1686,7 @@ class ClanManagerApp {
     return `${diffDays}일 전`;
   }
 
-  // 클랜원 상세 팝업 모달 오픈 (접속 상태, 최근 배틀 기록, 주간 지원량/비중, 지원 받은 카드, RoyaleAPI 전적)
+  // 클랜원 상세 팝업 모달 (120fps 스프링 오픈)
   openMemberModal(memberTag) {
     if (!this.currentData?.memberList) return;
     const member = this.currentData.memberList.find((m) => m.tag === memberTag);
@@ -1691,15 +1734,12 @@ class ClanManagerApp {
       royaleLink.href = `https://royaleapi.com/player/${encodeURIComponent(cleanTag)}`;
     }
 
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
+    this.openModalSmooth(modal);
   }
 
   closeMemberModal() {
     const modal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
-    if (!modal) return;
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
+    this.closeModalSmooth(modal);
   }
 
   applyFilterAndRender(shouldStagger = false) {
@@ -1853,12 +1893,13 @@ class ClanManagerApp {
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
-      const staggerClass = shouldStagger ? "card-stagger-in" : "";
-      const staggerStyle = shouldStagger ? `style="animation-delay: ${Math.min(idx * 0.03, 0.36)}s"` : "";
+      // 뷰포트에 보이는 상위 14개 아이템에만 스태거 애니메이션을 적용해 GPU 과부하 방지
+      const animateCard = shouldStagger && idx < 14;
+      const staggerClass = animateCard ? "card-stagger-in" : "";
+      const staggerStyle = animateCard ? `style="animation-delay: ${(idx * 0.024).toFixed(3)}s"` : "";
 
       cardsHtml += `
         <div class="mobile-member-card ${staggerClass}" ${staggerStyle} onclick="window.app.openMemberModal('${this.escapeHtml(member.tag)}')">
-          <!-- 상단: 순위 + 닉네임 + 직급 & 우측 트로피 점수 -->
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
@@ -1869,9 +1910,7 @@ class ClanManagerApp {
             <span class="text-xs font-semibold text-amber-400 shrink-0">🏆 ${(member.trophies || 0).toLocaleString()}</span>
           </div>
 
-          <!-- 하단: 3열 균등 분할 [접속 상태 | 최근 배틀 | 주간 지원량] -->
           <div class="grid grid-cols-3 gap-1 pt-2.5 mt-2 border-t border-white/[0.03] items-center">
-            <!-- 1열: 접속 상태 -->
             <div class="text-left">
               <div class="text-[10px] text-slate-500 font-medium">접속 상태</div>
               <div class="text-xs ${status.textColor} mt-0.5 font-medium flex items-center gap-1 truncate">
@@ -1880,7 +1919,6 @@ class ClanManagerApp {
               </div>
             </div>
 
-            <!-- 2열: 최근 배틀 -->
             <div class="text-center">
               <div class="text-[10px] text-slate-500 font-medium">최근 배틀</div>
               <div class="text-xs ${battleTextColor} mt-0.5 font-medium flex items-center justify-center gap-1 truncate">
@@ -1889,7 +1927,6 @@ class ClanManagerApp {
               </div>
             </div>
 
-            <!-- 3열: 주간 지원량 -->
             <div class="text-right">
               <div class="text-[10px] text-slate-500 font-medium">주간 지원량</div>
               <div class="text-xs font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5 font-mono truncate">

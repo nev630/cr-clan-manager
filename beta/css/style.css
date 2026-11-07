@@ -17,6 +17,8 @@
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
   --accent-blue: #3b82f6;
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-silky: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * {
@@ -32,6 +34,7 @@ body {
   letter-spacing: -0.015em;
   -webkit-font-smoothing: antialiased;
   padding-bottom: 2rem;
+  overflow-x: hidden;
 }
 
 /* 정교한 서피스 카드 */
@@ -66,20 +69,11 @@ body {
 
 /* 펄스 애니메이션 (라이브 동기화용) */
 @keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+  0%, 100% { opacity: 1; transform: scale3d(1, 1, 1); }
+  50% { opacity: 0.4; transform: scale3d(0.85, 0.85, 1); }
 }
 .live-pulse {
   animation: pulseDot 2.4s infinite ease-in-out;
-}
-
-/* 수동 새로고침 아이콘 회전 */
-@keyframes spinOnce {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.spin-syncing {
-  animation: spinOnce 0.65s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
 /* 필터 칩 버튼 */
@@ -91,7 +85,7 @@ body {
   color: var(--text-secondary);
   background: transparent;
   border: 1px solid transparent;
-  transition: all 0.15s ease;
+  transition: color 0.24s var(--ease-silky), background-color 0.24s var(--ease-silky), border-color 0.24s var(--ease-silky), transform 0.16s var(--ease-spring);
   cursor: pointer;
   white-space: nowrap;
   touch-action: manipulation;
@@ -109,16 +103,79 @@ body {
   font-weight: 600;
 }
 
-/* 타 갤클 비교 지표 전환 칩 */
+/* ============================================================
+   v1.8.2 120fps 하드웨어 가속 슬라이딩 세그먼트 탭 & 뷰 전환
+   ============================================================ */
+.segmented-control {
+  position: relative;
+  isolation: isolate;
+}
+
+.segmented-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 9px;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translate3d(0%, 0, 0);
+  transition: transform 0.38s var(--ease-spring), background-color 0.25s ease, border-color 0.25s ease;
+  will-change: transform;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.segmented-pill.compare-pill {
+  border-radius: 8px;
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.28);
+}
+
+.segmented-pill.slide-right {
+  transform: translate3d(100%, 0, 0);
+}
+
+/* 메인 네비게이션 탭 버튼 (배경은 슬라이딩 필이 담당) */
+.main-nav-btn {
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  transition: color 0.26s var(--ease-silky), transform 0.15s var(--ease-spring);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  touch-action: manipulation;
+  user-select: none;
+}
+.main-nav-btn:hover {
+  color: var(--text-primary);
+}
+.main-nav-btn.active {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* 타 갤클 비교 지표 전환 칩 (배경은 슬라이딩 필이 담당) */
 .compare-metric-chip {
   padding: 6px 6px;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  transition: color 0.26s var(--ease-silky), transform 0.15s var(--ease-spring);
   cursor: pointer;
   white-space: nowrap;
   text-align: center;
@@ -127,14 +184,26 @@ body {
 }
 .compare-metric-chip:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.04);
 }
 .compare-metric-chip.active {
   color: #ffffff;
-  background: var(--bg-elevated);
-  border-color: rgba(99, 102, 241, 0.35);
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* 탭 뷰 전환 시 부드러운 GPU 글라이드 인 애니메이션 */
+@keyframes tabViewGlideIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.994);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+.tab-view-enter {
+  animation: tabViewGlideIn 0.38s var(--ease-spring) forwards;
+  will-change: transform, opacity;
 }
 
 /* 테이블 미니멀 스타일 (PC용) */
@@ -151,7 +220,7 @@ body {
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   font-size: 13px;
-  transition: background 0.12s ease;
+  transition: background 0.15s ease;
 }
 .data-table tbody tr {
   cursor: pointer;
@@ -165,7 +234,7 @@ body {
   padding: 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   background: var(--bg-surface);
-  transition: background 0.12s ease, transform 0.08s ease;
+  transition: background-color 0.15s ease, transform 0.14s var(--ease-spring);
   cursor: pointer;
   touch-action: manipulation;
   user-select: none;
@@ -178,7 +247,7 @@ body {
   background: var(--bg-surface-hover);
 }
 .mobile-member-card:active {
-  transform: scale(0.985);
+  transform: scale3d(0.985, 0.985, 1);
   background: var(--bg-surface-hover) !important;
 }
 
@@ -210,7 +279,9 @@ body {
   color: #94a3b8;
 }
 
-/* 올림픽 시상대 단상 (Podium) */
+/* ============================================================
+   올림픽 시상대 단상 (Podium) - Layout Reflow 없는 100% GPU scaleY 애니메이션
+   ============================================================ */
 .podium-step {
   position: relative;
   display: flex;
@@ -222,19 +293,21 @@ body {
   border-left-width: 1px;
   border-right-width: 1px;
   border-bottom-width: 0;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transform-origin: bottom center;
+  transition: transform 0.22s var(--ease-spring), filter 0.22s ease;
   overflow: hidden;
   cursor: pointer;
   touch-action: manipulation;
   user-select: none;
+  backface-visibility: hidden;
 }
 .podium-step:hover {
   filter: brightness(1.1);
-  transform: translateY(-2px);
+  transform: translate3d(0, -2px, 0);
 }
 .podium-step:active {
-  transform: scale(0.96) !important;
-  transition: transform 0.08s ease;
+  transform: scale3d(0.96, 0.96, 1) !important;
+  transition: transform 0.1s ease;
 }
 
 .podium-1st {
@@ -251,64 +324,58 @@ body {
   background: linear-gradient(180deg, rgba(217, 119, 6, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
 }
 
-/* 아래에서 위로 솟아오르는 차트 애니메이션 */
-@keyframes podiumRise1st {
-  0% { height: 0; opacity: 0.2; }
-  100% { height: 7rem; opacity: 1; }
-}
-@media (min-width: 640px) {
-  @keyframes podiumRise1st {
-    0% { height: 0; opacity: 0.2; }
-    100% { height: 8rem; opacity: 1; }
+@keyframes podiumScaleRise {
+  0% {
+    opacity: 0;
+    transform: scale3d(1, 0.08, 1);
   }
-}
-
-@keyframes podiumRise2nd {
-  0% { height: 0; opacity: 0.2; }
-  100% { height: 5rem; opacity: 1; }
-}
-@media (min-width: 640px) {
-  @keyframes podiumRise2nd {
-    0% { height: 0; opacity: 0.2; }
-    100% { height: 6rem; opacity: 1; }
-  }
-}
-
-@keyframes podiumRise3rd {
-  0% { height: 0; opacity: 0.2; }
-  100% { height: 3.5rem; opacity: 1; }
-}
-@media (min-width: 640px) {
-  @keyframes podiumRise3rd {
-    0% { height: 0; opacity: 0.2; }
-    100% { height: 4rem; opacity: 1; }
+  100% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
   }
 }
 
 @keyframes podiumHeaderRise {
-  0% { opacity: 0; transform: translateY(12px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 @keyframes runnerSlideUp {
-  0% { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 .podium-animate .podium-1st {
-  animation: podiumRise1st 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: podiumScaleRise 0.62s var(--ease-spring) both;
+  will-change: transform, opacity;
 }
 .podium-animate .podium-2nd {
-  animation: podiumRise2nd 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.06s both;
+  will-change: transform, opacity;
 }
 .podium-animate .podium-3rd {
-  animation: podiumRise3rd 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.12s both;
+  will-change: transform, opacity;
 }
 .podium-animate .podium-header {
-  animation: podiumHeaderRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: podiumHeaderRise 0.56s var(--ease-spring) both;
+  will-change: transform, opacity;
 }
 .podium-animate .podium-runner-item {
-  animation: runnerSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: runnerSlideUp 0.44s var(--ease-spring) both;
+  will-change: transform, opacity;
 }
 
 /* 차트 래퍼 높이 */
@@ -343,36 +410,6 @@ body {
   }
 }
 
-/* 메인 네비게이션 탭 버튼 */
-.main-nav-btn {
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  touch-action: manipulation;
-  user-select: none;
-}
-.main-nav-btn:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.04);
-}
-.main-nav-btn.active {
-  color: #ffffff;
-  background: var(--bg-elevated);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  font-weight: 600;
-}
-
 /* 비교 차트 컨테이너 */
 .chart-container-compare {
   position: relative;
@@ -386,7 +423,7 @@ body {
 }
 
 /* 모바일 텍스트 줄바꿈 방지 */
-#clan-name, #clan-tag, #sync-status-text, .main-nav-btn, #btn-quick-compare {
+#clan-name, #clan-tag, .main-nav-btn, #btn-quick-compare {
   white-space: nowrap !important;
   word-break: keep-all;
 }
@@ -553,32 +590,34 @@ html.light .mobile-member-card:active {
   background: #f8fafc !important;
 }
 
-/* 필터 칩 및 비교 지표 칩 (라이트 모드) */
-html.light .filter-chip,
-html.light .compare-metric-chip {
+/* 필터 칩 (라이트 모드) */
+html.light .filter-chip {
   color: #475569;
 }
-html.light .filter-chip:hover,
-html.light .compare-metric-chip:hover {
+html.light .filter-chip:hover {
   color: #0f172a;
   background: #e2e8f0;
 }
-html.light .filter-chip.active,
-html.light .compare-metric-chip.active {
+html.light .filter-chip.active {
   color: #4338ca !important;
   background: #ffffff !important;
   border-color: rgba(99, 102, 241, 0.3) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* 상단 메인 탭 */
-html.light .main-nav-btn {
+/* 슬라이딩 세그먼트 탭 (라이트 모드) */
+html.light .segmented-pill {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+html.light .main-nav-btn,
+html.light .compare-metric-chip {
   color: #475569 !important;
 }
-html.light .main-nav-btn.active {
-  background: #ffffff !important;
+html.light .main-nav-btn.active,
+html.light .compare-metric-chip.active {
   color: #4338ca !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
 }
 
 html.light .bg-indigo-950\/20 {
@@ -590,23 +629,22 @@ html.light #initial-sync-modal {
 }
 
 /* ============================================================
-   해 ↔ 달 아이콘 모핑 & 실키 스핀 인터랙션 (CSS 단일 파이프라인)
+   해 ↔ 달 아이콘 모핑 & 실키 스핀 인터랙션
    ============================================================ */
-#btn-theme-toggle, #btn-manual-sync, #btn-sort-order {
+#btn-theme-toggle, #btn-sort-order {
   touch-action: manipulation;
   user-select: none;
 }
-#btn-sort-order:active, .filter-chip:active, .compare-metric-chip:active, #btn-manual-sync:active {
-  transform: scale(0.94);
-  transition: transform 0.08s ease;
+#btn-sort-order:active, .filter-chip:active, .compare-metric-chip:active, .main-nav-btn:active {
+  transform: scale3d(0.95, 0.95, 1);
 }
 #btn-theme-toggle:active {
-  transform: scale(0.90);
+  transform: scale3d(0.90, 0.90, 1);
   transition: transform 0.08s ease;
 }
 
 #theme-toggle-icon {
-  transition: transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.44s var(--ease-spring);
   transform-origin: center;
 }
 html.light #theme-toggle-icon {
@@ -616,7 +654,7 @@ html.dark #theme-toggle-icon {
   transform: rotate(0deg);
 }
 #icon-sun, #icon-moon {
-  transition: opacity 0.3s ease, transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s ease, transform 0.44s var(--ease-spring);
   transform-origin: center;
 }
 html.light #icon-sun {
@@ -657,11 +695,11 @@ html.dark #icon-moon {
 @keyframes goldAuraPulse {
   0%, 100% {
     filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7)) drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
-    transform: scale(1);
+    transform: scale3d(1, 1, 1);
   }
   50% {
     filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.65));
-    transform: scale(1.05);
+    transform: scale3d(1.05, 1.05, 1);
   }
 }
 .crown-aura-glow {
@@ -671,73 +709,99 @@ html.dark #icon-moon {
 }
 
 @keyframes cardStaggerIn {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translate3d(0, 10px, 0);
   }
-  to {
+  100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 .card-stagger-in {
-  animation: cardStaggerIn 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: cardStaggerIn 0.34s var(--ease-spring) both;
 }
 
 @keyframes badgePop {
   0% {
     opacity: 0;
-    transform: scale(0.65);
+    transform: scale3d(0.7, 0.7, 1);
   }
   65% {
-    transform: scale(1.18);
+    transform: scale3d(1.12, 1.12, 1);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale3d(1, 1, 1);
   }
 }
 .badge-pop {
   display: inline-block;
   transform-origin: center;
-  animation: badgePop 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation: badgePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
 /* ============================================================
-   모달 바텀시트 & 플로팅 토스트 애니메이션 (v1.8.0 UX)
+   v1.8.2 상시 마운트(Pre-composited) 양방향 120fps 팝업 모달 트랜지션
+   - display: none 토글로 인한 첫 프레임 드랍 제거 & 닫힘 애니메이션 완벽 지원
    ============================================================ */
-@keyframes modalSheetRise {
-  0% {
-    opacity: 0;
-    transform: translateY(18px) scale(0.97);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-.modal-sheet-animate {
-  animation: modalSheetRise 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.modal-overlay {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.28s var(--ease-silky), visibility 0.28s var(--ease-silky);
+  will-change: opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
+.modal-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.modal-panel {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0) scale3d(0.95, 0.95, 1);
+  transform-origin: bottom center;
+  transition: transform 0.38s var(--ease-spring), opacity 0.24s var(--ease-silky);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@media (min-width: 640px) {
+  .modal-panel {
+    transform: translate3d(0, 14px, 0) scale3d(0.95, 0.95, 1);
+    transform-origin: center center;
+  }
+}
+
+.modal-overlay.is-open .modal-panel {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+}
+
+/* 플로팅 토스트 애니메이션 */
 @keyframes toastSlideIn {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.94);
+    transform: translate3d(0, 14px, 0) scale3d(0.94, 0.94, 1);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
   }
 }
 @keyframes toastSlideOut {
   0% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
   }
   100% {
     opacity: 0;
-    transform: translateY(8px) scale(0.95);
+    transform: translate3d(0, 8px, 0) scale3d(0.95, 0.95, 1);
   }
 }
 .toast-pill {
@@ -754,7 +818,7 @@ html.dark #icon-moon {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  animation: toastSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toastSlideIn 0.26s var(--ease-spring) forwards;
 }
 .toast-pill.toast-leaving {
   animation: toastSlideOut 0.2s ease-in forwards;
@@ -767,18 +831,17 @@ html.light .toast-pill {
 }
 
 /* ============================================================
-   v1.8.0 GPU 합성 최적화 슬롯머신 룰렛 애니메이션
-   - 무한 회전 시 정적 filter: blur(1.5px) 분리로 120fps Compositor 가속 보장
+   GPU 합성 최적화 슬롯머신 룰렛 애니메이션
    ============================================================ */
 .slot-window {
   box-shadow: inset 0 3px 12px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.4);
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s var(--ease-spring);
 }
 
 .slot-window.slot-locked {
   border-color: rgba(251, 191, 36, 0.7) !important;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 20px rgba(251, 191, 36, 0.4) !important;
-  transform: scale(1.03);
+  transform: scale3d(1.03, 1.03, 1);
 }
 
 .slot-reel-strip {
@@ -787,7 +850,6 @@ html.light .toast-pill {
   -webkit-backface-visibility: hidden;
 }
 
-/* 1. 데이터 로드 대기 중: 순수 transform: translateY만 키프레임 구동 (GPU 부하 최소화) */
 @keyframes slotSpinLoop {
   0% {
     transform: translate3d(0, 0%, 0);
@@ -812,7 +874,6 @@ html.light .toast-pill {
   animation: slotSpinLoop 0.26s linear infinite !important;
 }
 
-/* 2. 데이터 수신 완료 시: 5개 아이템(더미4+타겟1) 감속 및 기계식 오버슈트 바운스 착지 (땅!) */
 @keyframes slotStopDecel {
   0% {
     transform: translate3d(0, 0%, 0);
