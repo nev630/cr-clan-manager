@@ -1,16 +1,12 @@
 /**
- * Good Fellas Clan Manager - Core Application Logic (v1.8.0)
- * Performance & UX Complete Upgrade:
- * - 백그라운드 자동 갱신 시 스태거 깜빡임 제거 및 모바일/데스크톱 뷰포트 가드 최적화
- * - 인라인 SVG 아이콘 상수화로 매 렌더링 시 Lucide DOM 전체 재스캔 오버헤드 제거
- * - 2.5초 슬롯머신 안전 타임아웃과 실제 데이터 수신 파이프라인 비동기 분리 (지연 응답 유실 원천 차단)
- * - 슬롯머신 종료 후 DOM/GPU 레이어 메모리 즉시 반환 및 정적 blur 분리
- * - 내 클랜(#G890J9JC) 중복 API 호출 제거 및 비활성 비교 탭 폴링 쓰로틀링
- * - 클랜원 상세 바텀시트/모달 (태그 원클릭 복사 + RoyaleAPI 전적 바로가기)
- * - 검색어 원클릭 지우기(✕) 및 빈 상태 필터 리셋, 4대 비교 지표 전환(총 지원/1인 평균/클랜 점수/클랜전), 글래스모피즘 토스트
+ * Good Fellas Clan Manager - Core Application Logic (v1.8.1)
+ * - 상단 '방금 동기화' 버튼/문구 및 시상대 '단상 클릭 시 상세 보기' 안내 제거
+ * - '3일+ 미접속' 대상자 보기 클릭 시 전용 팝업 모달(#dormant-members-modal)로 대상자 표시 (필터 칩에서 미접속 3일+ 제거)
+ * - 클랜원 상세 팝업창 간결화 (접속 상태 텍스트 수정, 배틀 유형·지원 수지·태그복사 버튼 제거)
+ * - 타 갤클과 비교 탭 지표 2종(총 지원량 / 1인 평균) 집중 구성
  */
 
-console.log('%c[Good Fellas App] v1.8.0 - 성능 최적화 & 클랜원 상세·태그복사·4대 비교지표·토스트 UX 업그레이드 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.1 - 미접속 대상자 전용 팝업 & 클랜원 상세 모달·비교 탭 간결화 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -29,10 +25,10 @@ const SWORDS_INLINE_SVG = `<svg class="w-3 h-3 text-slate-500 shrink-0" viewBox=
 const COMPARE_METRICS_META = {
   donationsWeekly: {
     title: "주간 총 지원량 비교",
-    listTitle: "클랜별 핵심 현황 및 총 지원량 격차",
+    listTitle: "클랜별 핵심 현황 및 지원량 격차",
     unitText: "단위: 개",
     suffix: "개",
-    label: "주간 총 지원량"
+    label: "주간 지원량"
   },
   donationsAvg: {
     title: "1인당 평균 주간 지원량 비교",
@@ -40,20 +36,6 @@ const COMPARE_METRICS_META = {
     unitText: "단위: 개/인",
     suffix: "개",
     label: "1인 평균 지원"
-  },
-  clanScore: {
-    title: "클랜 점수 (트로피 총합 지표) 비교",
-    listTitle: "클랜별 클랜 점수 및 격차",
-    unitText: "단위: 점",
-    suffix: "점",
-    label: "클랜 점수"
-  },
-  clanWarTrophies: {
-    title: "클랜전 트로피 비교",
-    listTitle: "클랜별 클랜전 트로피 및 격차",
-    unitText: "단위: 🏆",
-    suffix: "점",
-    label: "클랜전 트로피"
   }
 };
 
@@ -61,7 +43,7 @@ class ClanManagerApp {
   constructor() {
     this.currentData = null;
     this.filteredMembers = [];
-    this.activeFilter = "all"; // 'all' | 'dormant' | 'low-donations'
+    this.activeFilter = "all"; // 'all' | 'low-donations'
     this.searchQuery = "";
     this.sorting = { key: "lastSeen", order: "desc" };
     this.activeMainTab = "dashboard";
@@ -166,7 +148,6 @@ class ClanManagerApp {
       if (document.visibilityState === "visible" && this.currentData) {
         this.renderMobileList(false);
         this.renderDesktopTable();
-        this.updateSyncTimestampUI();
       }
     }, 60000);
 
@@ -190,9 +171,6 @@ class ClanManagerApp {
       sortKeySelect: document.getElementById("sort-key-select"),
       btnSortOrder: document.getElementById("btn-sort-order"),
       btnThemeToggle: document.getElementById("btn-theme-toggle"),
-      btnManualSync: document.getElementById("btn-manual-sync"),
-      syncSpinIcon: document.getElementById("sync-spin-icon"),
-      syncStatusText: document.getElementById("sync-status-text"),
       sortOrderText: document.getElementById("sort-order-text"),
       sortOrderIcon: document.getElementById("sort-order-icon"),
       sortOrderIconWrapper: document.getElementById("sort-order-icon-wrapper"),
@@ -203,7 +181,6 @@ class ClanManagerApp {
       tabBtnCompare: document.getElementById("tab-btn-compare"),
       tabContextHint: document.getElementById("tab-context-hint"),
       btnQuickCompare: document.getElementById("btn-quick-compare"),
-      syncDot: document.getElementById("sync-dot"),
       clanName: document.getElementById("clan-name"),
       clanTag: document.getElementById("clan-tag"),
       clanDesc: document.getElementById("clan-desc"),
@@ -213,7 +190,6 @@ class ClanManagerApp {
       statAvgDonations: document.getElementById("stat-avg-donations"),
       statDormantCount: document.getElementById("stat-dormant-count"),
       chipCountAll: document.getElementById("chip-count-all"),
-      chipCountDormant: document.getElementById("chip-count-dormant"),
       chipCountLow: document.getElementById("chip-count-low"),
       podiumContainer: document.getElementById("podium-container"),
       podiumRunnersContainer: document.getElementById("podium-runners-container"),
@@ -227,6 +203,9 @@ class ClanManagerApp {
       emptyState: document.getElementById("empty-state"),
       memberMobileList: document.getElementById("member-mobile-list"),
       memberDetailModal: document.getElementById("member-detail-modal"),
+      dormantMembersModal: document.getElementById("dormant-members-modal"),
+      dormantModalCount: document.getElementById("dormant-modal-count"),
+      dormantModalList: document.getElementById("dormant-modal-list"),
       toastContainer: document.getElementById("toast-container")
     };
   }
@@ -248,12 +227,10 @@ class ClanManagerApp {
     this.targetEmotes = shuffled.slice(0, 3);
     this.slotStopTriggered = false;
 
-    // 1. CLS 방지용 슬롯 프레임 고정 예약
     container.innerHTML = this.targetEmotes.map((_, idx) => `
       <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${idx}"></div>
     `).join("");
 
-    // 2. 8종 이모트 병렬 프리로드 (최대 300ms 안전망)
     const preloadPromises = CR_EMOTES_POOL.map((emote) => {
       return new Promise((resolve) => {
         const img = new Image();
@@ -266,7 +243,6 @@ class ClanManagerApp {
     const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 300));
     await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
 
-    // 3. 무한 회전 릴 스트립 구축
     const loopItems = [...CR_EMOTES_POOL, ...CR_EMOTES_POOL];
     const itemsHtml = loopItems.map((item) => `
       <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
@@ -367,7 +343,6 @@ class ClanManagerApp {
 
     setTimeout(() => {
       modal.classList.add("hidden");
-      // 모달 퇴장 완료 후 슬롯머신 DOM 및 GPU 합성 레이어 메모리 즉시 반환
       const emotesContainer = document.getElementById("loading-emotes-container");
       if (emotesContainer) emotesContainer.innerHTML = "";
     }, 290);
@@ -407,10 +382,11 @@ class ClanManagerApp {
       this.elements.btnThemeToggle.addEventListener("click", (e) => this.toggleTheme(e));
     }
 
-    // ESC 키로 상세 모달 닫기
+    // ESC 키로 모달 닫기
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         this.closeMemberModal();
+        this.closeDormantModal();
       }
     });
   }
@@ -457,57 +433,6 @@ class ClanManagerApp {
       toast.classList.add("toast-leaving");
       setTimeout(() => toast.remove(), 220);
     }, 2200);
-  }
-
-  async copyTextToClipboard(text, successMsg) {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
-      }
-      this.showToast(successMsg || `📋 ${text} 복사 완료!`, "success");
-    } catch (e) {
-      this.showToast(`태그: ${text}`, "info");
-    }
-  }
-
-  copyClanTag() {
-    const tag = this.currentData?.tag || "#G890J9JC";
-    this.copyTextToClipboard(tag, `📋 클랜 태그(${tag})가 복사되었습니다`);
-  }
-
-  handleManualRefresh() {
-    if (this.elements.syncSpinIcon) {
-      this.elements.syncSpinIcon.classList.add("spin-syncing");
-    }
-    this.showToast("최신 클랜 데이터를 동기화합니다...", "info");
-    this.autoSyncLive(true);
-    if (this.activeMainTab === "compare") {
-      this.syncCompareLive(true);
-    }
-  }
-
-  updateSyncTimestampUI() {
-    const textEl = this.elements.syncStatusText;
-    if (!textEl) return;
-    if (!this.lastSuccessfulSync) {
-      textEl.textContent = "실시간";
-      return;
-    }
-    const diffSec = Math.max(0, Math.floor((Date.now() - this.lastSuccessfulSync) / 1000));
-    if (diffSec < 60) {
-      textEl.textContent = "방금 동기화";
-    } else {
-      textEl.textContent = `${Math.floor(diffSec / 60)}분 전`;
-    }
   }
 
   toggleTheme(e) {
@@ -834,7 +759,6 @@ class ClanManagerApp {
 
       await Promise.allSettled(chunkPromises);
 
-      // 청크 완료 시 스태거 애니메이션 없이 부드럽게 데이터만 갱신
       if (hasNewData) {
         this.saveBattleLogCache();
         this.applyFilterAndRender(false);
@@ -847,7 +771,6 @@ class ClanManagerApp {
     }
   }
 
-  // 데이터 수신 후처리 (2.5초 슬롯 타임아웃 이후에 도착하더라도 100% 반영 보장)
   processIncomingClanData(liveData, shouldAnimate = false) {
     if (!liveData || !liveData.memberList) return;
 
@@ -880,16 +803,6 @@ class ClanManagerApp {
       }, 850);
     }
 
-    this.lastSuccessfulSync = Date.now();
-    this.updateSyncTimestampUI();
-
-    if (this.elements.syncDot) {
-      this.elements.syncDot.className = "status-dot green live-pulse";
-    }
-    if (this.elements.syncSpinIcon) {
-      this.elements.syncSpinIcon.classList.remove("spin-syncing");
-    }
-
     if (missingBattleMembers.length > 0) {
       this.fetchAllMembersBattleLogs(missingBattleMembers);
     }
@@ -902,16 +815,12 @@ class ClanManagerApp {
     }
     this.lastSyncTime = now;
 
-    const { syncDot: dot } = this.elements;
-    if (dot) dot.className = "status-dot amber live-pulse";
-
     const isInitial = !this.elements.initialSyncModal?.dataset?.dismissed;
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
 
     try {
       let resolvedAfterTimeout = false;
 
-      // 실제 데이터 패치 프로미스: 2.5초 안전 타임아웃 이후에 도착하더라도 데이터를 버리지 않고 즉시 반영
       const dataFetchPromise = window.crApi.fetchClanFullData(tag, null, isManual).then((liveData) => {
         if (resolvedAfterTimeout && liveData && liveData.memberList) {
           this.processIncomingClanData(liveData, false);
@@ -923,7 +832,6 @@ class ClanManagerApp {
         await this.emotesReadyPromise;
       }
 
-      // 초기 로딩 시 최대 2.5초 안전 타임아웃 레이스 (모달 프리징 방지 전용)
       const timeoutFallback = new Promise((resolve) => setTimeout(() => resolve("TIMEOUT"), 2500));
       const raceResult = isInitial
         ? await Promise.race([dataFetchPromise, timeoutFallback])
@@ -948,10 +856,6 @@ class ClanManagerApp {
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
-      if (dot) dot.className = "status-dot red";
-      if (this.elements.syncSpinIcon) {
-        this.elements.syncSpinIcon.classList.remove("spin-syncing");
-      }
 
       if (!this.currentData) {
         const presets = window.crApi?.getGalleryClansPreset() || [];
@@ -971,7 +875,6 @@ class ClanManagerApp {
     }
   }
 
-  // 타 갤클 비교 데이터 동기화 (내 클랜 캐시 재사용 및 쿨타운 쓰로틀링 적용)
   async syncCompareLive(force = false) {
     const now = Date.now();
     if (!force && (now - this.lastCompareSyncTime < this.compareThrottleMs)) {
@@ -1150,7 +1053,7 @@ class ClanManagerApp {
 
     const avgDonations = Math.round(officialWeeklyDonations / (totalMembers || 1));
 
-    const { statTotalMembers, statMemberVacant, statTotalDonations, statAvgDonations, statDormantCount, chipCountAll, chipCountDormant, chipCountLow } = this.elements;
+    const { statTotalMembers, statMemberVacant, statTotalDonations, statAvgDonations, statDormantCount, chipCountAll, chipCountLow } = this.elements;
 
     if (statTotalMembers) this.animateNumber(statTotalMembers, totalMembers, 600, " / 50");
     if (statMemberVacant) statMemberVacant.textContent = `여유 자리: ${50 - totalMembers}석`;
@@ -1159,7 +1062,6 @@ class ClanManagerApp {
     if (statDormantCount) this.animateNumber(statDormantCount, dormantCount, 500, "명");
 
     if (chipCountAll) this.animateNumber(chipCountAll, totalMembers, 400);
-    if (chipCountDormant) this.animateNumber(chipCountDormant, dormantCount, 400);
     if (chipCountLow) this.animateNumber(chipCountLow, lowDonationCount, 400);
   }
 
@@ -1335,23 +1237,6 @@ class ClanManagerApp {
     }
   }
 
-  handleCustomClanAdd() {
-    const input = this.elements.inputCustomClanTag;
-    if (!input) return;
-    const rawVal = input.value.trim();
-    if (!rawVal) return;
-
-    const normalized = window.crApi ? window.crApi.normalizeTag(rawVal) : (rawVal.startsWith("#") ? rawVal : "#" + rawVal);
-    if (!this.compareTags.includes(normalized)) {
-      this.compareTags.push(normalized);
-      input.value = "";
-      this.syncCompareLive(true);
-      this.showToast(`클랜(${normalized})이 비교 목록에 추가되었습니다.`, "success");
-    } else {
-      this.showToast("이미 비교 목록에 등록된 클랜 태그입니다.", "error");
-    }
-  }
-
   renderComparisonView(triggerAnimation = false) {
     let clans = this.compareClansData;
     if (!Array.isArray(clans) || clans.length === 0) {
@@ -1359,23 +1244,19 @@ class ClanManagerApp {
       this.compareClansData = clans;
     }
 
-    const metricKey = this.activeCompareMetric || "donationsWeekly";
+    const metricKey = COMPARE_METRICS_META[this.activeCompareMetric] ? this.activeCompareMetric : "donationsWeekly";
 
     const enriched = clans.map((c) => {
       const isHome = (c.tag || "").toUpperCase() === "#G890J9JC" || c.isHome === true;
       const membersCount = typeof c.members === "number" ? c.members : (c.memberList?.length || 0);
       const donationsWeekly = typeof c.donationsPerWeek === "number" ? c.donationsPerWeek : 0;
       const donationsAvg = Math.round(donationsWeekly / (membersCount || 1));
-      const clanScore = typeof c.clanScore === "number" ? c.clanScore : 0;
-      const clanWarTrophies = typeof c.clanWarTrophies === "number" ? c.clanWarTrophies : 0;
       return {
         ...c,
         isHome,
         membersCount,
         donationsWeekly,
-        donationsAvg,
-        clanScore,
-        clanWarTrophies
+        donationsAvg
       };
     });
 
@@ -1541,12 +1422,10 @@ class ClanManagerApp {
                 <span class="font-bold text-white text-sm sm:text-base tracking-tight truncate">${this.escapeHtml(c.name)}</span>
                 ${isHome ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">내 클랜</span>' : ''}
               </div>
-              <div class="text-[11px] font-mono text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <div class="text-[11px] font-mono text-slate-500 mt-0.5 flex items-center gap-1.5">
                 <span>${this.escapeHtml(c.tag)}</span>
                 <span class="text-slate-600">·</span>
                 <span class="text-slate-400 font-sans">${c.membersCount}<span class="text-slate-500 font-normal">/50명</span></span>
-                <span class="text-slate-600">·</span>
-                <span class="text-slate-400 font-sans">점수 ${(c.clanScore || 0).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -1568,12 +1447,83 @@ class ClanManagerApp {
     this.applyFilterAndRender(true);
   }
 
-  setQuickFilter(filterType) {
-    const targetBtn = document.querySelector(`.filter-chip[data-filter="${filterType}"]`);
-    if (targetBtn) {
-      this.setFilterTab(filterType, targetBtn);
-      targetBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  // 3일+ 미접속 대상자 전용 팝업 모달 오픈
+  openDormantModal() {
+    const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
+    const listContainer = this.elements.dormantModalList || document.getElementById("dormant-modal-list");
+    const countBadge = this.elements.dormantModalCount || document.getElementById("dormant-modal-count");
+    if (!modal || !listContainer) return;
+
+    const members = this.currentData?.memberList || [];
+    const now = Date.now();
+
+    const dormantMembers = members.filter((m) => {
+      const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
+      if (!effectiveDate) return true;
+      return (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24) >= 3;
+    });
+
+    // 미접속 기간이 가장 오래된 순서(오래된 접속일 우선)로 정렬
+    dormantMembers.sort((a, b) => {
+      const dateA = this.getEffectiveActiveDate(a.lastSeen, a.lastBattleTime);
+      const dateB = this.getEffectiveActiveDate(b.lastSeen, b.lastBattleTime);
+      const timeA = dateA ? dateA.getTime() : 0;
+      const timeB = dateB ? dateB.getTime() : 0;
+      return timeA - timeB;
+    });
+
+    if (countBadge) {
+      countBadge.textContent = `${dormantMembers.length}명`;
     }
+
+    if (dormantMembers.length === 0) {
+      listContainer.innerHTML = `
+        <div class="py-12 px-4 text-center">
+          <div class="text-xs font-semibold text-emerald-400">3일 이상 미접속한 클랜원이 없습니다</div>
+          <p class="text-[11px] text-slate-500 mt-1">모든 클랜원이 최근 3일 이내 활동 중입니다.</p>
+        </div>
+      `;
+    } else {
+      listContainer.innerHTML = dormantMembers.map((member, idx) => {
+        const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
+        const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
+        const donations = member.donations || 0;
+
+        return `
+          <div class="p-3.5 hover:bg-white/[0.03] transition cursor-pointer flex items-center justify-between gap-2" onclick="window.app.closeDormantModal(); window.app.openMemberModal('${this.escapeHtml(member.tag)}')">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${idx + 1}</span>
+                <span class="font-bold text-white text-xs sm:text-[13px] truncate">${this.escapeHtml(member.name)}</span>
+                ${this.getRoleBadge(member.role)}
+              </div>
+              <div class="flex items-center gap-2 text-[11px] font-mono text-slate-500 mt-0.5 pl-5">
+                <span>${this.escapeHtml(member.tag)}</span>
+                <span>·</span>
+                <span class="font-sans text-slate-400">지원 ${donations.toLocaleString()}개</span>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="inline-flex items-center gap-1 text-xs ${status.textColor}">
+                <span class="status-dot ${status.dotColor}"></span>
+                <span>${status.text}</span>
+              </div>
+              <div class="text-[10px] text-slate-500 font-mono mt-0.5">배틀: ${relativeBattle}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+
+  closeDormantModal() {
+    const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
+    if (!modal) return;
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
   }
 
   toggleSort(key) {
@@ -1693,7 +1643,7 @@ class ClanManagerApp {
     return `${diffDays}일 전`;
   }
 
-  // 클랜원 상세 바텀시트/모달 오픈 (태그 원클릭 복사 및 RoyaleAPI 프로필 연동)
+  // 클랜원 상세 팝업 모달 오픈 (접속 상태, 최근 배틀 기록, 주간 지원량/비중, 지원 받은 카드, RoyaleAPI 전적)
   openMemberModal(memberTag) {
     if (!this.currentData?.memberList) return;
     const member = this.currentData.memberList.find((m) => m.tag === memberTag);
@@ -1712,7 +1662,6 @@ class ClanManagerApp {
       ? this.currentData.donationsPerWeek
       : this.currentData.memberList.reduce((acc, cur) => acc + (cur.donations || 0), 0) || 1;
     const sharePercent = ((donations / totalClanDonations) * 100).toFixed(1);
-    const diffDon = donations - received;
 
     const setElHtml = (id, html) => {
       const el = document.getElementById(id);
@@ -1732,16 +1681,9 @@ class ClanManagerApp {
     setElHtml("modal-member-status", `<span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span><span class="${status.textColor}">${status.text}</span>`);
     setElText("modal-member-exact-seen", exactSeen);
     setElText("modal-member-battle", relativeBattle);
-    setElText("modal-member-battle-type", member.lastBattleType ? `유형: ${member.lastBattleType}` : "배틀 유형 기록 없음");
     setElText("modal-member-donations", `${donations.toLocaleString()}개`);
     setElText("modal-member-Share", `클랜 내 기여 비중 ${sharePercent}%`);
     setElText("modal-member-received", `${received.toLocaleString()}개`);
-    setElText("modal-member-ratio", `지원 수지 ${diffDon >= 0 ? `+${diffDon.toLocaleString()}` : diffDon.toLocaleString()}개`);
-
-    const copyBtn = document.getElementById("btn-copy-member-tag");
-    if (copyBtn) {
-      copyBtn.onclick = () => this.copyTextToClipboard(member.tag, `📋 ${member.name}님의 태그(${member.tag})가 복사되었습니다`);
-    }
 
     const royaleLink = document.getElementById("btn-royaleapi-link");
     if (royaleLink) {
@@ -1764,7 +1706,6 @@ class ClanManagerApp {
     if (!this.currentData || !this.currentData.memberList) return;
 
     let list = [...this.currentData.memberList];
-    const now = Date.now();
 
     if (this.searchQuery) {
       list = list.filter((m) =>
@@ -1773,13 +1714,7 @@ class ClanManagerApp {
       );
     }
 
-    if (this.activeFilter === "dormant") {
-      list = list.filter((m) => {
-        const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
-        if (!effectiveDate) return true;
-        return (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24) >= 3;
-      });
-    } else if (this.activeFilter === "low-donations") {
+    if (this.activeFilter === "low-donations") {
       list = list.filter((m) => (m.donations || 0) < 50);
     }
 
@@ -1886,7 +1821,6 @@ class ClanManagerApp {
     const emptyState = this.elements.emptyState;
     if (!container) return;
 
-    // 데스크톱 테이블이 활성화된 환경이면 모바일 리스트 불필요 연산 생략
     if (window.innerWidth >= 1024 && this.elements.memberTableBody && !this.elements.memberTableBody.closest(".hidden")) {
       return;
     }
@@ -1919,7 +1853,6 @@ class ClanManagerApp {
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
-      // shouldStagger가 true일 때만 스태거 페이드인 클래스 적용 (20초 자동 갱신/1분 타이머 시 깜빡임 원천 차단)
       const staggerClass = shouldStagger ? "card-stagger-in" : "";
       const staggerStyle = shouldStagger ? `style="animation-delay: ${Math.min(idx * 0.03, 0.36)}s"` : "";
 
@@ -1947,7 +1880,7 @@ class ClanManagerApp {
               </div>
             </div>
 
-            <!-- 2열: 최근 배틀 (인라인 SVG로 Lucide 재스캔 제거) -->
+            <!-- 2열: 최근 배틀 -->
             <div class="text-center">
               <div class="text-[10px] text-slate-500 font-medium">최근 배틀</div>
               <div class="text-xs ${battleTextColor} mt-0.5 font-medium flex items-center justify-center gap-1 truncate">
