@@ -1,26 +1,28 @@
 /**
- * Good Fellas Clan Manager - Core Application Logic (v1.8.2)
- * Ultra-Smooth 120fps Animation Engine:
- * - 상단 메인 탭 & 타 갤클 비교 탭에 하드웨어 가속 슬라이딩 필(Segmented Pill) 및 탭 뷰 글라이드 트랜지션 탑재
- * - 팝업 모달(3일+ 미접속 대상자, 클랜원 상세, 동기화 에러) 상시 마운트 + 양방향(열기/닫기) 120fps 스프링 트랜지션 구현
- * - 시상대(Podium) 단상 애니메이션을 Layout Reflow 없는 scale3d(1, scaleY, 1) GPU 합성으로 전환
- * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
+ * Good Fellas Clan Manager - Core Application Logic (v1.8.3)
+ * Anti-AI Product Design & Official Clash Royale PNG Asset Integration:
+ * - OS 유니코드 이모지(🏆, 🥇, 🥈, 🥉) 전면 퇴출 및 고해상도 PNG 에셋(assets/*.png) 적용
+ * - 상단 3대 지표 & 배지 시스템의 신호등식 네온/1px 색깔 테두리 제거 -> 절제된 모노크롬 위계 및 솔리드 필 적용
+ * - 모바일 클랜원 리스트의 150회 반복 라벨 제거 -> 상단 고정 컬럼 헤더 + 고밀도 프로덕트 행(Row) 레이아웃
+ * - 속이 빈 기본 도넛 차트에 중앙 실시간 '오늘 활동률(%)' 오버레이 & 우측 커스텀 레전드 결합
+ * - 120fps 슬라이딩 세그먼트 필 & 상시 마운트 양방향 팝업 스프링 트랜지션 유지
  */
 
-console.log('%c[Good Fellas App] v1.8.2 - 120fps 슬라이딩 탭 & 양방향 스프링 팝업 모달 & GPU 시상대 애니메이션 완성', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.3 - 탈-AI 프로덕트 디자인 & 공식 PNG 에셋 전면 적용 완료', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
-  { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
-  { name: "우는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/a/af/Crying_King.png/revision/latest?cb=20230915211808", offsetY: 0 },
-  { name: "비명 호그라이더", url: "https://static.wikia.nocookie.net/clashroyale/images/b/b6/Hog_Rider_Scream.png/revision/latest?cb=20230922123136", offsetY: 0 },
-  { name: "이마 짚는 고블린", url: "https://static.wikia.nocookie.net/clashroyale/images/d/dc/Facepalm_Goblin.png/revision/latest?cb=20230918084628", offsetY: 2 },
-  { name: "브이 프린세스", url: "https://static.wikia.nocookie.net/clashroyale/images/0/0f/Peace_Princess.png/revision/latest?cb=20230920123025", offsetY: -3 },
-  { name: "따봉 일렉트로 마법사", url: "https://static.wikia.nocookie.net/clashroyale/images/3/37/Electro_Wizard_Thumbs-Up.png/revision/latest?cb=20181027033128", offsetY: -2 },
-  { name: "우는 해골", url: "https://static.wikia.nocookie.net/clashroyale/images/7/73/Crying_Skeleton.png/revision/latest?cb=20180921183431", offsetY: 3 },
-  { name: "고기 뜯는 자이언트", url: "https://static.wikia.nocookie.net/clashroyale/images/b/bb/Eating_Giant.png/revision/latest?cb=20230920123020", offsetY: 0 }
+  { name: "챔피언 킹", url: "assets/champion-king.png", offsetY: 0 },
+  { name: "트로피 고블린", url: "assets/champion-goblin.png", offsetY: 0 },
+  { name: "힐스피릿 하트", url: "assets/heal-spirit-love.png", offsetY: 0 },
+  { name: "따봉 킹", url: "assets/thumbs-up-king.png", offsetY: 0 },
+  { name: "와이파이 끊긴 킹", url: "assets/king-no-wifi.png", offsetY: 0 },
+  { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 }
 ];
 
-const SWORDS_INLINE_SVG = `<svg class="w-3 h-3 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>`;
+const TROPHY_ICON_SM = `<img src="assets/trophy.png" alt="트로피" class="w-3 h-3 inline-block object-contain shrink-0 -mt-0.5" decoding="async" />`;
+const TROPHY_ICON_MD = `<img src="assets/trophy.png" alt="트로피" class="w-3.5 h-3.5 inline-block object-contain shrink-0 -mt-0.5" decoding="async" />`;
+
+const SWORDS_INLINE_SVG = `<svg class="w-2.5 h-2.5 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>`;
 
 const COMPARE_METRICS_META = {
   donationsWeekly: {
@@ -183,6 +185,11 @@ class ClanManagerApp {
       podiumContainer: document.getElementById("podium-container"),
       podiumRunnersContainer: document.getElementById("podium-runners-container"),
       chartActivity: document.getElementById("chart-activity"),
+      donutActiveRate: document.getElementById("donut-active-rate"),
+      donutSummaryCaption: document.getElementById("donut-summary-caption"),
+      legendCountToday: document.getElementById("legend-count-today"),
+      legendCountRecent: document.getElementById("legend-count-recent"),
+      legendCountDormant: document.getElementById("legend-count-dormant"),
       chartCompareDonations: document.getElementById("chart-compare-donations"),
       compareChartTitle: document.getElementById("compare-chart-title"),
       compareChartUnit: document.getElementById("compare-chart-unit"),
@@ -209,7 +216,6 @@ class ClanManagerApp {
     } catch (e) {}
   }
 
-  // 상시 마운트된 모달을 레이아웃 스래싱 없이 120fps로 부드럽게 오픈
   openModalSmooth(modalEl) {
     if (!modalEl) return;
     modalEl.setAttribute("aria-hidden", "false");
@@ -218,7 +224,6 @@ class ClanManagerApp {
     });
   }
 
-  // 모달 닫힘 애니메이션을 끝까지 재생한 뒤 비활성화
   closeModalSmooth(modalEl) {
     if (!modalEl) return;
     modalEl.setAttribute("aria-hidden", "true");
@@ -246,7 +251,7 @@ class ClanManagerApp {
       });
     });
 
-    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 300));
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 250));
     await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
 
     const loopItems = [...CR_EMOTES_POOL, ...CR_EMOTES_POOL];
@@ -255,7 +260,7 @@ class ClanManagerApp {
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
           <img src="${item.url}" 
                alt="${item.name}" 
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
+               class="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
         </div>
       </div>
     `).join("");
@@ -288,7 +293,7 @@ class ClanManagerApp {
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
           <img src="${item.url}" 
                alt="${item.name}" 
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
+               class="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
         </div>
       </div>
     `).join("");
@@ -306,7 +311,7 @@ class ClanManagerApp {
     this.slotStopTriggered = true;
 
     const elapsed = Date.now() - (this.loadingStartTime || Date.now());
-    const minSpinDuration = 550;
+    const minSpinDuration = 520;
     if (elapsed < minSpinDuration) {
       await new Promise(r => setTimeout(r, minSpinDuration - elapsed));
     }
@@ -314,12 +319,12 @@ class ClanManagerApp {
     const targets = this.targetEmotes || CR_EMOTES_POOL.slice(0, 3);
 
     this.stopSlotReel(0, targets[0]);
-    await new Promise(r => setTimeout(r, 180));
+    await new Promise(r => setTimeout(r, 170));
     this.stopSlotReel(1, targets[1]);
-    await new Promise(r => setTimeout(r, 180));
+    await new Promise(r => setTimeout(r, 170));
     this.stopSlotReel(2, targets[2]);
 
-    await new Promise(r => setTimeout(r, 420 + 260));
+    await new Promise(r => setTimeout(r, 420 + 240));
     await this.hideInitialSyncModal();
   }
 
@@ -332,7 +337,7 @@ class ClanManagerApp {
       document.getElementById(`slot-window-${i}`)?.classList.add("slot-locked");
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 280));
+    await new Promise((resolve) => setTimeout(resolve, 260));
 
     modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
     modal.style.opacity = "0";
@@ -369,7 +374,7 @@ class ClanManagerApp {
         searchTimeout = setTimeout(() => {
           this.searchQuery = rawVal.trim().toLowerCase();
           this.applyFilterAndRender(true);
-        }, 220);
+        }, 200);
       });
     }
 
@@ -428,7 +433,7 @@ class ClanManagerApp {
 
     const toast = document.createElement("div");
     toast.className = "toast-pill";
-    const dotColor = type === "error" ? "bg-rose-400" : type === "success" ? "bg-emerald-400" : "bg-indigo-400";
+    const dotColor = type === "error" ? "bg-rose-400" : type === "success" ? "bg-emerald-400" : "bg-slate-300";
     toast.innerHTML = `
       <span class="w-1.5 h-1.5 rounded-full ${dotColor} shrink-0"></span>
       <span>${this.escapeHtml(message)}</span>
@@ -505,10 +510,7 @@ class ClanManagerApp {
     ring.style.height = "10px";
     ring.style.borderRadius = "50%";
     ring.style.transform = "translate(-50%, -50%) scale(1)";
-    ring.style.border = theme === "light" ? "3px solid rgba(245, 158, 11, 0.6)" : "3px solid rgba(99, 102, 241, 0.6)";
-    ring.style.boxShadow = theme === "light" 
-      ? "0 0 35px 15px rgba(245, 158, 11, 0.25)" 
-      : "0 0 35px 15px rgba(99, 102, 241, 0.25)";
+    ring.style.border = theme === "light" ? "3px solid rgba(245, 158, 11, 0.5)" : "3px solid rgba(148, 163, 184, 0.5)";
     ring.style.pointerEvents = "none";
     ring.style.zIndex = "999999";
     ring.style.transition = "transform 0.44s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.44s ease-out";
@@ -544,14 +546,11 @@ class ClanManagerApp {
     if (this.charts.activity) {
       const donutChart = this.charts.activity;
       donutChart.data.datasets[0].borderColor = isLight ? "#ffffff" : "#0f121a";
-      if (donutChart.options.plugins?.legend?.labels) {
-        donutChart.options.plugins.legend.labels.color = isLight ? "#0f172a" : "#94a3b8";
-      }
       if (donutChart.options.plugins?.tooltip) {
         donutChart.options.plugins.tooltip.backgroundColor = isLight ? "#ffffff" : "#171b26";
         donutChart.options.plugins.tooltip.titleColor = isLight ? "#0f172a" : "#f8fafc";
         donutChart.options.plugins.tooltip.bodyColor = isLight ? "#334155" : "#94a3b8";
-        donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)";
+        donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.1)";
       }
       donutChart.update("none");
     }
@@ -560,7 +559,7 @@ class ClanManagerApp {
       const compareChart = this.charts.compareDonations;
       if (compareChart.options.scales?.y?.ticks) {
         compareChart.options.scales.y.ticks.color = isLight ? "#475569" : "#94a3b8";
-        compareChart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)";
+        compareChart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.05)";
       }
       if (compareChart.options.scales?.x?.ticks) {
         compareChart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
@@ -593,14 +592,12 @@ class ClanManagerApp {
     }
   }
 
-  // 120fps 슬라이딩 필 & 뷰 글라이드 기반 메인 탭 전환
   switchMainTab(tabName) {
     if (this.activeMainTab === tabName) return;
     this.activeMainTab = tabName;
 
     const { viewDashboard, viewCompare, tabBtnDashboard, tabBtnCompare, mainTabPill, tabContextHint: tabHint, btnQuickCompare: quickCompareBtn } = this.elements;
 
-    // 1. 슬라이딩 필 즉시 이동 (GPU transform)
     if (mainTabPill) {
       mainTabPill.classList.toggle("slide-right", tabName === "compare");
     }
@@ -608,7 +605,6 @@ class ClanManagerApp {
     if (tabBtnDashboard) tabBtnDashboard.classList.toggle("active", tabName !== "compare");
     if (tabBtnCompare) tabBtnCompare.classList.toggle("active", tabName === "compare");
 
-    // smooth 스크롤과 탭 전환 애니메이션이 충돌하지 않도록 스크롤이 내려가 있을 때만 즉시 상단 정렬
     if (window.scrollY > 60) {
       window.scrollTo(0, 0);
     }
@@ -667,7 +663,6 @@ class ClanManagerApp {
     }
   }
 
-  // 120fps 슬라이딩 필 기반 비교 지표 전환 (총 지원량 ↔ 1인 평균)
   switchCompareMetric(metricKey, btnElement) {
     if (!COMPARE_METRICS_META[metricKey] || this.activeCompareMetric === metricKey) return;
     this.activeCompareMetric = metricKey;
@@ -990,14 +985,10 @@ class ClanManagerApp {
 
     const emptyHtml = `
       <div class="py-12 px-4 text-center">
-        <div class="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-2 text-red-400">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
+        <img src="assets/king-no-wifi.png" alt="연결 실패" class="w-14 h-14 object-contain mx-auto mb-2.5 drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)]" decoding="async" />
         <p class="text-xs font-semibold text-slate-300">클랜 데이터를 불러올 수 없습니다</p>
         <p class="text-[11px] text-slate-500 mt-1 max-w-xs mx-auto">${this.escapeHtml(reason || "API 서버 응답 실패")}</p>
-        <button onclick="window.app.autoSyncLive(true)" class="mt-3 px-3 py-1.5 bg-white/[0.06] hover:bg-white/[0.1] text-xs text-slate-200 rounded-lg border border-white/[0.08] transition inline-flex items-center gap-1.5">
+        <button onclick="window.app.autoSyncLive(true)" class="mt-3 px-3.5 py-1.5 bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-slate-200 rounded-lg transition inline-flex items-center gap-1.5">
           <span>다시 시도</span>
         </button>
       </div>
@@ -1090,7 +1081,7 @@ class ClanManagerApp {
     const { statTotalMembers, statMemberVacant, statTotalDonations, statAvgDonations, statDormantCount, chipCountAll, chipCountLow } = this.elements;
 
     if (statTotalMembers) this.animateNumber(statTotalMembers, totalMembers, 600, " / 50");
-    if (statMemberVacant) statMemberVacant.textContent = `여유 자리: ${50 - totalMembers}석`;
+    if (statMemberVacant) statMemberVacant.textContent = `여유 ${50 - totalMembers}석`;
     if (statTotalDonations) this.animateNumber(statTotalDonations, officialWeeklyDonations, 700);
     if (statAvgDonations) statAvgDonations.textContent = `1인 평균 ${avgDonations.toLocaleString()}개`;
     if (statDormantCount) this.animateNumber(statDormantCount, dormantCount, 500, "명");
@@ -1121,74 +1112,68 @@ class ClanManagerApp {
     const third = sorted[2];
     const runners = sorted.slice(3);
 
-    const basePodiumClasses = "flex items-end justify-center gap-2 pt-4 pb-0 px-1 min-h-[140px]";
+    const basePodiumClasses = "flex items-end justify-center gap-2 pt-3 pb-0 px-1 min-h-[142px]";
     podiumContainer.className = triggerAnimation ? `${basePodiumClasses} podium-animate` : basePodiumClasses;
 
     podiumContainer.innerHTML = `
-      <!-- 2등 은메달 -->
+      <!-- 2등 실버 크라운 PNG -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(second.tag)}')">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-slate-300 drop-shadow-[0_0_6px_rgba(203,213,225,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
+            <img src="assets/crown-silver.png" alt="2위" class="w-4 h-4 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" decoding="async" />
           </div>
           <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
-          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
+          <div class="text-[11px] font-semibold text-slate-400 font-mono mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-2nd w-full h-20 sm:h-24">
-          <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
+          <span class="text-xl sm:text-2xl font-black text-slate-300/85 font-mono mb-2">2</span>
         </div>
       </div>
-      <!-- 1등 금메달 -->
+      <!-- 1등 골드 크라운 PNG -->
       <div class="flex-1 max-w-[145px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(first.tag)}')">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer">
           <div class="flex items-center justify-center mb-1">
-            <svg class="crown-aura-glow w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
+            <img src="assets/crown-gold.png" alt="1위" class="crown-aura-glow w-5 h-5 object-contain" decoding="async" />
           </div>
           <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs font-bold text-slate-300 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
+          <div class="text-xs font-bold text-amber-400 font-mono mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-1st w-full h-28 sm:h-32">
           <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
         </div>
       </div>
-      <!-- 3등 동메달 -->
+      <!-- 3등 브론즈 크라운 PNG -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(third.tag)}')">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-amber-600 drop-shadow-[0_0_6px_rgba(217,119,6,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
+            <img src="assets/crown-bronze.png" alt="3위" class="w-4 h-4 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" decoding="async" />
           </div>
           <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
+          <div class="text-[11px] font-semibold text-slate-400 font-mono mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-3rd w-full h-14 sm:h-16">
-          <span class="text-lg sm:text-xl font-black text-amber-600/80 font-mono mb-1">3</span>
+          <span class="text-lg sm:text-xl font-black text-amber-600/85 font-mono mb-1">3</span>
         </div>
       </div>
     `;
 
     if (runnersContainer) {
-      const baseRunnerClasses = "grid grid-cols-2 gap-1.5 pt-3 mt-3 border-t border-white/[0.04]";
+      const baseRunnerClasses = "grid grid-cols-2 gap-x-3 gap-y-1 pt-2.5 mt-2.5 border-t border-white/[0.05]";
       runnersContainer.className = triggerAnimation ? `${baseRunnerClasses} podium-animate` : baseRunnerClasses;
 
       runnersContainer.innerHTML = runners.map((m, idx) => `
-        <div onclick="window.app.openMemberModal('${this.escapeHtml(m.tag)}')" class="podium-runner-item cursor-pointer hover:bg-white/[0.05] active:scale-[0.98] transition flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
-          <div class="flex items-center gap-1 min-w-0">
-            <span class="text-[10px] font-mono text-slate-500 w-3">${idx + 4}</span>
-            <span class="text-[11px] text-slate-300 font-medium truncate">${this.escapeHtml(m.name)}</span>
+        <div onclick="window.app.openMemberModal('${this.escapeHtml(m.tag)}')" class="podium-runner-item cursor-pointer hover:bg-white/[0.04] active:scale-[0.98] transition flex items-center justify-between py-1.5 px-2 rounded-lg" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-[10px] font-mono font-semibold text-slate-500 w-3">${idx + 4}</span>
+            <span class="text-[11.5px] text-slate-200 font-medium truncate">${this.escapeHtml(m.name)}</span>
           </div>
-          <span class="text-[11px] font-bold text-slate-400 shrink-0 ml-1">${(m.donations || 0).toLocaleString()}</span>
+          <span class="text-[11px] font-bold font-mono text-slate-400 shrink-0 ml-1">${(m.donations || 0).toLocaleString()}</span>
         </div>
       `).join("");
     }
   }
 
-  // 비파괴(Non-destructive) reset+update로 탭 전환 시 차트 재생성 끊김 현상 완전 제거
+  // 중앙 스탯 오버레이 + 우측 커스텀 레전드가 결합된 비파괴 도넛 차트
   renderActivityDonut(members, triggerAnimation = false) {
     if (!window.Chart) return;
 
@@ -1209,6 +1194,25 @@ class ClanManagerApp {
       else seenDormant++;
     });
 
+    const total = Math.max(1, members.length);
+    const todayRate = Math.round((seenToday / total) * 100);
+
+    if (this.elements.donutActiveRate) {
+      this.animateNumber(this.elements.donutActiveRate, todayRate, 550, "%");
+    }
+    if (this.elements.donutSummaryCaption) {
+      this.elements.donutSummaryCaption.textContent = `최근 24시간 ${seenToday}명 활동`;
+    }
+    if (this.elements.legendCountToday) {
+      this.elements.legendCountToday.textContent = `${seenToday}명`;
+    }
+    if (this.elements.legendCountRecent) {
+      this.elements.legendCountRecent.textContent = `${seen1to2d}명`;
+    }
+    if (this.elements.legendCountDormant) {
+      this.elements.legendCountDormant.textContent = `${seenDormant}명`;
+    }
+
     const activityCanvas = this.elements.chartActivity;
     if (!activityCanvas) return;
 
@@ -1220,7 +1224,7 @@ class ClanManagerApp {
         this.charts.activity.resize();
         this.charts.activity.reset();
         this.charts.activity.update({
-          duration: 680,
+          duration: 660,
           easing: "easeOutQuart"
         });
       } else {
@@ -1234,10 +1238,10 @@ class ClanManagerApp {
           labels: ["오늘 접속", "1~2일 전", "3일+ 미접속"],
           datasets: [{
             data: chartData,
-            backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(59, 130, 246, 0.85)", "rgba(244, 63, 94, 0.85)"],
+            backgroundColor: ["#10b981", "#3b82f6", "#f43f5e"],
             borderColor: document.documentElement.classList.contains("light") ? "#ffffff" : "#0f121a",
-            borderWidth: 2,
-            hoverOffset: 4
+            borderWidth: 2.5,
+            hoverOffset: 3
           }]
         },
         options: {
@@ -1246,31 +1250,23 @@ class ClanManagerApp {
           animation: {
             animateRotate: true,
             animateScale: true,
-            duration: 680,
+            duration: 660,
             easing: "easeOutQuart"
           },
           plugins: {
-            legend: { 
-              position: "bottom", 
-              labels: { 
-                color: document.documentElement.classList.contains("light") ? "#0f172a" : "#94a3b8", 
-                boxWidth: 8, 
-                padding: 10, 
-                font: { size: 10, weight: "bold" } 
-              } 
-            },
+            legend: { display: false },
             tooltip: {
-              backgroundColor: document.documentElement.classList.contains("light") ? "#ffffff" : "#171b26", 
-              titleColor: document.documentElement.classList.contains("light") ? "#0f172a" : "#f8fafc", 
+              backgroundColor: document.documentElement.classList.contains("light") ? "#ffffff" : "#171b26",
+              titleColor: document.documentElement.classList.contains("light") ? "#0f172a" : "#f8fafc",
               bodyColor: document.documentElement.classList.contains("light") ? "#334155" : "#94a3b8",
-              borderColor: document.documentElement.classList.contains("light") ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)", 
-              borderWidth: 1, 
-              padding: 8, 
+              borderColor: document.documentElement.classList.contains("light") ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.1)",
+              borderWidth: 1,
+              padding: 8,
               displayColors: true,
               callbacks: { label: (c) => ` ${c.label}: ${c.raw}명` }
             }
           },
-          cutout: "68%"
+          cutout: "74%"
         }
       });
     }
@@ -1331,7 +1327,7 @@ class ClanManagerApp {
 
       if (chart.options.scales?.y?.ticks) {
         chart.options.scales.y.ticks.color = isLight ? "#475569" : "#94a3b8";
-        chart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)";
+        chart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.05)";
       }
       if (chart.options.scales?.x?.ticks) {
         chart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
@@ -1421,6 +1417,7 @@ class ClanManagerApp {
     }
   }
 
+  // 타 갤클 비교 리스트: 유니코드 이모지(🥇🥈🥉) 대신 크라운 PNG 에셋 및 테두리 없는 솔리드 배지 적용
   renderCompareSummaryList(clans, metricKey = "donationsWeekly", triggerAnimation = false) {
     const container = this.elements.compareSummaryList;
     if (!container) return;
@@ -1438,27 +1435,33 @@ class ClanManagerApp {
       const popClass = triggerAnimation ? "badge-pop" : "";
       const animStyle = triggerAnimation ? `style="animation-delay: ${0.08 + idx * 0.06}s"` : "";
 
-      let diffBadge = `<span class="${popClass} text-slate-500 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block" ${animStyle}>기준</span>`;
+      let diffBadge = `<span class="${popClass} text-slate-400 font-mono text-[10px] font-medium bg-white/[0.05] px-1.5 py-0.5 rounded inline-block" ${animStyle}>기준</span>`;
       if (!isHome) {
         if (diffVal > 0) {
-          diffBadge = `<span class="${popClass} text-emerald-400 font-mono text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-block" ${animStyle}>+${diffVal.toLocaleString()}${meta.suffix}</span>`;
+          diffBadge = `<span class="${popClass} text-emerald-400 font-mono text-[10px] font-bold bg-emerald-500/15 px-1.5 py-0.5 rounded inline-block" ${animStyle}>+${diffVal.toLocaleString()}${meta.suffix}</span>`;
         } else if (diffVal < 0) {
-          diffBadge = `<span class="${popClass} text-rose-400 font-mono text-[11px] font-bold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20 inline-block" ${animStyle}>${diffVal.toLocaleString()}${meta.suffix}</span>`;
+          diffBadge = `<span class="${popClass} text-rose-400 font-mono text-[10px] font-bold bg-rose-500/15 px-1.5 py-0.5 rounded inline-block" ${animStyle}>${diffVal.toLocaleString()}${meta.suffix}</span>`;
         } else {
-          diffBadge = `<span class="${popClass} text-slate-400 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block" ${animStyle}>0${meta.suffix}</span>`;
+          diffBadge = `<span class="${popClass} text-slate-400 font-mono text-[10px] font-medium bg-white/[0.05] px-1.5 py-0.5 rounded inline-block" ${animStyle}>0${meta.suffix}</span>`;
         }
       }
 
-      const rankEmoji = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}`;
+      const rankIconHtml = idx === 0
+        ? `<img src="assets/crown-gold.png" alt="1위" class="w-5 h-5 object-contain mx-auto" decoding="async" />`
+        : idx === 1
+          ? `<img src="assets/crown-silver.png" alt="2위" class="w-4 h-4 object-contain mx-auto" decoding="async" />`
+          : idx === 2
+            ? `<img src="assets/crown-bronze.png" alt="3위" class="w-4 h-4 object-contain mx-auto" decoding="async" />`
+            : `<span class="text-xs font-mono font-bold text-slate-400">${idx + 1}</span>`;
 
       html += `
         <div class="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition ${isHome ? 'bg-indigo-950/20' : ''}">
           <div class="flex items-center gap-2.5 min-w-0">
-            <span class="text-sm font-bold w-6 text-center shrink-0 ${idx === 0 ? 'text-amber-400' : 'text-slate-400'}">${rankEmoji}</span>
+            <div class="w-6 flex items-center justify-center shrink-0">${rankIconHtml}</div>
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-bold text-white text-sm sm:text-base tracking-tight truncate">${this.escapeHtml(c.name)}</span>
-                ${isHome ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">내 클랜</span>' : ''}
+                ${isHome ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 shrink-0">내 클랜</span>' : ''}
               </div>
               <div class="text-[11px] font-mono text-slate-500 mt-0.5 flex items-center gap-1.5">
                 <span>${this.escapeHtml(c.tag)}</span>
@@ -1469,7 +1472,7 @@ class ClanManagerApp {
           </div>
           <div class="text-right shrink-0">
             <div class="text-[10px] text-slate-500">${meta.label}</div>
-            <div class="text-xs sm:text-sm font-black text-amber-400 font-mono mt-0.5">${currentVal.toLocaleString()}${meta.suffix}</div>
+            <div class="text-xs sm:text-sm font-bold text-white font-mono mt-0.5">${currentVal.toLocaleString()}${meta.suffix}</div>
             <div class="mt-1">${diffBadge}</div>
           </div>
         </div>
@@ -1486,7 +1489,6 @@ class ClanManagerApp {
     this.applyFilterAndRender(true);
   }
 
-  // 3일+ 미접속 대상자 전용 팝업 모달 (상시 마운트 + 120fps 스프링 오픈)
   openDormantModal() {
     const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
     const listContainer = this.elements.dormantModalList || document.getElementById("dormant-modal-list");
@@ -1516,9 +1518,10 @@ class ClanManagerApp {
 
     if (dormantMembers.length === 0) {
       listContainer.innerHTML = `
-        <div class="py-12 px-4 text-center">
+        <div class="py-10 px-4 text-center">
+          <img src="assets/heal-spirit-love.png" alt="전원 활동 중" class="w-14 h-14 object-contain mx-auto mb-2.5 drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)]" decoding="async" />
           <div class="text-xs font-semibold text-emerald-400">3일 이상 미접속한 클랜원이 없습니다</div>
-          <p class="text-[11px] text-slate-500 mt-1">모든 클랜원이 최근 3일 이내 활동 중입니다.</p>
+          <p class="text-[11px] text-slate-500 mt-1">모든 클랜원이 최근 3일 이내 활발히 활동 중입니다.</p>
         </div>
       `;
     } else {
@@ -1546,7 +1549,7 @@ class ClanManagerApp {
                 <span class="status-dot ${status.dotColor}"></span>
                 <span>${status.text}</span>
               </div>
-              <div class="text-[10px] text-slate-500 font-mono mt-0.5">배틀: ${relativeBattle}</div>
+              <div class="text-[10px] text-slate-500 font-mono mt-0.5">배틀 ${relativeBattle}</div>
             </div>
           </div>
         `;
@@ -1561,7 +1564,6 @@ class ClanManagerApp {
     this.closeModalSmooth(modal);
   }
 
-  // 미접속 대상자 팝업에서 클랜원 클릭 시 끊김 없이 상세 팝업으로 부드럽게 교차 전환
   switchFromDormantToMember(memberTag) {
     this.closeDormantModal();
     setTimeout(() => {
@@ -1633,7 +1635,7 @@ class ClanManagerApp {
         text: `${diffMinutes}분 전`,
         dotColor: "green",
         isPulse: false,
-        textColor: "text-slate-300 font-medium"
+        textColor: "text-slate-200 font-medium"
       };
     }
 
@@ -1644,7 +1646,7 @@ class ClanManagerApp {
         text: `${diffHours}시간 전`,
         dotColor: "amber",
         isPulse: false,
-        textColor: "text-amber-300 font-semibold"
+        textColor: "text-slate-300 font-medium"
       };
     }
 
@@ -1655,7 +1657,7 @@ class ClanManagerApp {
         text: `${diffDays}일 전`,
         dotColor: "rose",
         isPulse: false,
-        textColor: "text-rose-400 font-bold"
+        textColor: "text-rose-400 font-semibold"
       };
     }
 
@@ -1664,7 +1666,7 @@ class ClanManagerApp {
       text: `${diffDays}일 전`,
       dotColor: "amber",
       isPulse: false,
-      textColor: "text-amber-300 font-semibold"
+      textColor: "text-slate-300 font-medium"
     };
   }
 
@@ -1686,7 +1688,6 @@ class ClanManagerApp {
     return `${diffDays}일 전`;
   }
 
-  // 클랜원 상세 팝업 모달 (120fps 스프링 오픈)
   openMemberModal(memberTag) {
     if (!this.currentData?.memberList) return;
     const member = this.currentData.memberList.find((m) => m.tag === memberTag);
@@ -1719,7 +1720,7 @@ class ClanManagerApp {
     setElText("modal-member-name", member.name || "-");
     setElHtml("modal-member-role", this.getRoleBadge(member.role));
     setElText("modal-member-tag", member.tag || "-");
-    setElText("modal-member-trophies", `🏆 ${(member.trophies || 0).toLocaleString()}`);
+    setElHtml("modal-member-trophies", `${TROPHY_ICON_MD}<span>${(member.trophies || 0).toLocaleString()}</span>`);
 
     setElHtml("modal-member-status", `<span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span><span class="${status.textColor}">${status.text}</span>`);
     setElText("modal-member-exact-seen", exactSeen);
@@ -1834,7 +1835,7 @@ class ClanManagerApp {
             </div>
             <div class="flex items-center gap-2 text-[11px] text-slate-400 font-mono mt-0.5">
               <span>${this.escapeHtml(member.tag)}</span>
-              <span class="text-amber-400/90 font-sans">🏆 ${(member.trophies || 0).toLocaleString()}</span>
+              <span class="text-amber-400/90 font-sans inline-flex items-center gap-1">${TROPHY_ICON_SM}<span>${(member.trophies || 0).toLocaleString()}</span></span>
             </div>
           </td>
           <td class="text-center">
@@ -1842,13 +1843,13 @@ class ClanManagerApp {
               <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
               <span class="${status.textColor} text-xs">${status.text}</span>
             </div>
-            <div class="text-[10px] text-indigo-300/80 font-mono mt-0.5">
-              배틀: ${relativeBattle}
+            <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+              배틀 ${relativeBattle}
             </div>
           </td>
           <td class="text-right">
-            <div class="font-bold text-sm ${donations >= 300 ? "text-amber-400" : donations === 0 ? "text-rose-400" : "text-slate-100"}">${donations.toLocaleString()}</div>
-            <div class="text-[10px] text-slate-400 font-mono">받음: ${received.toLocaleString()}</div>
+            <div class="font-bold text-sm font-mono ${donations >= 300 ? "text-amber-400" : donations === 0 ? "text-rose-400" : "text-slate-100"}">${donations.toLocaleString()}</div>
+            <div class="text-[10px] text-slate-500 font-mono">받음 ${received.toLocaleString()}</div>
           </td>
         </tr>
       `;
@@ -1856,6 +1857,7 @@ class ClanManagerApp {
     tbody.innerHTML = rowsHtml;
   }
 
+  // 모바일 고밀도 프로덕트 행 리스트: 150회 반복 라벨과 수평 분할선을 제거하고 한눈에 스캔되는 3열 구조
   renderMobileList(shouldStagger = false) {
     const container = this.elements.memberMobileList;
     const emptyState = this.elements.emptyState;
@@ -1880,57 +1882,59 @@ class ClanManagerApp {
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
-      let battleTextColor = "text-slate-300";
+      let battleTextColor = "text-slate-400";
       const battleDate = this.parseDateSafe(member.lastBattleTime);
       if (battleDate) {
         const battleSecsAgo = Math.floor((now - battleDate.getTime()) / 1000);
-        if (battleSecsAgo <= 180) battleTextColor = "text-emerald-400 font-bold";
-        else if (battleSecsAgo < 86400) battleTextColor = "text-indigo-300 font-semibold";
-        else if (battleSecsAgo >= 604800) battleTextColor = "text-rose-400 font-bold";
-        else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/80 font-medium";
+        if (battleSecsAgo <= 180) battleTextColor = "text-emerald-400 font-semibold";
+        else if (battleSecsAgo < 86400) battleTextColor = "text-slate-300";
+        else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/85";
       }
 
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
-      // 뷰포트에 보이는 상위 14개 아이템에만 스태거 애니메이션을 적용해 GPU 과부하 방지
       const animateCard = shouldStagger && idx < 14;
       const staggerClass = animateCard ? "card-stagger-in" : "";
-      const staggerStyle = animateCard ? `style="animation-delay: ${(idx * 0.024).toFixed(3)}s"` : "";
+      const staggerStyle = animateCard ? `style="animation-delay: ${(idx * 0.022).toFixed(3)}s"` : "";
 
       cardsHtml += `
         <div class="mobile-member-card ${staggerClass}" ${staggerStyle} onclick="window.app.openMemberModal('${this.escapeHtml(member.tag)}')">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1.5 min-w-0">
-              <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
-              <span class="font-bold text-white text-[13px] truncate">${this.escapeHtml(member.name)}</span>
-              ${this.getRoleBadge(member.role)}
-              <span class="text-[10px] font-mono text-slate-500 truncate hidden sm:inline">${this.escapeHtml(member.tag)}</span>
-            </div>
-            <span class="text-xs font-semibold text-amber-400 shrink-0">🏆 ${(member.trophies || 0).toLocaleString()}</span>
-          </div>
-
-          <div class="grid grid-cols-3 gap-1 pt-2.5 mt-2 border-t border-white/[0.03] items-center">
-            <div class="text-left">
-              <div class="text-[10px] text-slate-500 font-medium">접속 상태</div>
-              <div class="text-xs ${status.textColor} mt-0.5 font-medium flex items-center gap-1 truncate">
-                <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
-                <span class="truncate">${status.text}</span>
+          <div class="grid grid-cols-12 items-center gap-1.5">
+            <!-- 좌측 (5열): 순위 + 닉네임 + 직책 + 트로피 PNG -->
+            <div class="col-span-5 min-w-0">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="font-mono text-[11px] text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
+                <span class="font-bold text-white text-[13px] truncate">${this.escapeHtml(member.name)}</span>
+              </div>
+              <div class="flex items-center gap-1.5 pl-5 mt-1">
+                ${this.getRoleBadge(member.role)}
+                <span class="text-[11px] font-mono font-semibold text-amber-400/90 inline-flex items-center gap-1 shrink-0">
+                  ${TROPHY_ICON_SM}
+                  <span>${(member.trophies || 0).toLocaleString()}</span>
+                </span>
               </div>
             </div>
 
-            <div class="text-center">
-              <div class="text-[10px] text-slate-500 font-medium">최근 배틀</div>
-              <div class="text-xs ${battleTextColor} mt-0.5 font-medium flex items-center justify-center gap-1 truncate">
+            <!-- 중앙 (4열): 접속 상태 & 최근 배틀 -->
+            <div class="col-span-4 text-right pr-2 min-w-0">
+              <div class="inline-flex items-center justify-end gap-1.5 text-xs ${status.textColor} truncate">
+                <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
+                <span class="truncate">${status.text}</span>
+              </div>
+              <div class="flex items-center justify-end gap-1 text-[10.5px] ${battleTextColor} font-mono mt-1 truncate">
                 ${SWORDS_INLINE_SVG}
                 <span class="truncate">${relativeBattle}</span>
               </div>
             </div>
 
-            <div class="text-right">
-              <div class="text-[10px] text-slate-500 font-medium">주간 지원량</div>
-              <div class="text-xs font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5 font-mono truncate">
-                ${donations.toLocaleString()}<span class="text-[10px] font-normal text-slate-500 ml-0.5">/ ${received}</span>
+            <!-- 우측 (3열): 주간 지원량 / 지원받음 -->
+            <div class="col-span-3 text-right shrink-0">
+              <div class="text-[13px] font-bold font-mono ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-white'}">
+                ${donations.toLocaleString()}
+              </div>
+              <div class="text-[10px] text-slate-500 font-mono mt-1">
+                받음 ${received.toLocaleString()}
               </div>
             </div>
           </div>

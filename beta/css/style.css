@@ -7,9 +7,9 @@
   --bg-base: #090b10;
   --bg-surface: #0f121a;
   --bg-surface-hover: #151924;
-  --bg-elevated: #1a1f2c;
+  --bg-elevated: #1c2130;
   --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-focus: rgba(99, 102, 241, 0.4);
+  --border-focus: rgba(148, 163, 184, 0.35);
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
@@ -32,16 +32,17 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   padding-bottom: 2rem;
   overflow-x: hidden;
 }
 
-/* 정교한 서피스 카드 */
+/* 정교한 서피스 카드 (불필요한 글로우 제거, 절제된 1px 헤어라인) */
 .surface-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
 /* 미니멀 상태 점 (Status Dot) */
@@ -54,20 +55,18 @@ body {
 }
 .status-dot.green {
   background-color: var(--accent-green);
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
 }
 .status-dot.amber {
   background-color: var(--accent-amber);
 }
 .status-dot.rose, .status-dot.red {
   background-color: var(--accent-rose);
-  box-shadow: 0 0 6px rgba(244, 63, 94, 0.4);
 }
 .status-dot.slate {
   background-color: #64748b;
 }
 
-/* 펄스 애니메이션 (라이브 동기화용) */
+/* 펄스 애니메이션 (라이브 접속자용) */
 @keyframes pulseDot {
   0%, 100% { opacity: 1; transform: scale3d(1, 1, 1); }
   50% { opacity: 0.4; transform: scale3d(0.85, 0.85, 1); }
@@ -76,7 +75,7 @@ body {
   animation: pulseDot 2.4s infinite ease-in-out;
 }
 
-/* 필터 칩 버튼 */
+/* 필터 칩 버튼 (테두리 남발 대신 솔리드 톤온톤 면 처리) */
 .filter-chip {
   padding: 6px 12px;
   border-radius: 8px;
@@ -84,8 +83,8 @@ body {
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent;
-  border: 1px solid transparent;
-  transition: color 0.24s var(--ease-silky), background-color 0.24s var(--ease-silky), border-color 0.24s var(--ease-silky), transform 0.16s var(--ease-spring);
+  border: none;
+  transition: color 0.22s var(--ease-silky), background-color 0.22s var(--ease-silky), transform 0.16s var(--ease-spring);
   cursor: pointer;
   white-space: nowrap;
   touch-action: manipulation;
@@ -99,12 +98,12 @@ body {
 .filter-chip.active {
   color: #ffffff;
   background: var(--bg-elevated);
-  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
   font-weight: 600;
 }
 
 /* ============================================================
-   v1.8.2 120fps 하드웨어 가속 슬라이딩 세그먼트 탭 & 뷰 전환
+   v1.8.3 절제된 모노크롬 120fps 하드웨어 가속 슬라이딩 세그먼트 탭
    ============================================================ */
 .segmented-control {
   position: relative;
@@ -119,10 +118,10 @@ body {
   width: calc(50% - 4px);
   border-radius: 9px;
   background: var(--bg-elevated);
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transform: translate3d(0%, 0, 0);
-  transition: transform 0.38s var(--ease-spring), background-color 0.25s ease, border-color 0.25s ease;
+  transition: transform 0.38s var(--ease-spring), background-color 0.25s ease;
   will-change: transform;
   pointer-events: none;
   z-index: 1;
@@ -130,15 +129,14 @@ body {
 
 .segmented-pill.compare-pill {
   border-radius: 8px;
-  border-color: rgba(99, 102, 241, 0.35);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .segmented-pill.slide-right {
   transform: translate3d(100%, 0, 0);
 }
 
-/* 메인 네비게이션 탭 버튼 (배경은 슬라이딩 필이 담당) */
+/* 메인 네비게이션 탭 버튼 */
 .main-nav-btn {
   padding: 8px 16px;
   border-radius: 9px;
@@ -146,7 +144,7 @@ body {
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent !important;
-  border: 1px solid transparent !important;
+  border: none !important;
   box-shadow: none !important;
   transition: color 0.26s var(--ease-silky), transform 0.15s var(--ease-spring);
   cursor: pointer;
@@ -165,7 +163,7 @@ body {
   font-weight: 600;
 }
 
-/* 타 갤클 비교 지표 전환 칩 (배경은 슬라이딩 필이 담당) */
+/* 타 갤클 비교 지표 전환 칩 */
 .compare-metric-chip {
   padding: 6px 6px;
   border-radius: 8px;
@@ -173,7 +171,7 @@ body {
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent !important;
-  border: 1px solid transparent !important;
+  border: none !important;
   box-shadow: none !important;
   transition: color 0.26s var(--ease-silky), transform 0.15s var(--ease-spring);
   cursor: pointer;
@@ -211,8 +209,6 @@ body {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -229,9 +225,9 @@ body {
   background: rgba(255, 255, 255, 0.02);
 }
 
-/* 모바일 전용 멤버 아이템 카드 */
+/* 모바일 전용 고밀도 프로덕트 행 (150회 반복 라벨 제거) */
 .mobile-member-card {
-  padding: 14px;
+  padding: 11px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   background: var(--bg-surface);
   transition: background-color 0.15s ease, transform 0.14s var(--ease-spring);
@@ -247,35 +243,35 @@ body {
   background: var(--bg-surface-hover);
 }
 .mobile-member-card:active {
-  transform: scale3d(0.985, 0.985, 1);
+  transform: scale3d(0.988, 0.988, 1);
   background: var(--bg-surface-hover) !important;
 }
 
-/* 직책 뱃지 미니멀 */
+/* 직책 뱃지: AI 특유의 1px 색깔 테두리를 제거하고 솔리드 톤온톤 필(Fill)로 정제 */
 .badge-role {
   font-size: 10px;
   font-weight: 600;
-  padding: 2px 5px;
-  border-radius: 4px;
-  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: 5px;
+  line-height: 1.25;
+  border: none;
+  display: inline-flex;
+  align-items: center;
 }
 .badge-leader {
-  background: rgba(245, 158, 11, 0.12);
+  background: rgba(245, 158, 11, 0.15);
   color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 .badge-coleader {
-  background: rgba(168, 85, 247, 0.12);
+  background: rgba(168, 85, 247, 0.15);
   color: #c084fc;
-  border: 1px solid rgba(168, 85, 247, 0.25);
 }
 .badge-elder {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(59, 130, 246, 0.14);
   color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 .badge-member {
-  background: rgba(148, 163, 184, 0.08);
+  background: rgba(148, 163, 184, 0.1);
   color: #94a3b8;
 }
 
@@ -288,7 +284,7 @@ body {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  border-radius: 8px 8px 0 0;
+  border-radius: 10px 10px 0 0;
   border-top-width: 2px;
   border-left-width: 1px;
   border-right-width: 1px;
@@ -302,7 +298,7 @@ body {
   backface-visibility: hidden;
 }
 .podium-step:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
   transform: translate3d(0, -2px, 0);
 }
 .podium-step:active {
@@ -311,17 +307,16 @@ body {
 }
 
 .podium-1st {
-  border-color: #fbbf24 rgba(251, 191, 36, 0.2) transparent rgba(251, 191, 36, 0.2);
-  background: linear-gradient(180deg, rgba(251, 191, 36, 0.15) 0%, rgba(15, 18, 26, 0.95) 100%);
-  box-shadow: 0 -4px 20px rgba(245, 158, 11, 0.15);
+  border-color: rgba(251, 191, 36, 0.65) rgba(251, 191, 36, 0.14) transparent rgba(251, 191, 36, 0.14);
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.14) 0%, rgba(15, 18, 26, 0.96) 100%);
 }
 .podium-2nd {
-  border-color: #cbd5e1 rgba(203, 213, 225, 0.15) transparent rgba(203, 213, 225, 0.15);
-  background: linear-gradient(180deg, rgba(203, 213, 225, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+  border-color: rgba(203, 213, 225, 0.5) rgba(203, 213, 225, 0.12) transparent rgba(203, 213, 225, 0.12);
+  background: linear-gradient(180deg, rgba(203, 213, 225, 0.09) 0%, rgba(15, 18, 26, 0.96) 100%);
 }
 .podium-3rd {
-  border-color: #d97706 rgba(217, 119, 6, 0.15) transparent rgba(217, 119, 6, 0.15);
-  background: linear-gradient(180deg, rgba(217, 119, 6, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+  border-color: rgba(217, 119, 6, 0.55) rgba(217, 119, 6, 0.12) transparent rgba(217, 119, 6, 0.12);
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.09) 0%, rgba(15, 18, 26, 0.96) 100%);
 }
 
 @keyframes podiumScaleRise {
@@ -378,14 +373,24 @@ body {
   will-change: transform, opacity;
 }
 
-/* 차트 래퍼 높이 */
+/* 도넛 차트 & 중앙 가동률 스탯 오버레이 */
 .chart-container-donut {
   position: relative;
-  height: 200px;
-  width: 100%;
+  height: 124px;
+  width: 124px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.donut-center-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 /* 미니멀 스크롤바 */
@@ -404,21 +409,15 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
-@media (max-width: 640px) {
-  .chart-container-donut {
-    height: 170px;
-  }
-}
-
 /* 비교 차트 컨테이너 */
 .chart-container-compare {
   position: relative;
-  height: 230px;
+  height: 220px;
   width: 100%;
 }
 @media (max-width: 640px) {
   .chart-container-compare {
-    height: 185px;
+    height: 180px;
   }
 }
 
@@ -443,12 +442,12 @@ html.light {
   --bg-surface: #ffffff;
   --bg-surface-hover: #f8fafc;
   --bg-elevated: #e2e8f0;
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-focus: rgba(99, 102, 241, 0.5);
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-focus: rgba(99, 102, 241, 0.4);
   --text-primary: #0f172a;
   --text-secondary: #334155;
   --text-muted: #64748b;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 html.light body {
@@ -458,8 +457,8 @@ html.light body {
 
 html.light .surface-card {
   background: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: var(--card-shadow) !important;
 }
 
 /* 텍스트 시인성 확보 */
@@ -502,24 +501,27 @@ html.light .text-rose-400 {
 }
 
 /* 배경 및 분할선 */
+html.light .bg-white\/\[0\.015\],
 html.light .bg-white\/\[0\.04\],
 html.light .bg-white\/\[0\.03\],
 html.light .bg-white\/\[0\.02\] {
-  background-color: rgba(0, 0, 0, 0.04) !important;
+  background-color: rgba(15, 23, 42, 0.035) !important;
 }
+html.light .bg-white\/\[0\.05\],
 html.light .bg-white\/\[0\.06\],
 html.light .bg-white\/\[0\.08\] {
-  background-color: rgba(0, 0, 0, 0.07) !important;
+  background-color: rgba(15, 23, 42, 0.06) !important;
 }
 html.light .border-white\/\[0\.04\],
 html.light .border-white\/\[0\.05\],
 html.light .border-white\/\[0\.06\],
 html.light .border-white\/\[0\.08\],
 html.light .border-white\/\[0\.1\] {
-  border-color: rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
-html.light .divide-white\/\[0\.04\] > * + * {
-  border-color: rgba(0, 0, 0, 0.06) !important;
+html.light .divide-white\/\[0\.04\] > * + *,
+html.light .divide-white\/\[0\.06\] > * + * {
+  border-color: rgba(15, 23, 42, 0.07) !important;
 }
 
 /* 컨트롤 바 & 검색 */
@@ -527,7 +529,7 @@ html.light #search-input,
 html.light #sort-key-select,
 html.light #btn-sort-order {
   background-color: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.12) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
   color: #0f172a !important;
 }
 html.light #search-input::placeholder {
@@ -536,54 +538,49 @@ html.light #search-input::placeholder {
 
 /* 올림픽 시상대 단상 (라이트 모드) */
 html.light .podium-1st {
-  border-color: #f59e0b rgba(245, 158, 11, 0.3) transparent rgba(245, 158, 11, 0.3) !important;
+  border-color: #f59e0b rgba(245, 158, 11, 0.25) transparent rgba(245, 158, 11, 0.25) !important;
   background: linear-gradient(180deg, #fef3c7 0%, #ffffff 100%) !important;
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15) !important;
 }
 html.light .podium-1st span {
   color: #b45309 !important;
 }
 html.light .podium-2nd {
-  border-color: #94a3b8 rgba(148, 163, 184, 0.3) transparent rgba(148, 163, 184, 0.3) !important;
+  border-color: #94a3b8 rgba(148, 163, 184, 0.25) transparent rgba(148, 163, 184, 0.25) !important;
   background: linear-gradient(180deg, #f1f5f9 0%, #ffffff 100%) !important;
 }
 html.light .podium-2nd span {
   color: #475569 !important;
 }
 html.light .podium-3rd {
-  border-color: #d97706 rgba(217, 119, 6, 0.3) transparent rgba(217, 119, 6, 0.3) !important;
+  border-color: #d97706 rgba(217, 119, 6, 0.25) transparent rgba(217, 119, 6, 0.25) !important;
   background: linear-gradient(180deg, #ffedd5 0%, #ffffff 100%) !important;
 }
 html.light .podium-3rd span {
   color: #9a3412 !important;
 }
 
-/* 직책 뱃지 (라이트 모드) */
+/* 직책 뱃지 (라이트 모드 - 테두리 없는 깔끔한 필) */
 html.light .badge-leader {
   background: #fef3c7 !important;
   color: #b45309 !important;
-  border-color: #fde68a !important;
 }
 html.light .badge-coleader {
   background: #f3e8ff !important;
   color: #7e22ce !important;
-  border-color: #e9d5ff !important;
 }
 html.light .badge-elder {
   background: #dbeafe !important;
   color: #1d4ed8 !important;
-  border-color: #bfdbfe !important;
 }
 html.light .badge-member {
   background: #f1f5f9 !important;
   color: #475569 !important;
-  border-color: #e2e8f0 !important;
 }
 
 /* 모바일 멤버 카드 */
 html.light .mobile-member-card {
   background: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(15, 23, 42, 0.05) !important;
 }
 html.light .mobile-member-card:hover,
 html.light .mobile-member-card:active {
@@ -599,17 +596,15 @@ html.light .filter-chip:hover {
   background: #e2e8f0;
 }
 html.light .filter-chip.active {
-  color: #4338ca !important;
+  color: #0f172a !important;
   background: #ffffff !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
 }
 
 /* 슬라이딩 세그먼트 탭 (라이트 모드) */
 html.light .segmented-pill {
   background: #ffffff !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08) !important;
 }
 html.light .main-nav-btn,
 html.light .compare-metric-chip {
@@ -617,11 +612,11 @@ html.light .compare-metric-chip {
 }
 html.light .main-nav-btn.active,
 html.light .compare-metric-chip.active {
-  color: #4338ca !important;
+  color: #0f172a !important;
 }
 
 html.light .bg-indigo-950\/20 {
-  background-color: #e0e7ff !important;
+  background-color: #eef2ff !important;
 }
 
 html.light #initial-sync-modal {
@@ -690,28 +685,28 @@ html.dark #icon-moon {
 }
 
 /* ============================================================
-   1위 시상대 금빛 왕관 럭셔리 네온 오라 & 카드/뱃지 모션
+   1위 시상대 금빛 왕관 PNG 부드러운 플로팅 & 카드/뱃지 모션
    ============================================================ */
-@keyframes goldAuraPulse {
+@keyframes goldCrownFloat {
   0%, 100% {
-    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7)) drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
-    transform: scale3d(1, 1, 1);
+    filter: drop-shadow(0 2px 6px rgba(245, 158, 11, 0.45));
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
   }
   50% {
-    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.65));
-    transform: scale3d(1.05, 1.05, 1);
+    filter: drop-shadow(0 4px 10px rgba(251, 191, 36, 0.7));
+    transform: translate3d(0, -2px, 0) scale3d(1.05, 1.05, 1);
   }
 }
 .crown-aura-glow {
   display: inline-block;
   transform-origin: center;
-  animation: goldAuraPulse 2.8s ease-in-out infinite;
+  animation: goldCrownFloat 2.8s ease-in-out infinite;
 }
 
 @keyframes cardStaggerIn {
   0% {
     opacity: 0;
-    transform: translate3d(0, 10px, 0);
+    transform: translate3d(0, 8px, 0);
   }
   100% {
     opacity: 1;
@@ -719,16 +714,16 @@ html.dark #icon-moon {
   }
 }
 .card-stagger-in {
-  animation: cardStaggerIn 0.34s var(--ease-spring) both;
+  animation: cardStaggerIn 0.32s var(--ease-spring) both;
 }
 
 @keyframes badgePop {
   0% {
     opacity: 0;
-    transform: scale3d(0.7, 0.7, 1);
+    transform: scale3d(0.75, 0.75, 1);
   }
   65% {
-    transform: scale3d(1.12, 1.12, 1);
+    transform: scale3d(1.08, 1.08, 1);
   }
   100% {
     opacity: 1;
@@ -738,12 +733,11 @@ html.dark #icon-moon {
 .badge-pop {
   display: inline-block;
   transform-origin: center;
-  animation: badgePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation: badgePop 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
 /* ============================================================
-   v1.8.2 상시 마운트(Pre-composited) 양방향 120fps 팝업 모달 트랜지션
-   - display: none 토글로 인한 첫 프레임 드랍 제거 & 닫힘 애니메이션 완벽 지원
+   상시 마운트(Pre-composited) 양방향 120fps 팝업 모달 트랜지션
    ============================================================ */
 .modal-overlay {
   opacity: 0;
@@ -805,9 +799,9 @@ html.dark #icon-moon {
   }
 }
 .toast-pill {
-  background: rgba(23, 27, 38, 0.92);
+  background: rgba(23, 27, 38, 0.94);
   color: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -839,8 +833,8 @@ html.light .toast-pill {
 }
 
 .slot-window.slot-locked {
-  border-color: rgba(251, 191, 36, 0.7) !important;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 20px rgba(251, 191, 36, 0.4) !important;
+  border-color: rgba(251, 191, 36, 0.65) !important;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 16px rgba(251, 191, 36, 0.3) !important;
   transform: scale3d(1.03, 1.03, 1);
 }
 
