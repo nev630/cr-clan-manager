@@ -56,7 +56,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted v1.8.2) -->
-  <link rel="stylesheet" href="css/style.css?v=1.8.2" />
+  <link rel="stylesheet" href="css/style.css?v=1.8.3" />
 </head>
 <body class="bg-[#090b10] text-slate-100 min-h-screen">
 
@@ -335,48 +335,34 @@
     </div>
   </div>
 
-  <!-- 6-B. 클랜원 상세 정보 팝업 모달 (상시 마운트 & GPU 가속 오픈/클로즈 스프링 트랜지션) -->
+  <!-- 6-B. RoyaleAPI 이동 확인 심플 팝업 모달 (상시 마운트 & GPU 가속 오픈/클로즈 스프링 트랜지션) -->
   <div id="member-detail-modal" class="modal-overlay fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/65 backdrop-blur-sm px-3 pb-3 sm:p-4" aria-hidden="true" onclick="if(event.target === this) window.app.closeMemberModal()">
-    <div class="modal-panel surface-card w-full max-w-sm rounded-2xl p-4 border border-white/[0.1] shadow-2xl">
-      <div class="flex items-start justify-between gap-2 pb-3 border-b border-white/[0.06]">
-        <div class="min-w-0">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span id="modal-member-rank" class="text-xs font-mono text-slate-400">#1</span>
-            <h3 id="modal-member-name" class="text-base font-bold text-white truncate">클랜원</h3>
-            <span id="modal-member-role"></span>
-          </div>
-          <div class="flex items-center gap-2 mt-1">
-            <span id="modal-member-tag" class="text-xs font-mono text-slate-400">#TAG</span>
-            <span id="modal-member-trophies" class="text-xs font-semibold text-amber-400">🏆 0</span>
-          </div>
-        </div>
-        <button type="button" onclick="window.app.closeMemberModal()" class="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] active:scale-90 text-slate-400 hover:text-white transition" aria-label="닫기">✕</button>
+    <div class="modal-panel surface-card w-full max-w-xs sm:max-w-sm rounded-2xl p-5 border border-white/[0.1] shadow-2xl text-center">
+      <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </div>
+      <h3 class="text-base font-bold text-white">
+        <span id="modal-member-name" class="text-indigo-400">클랜원</span> 님의
+      </h3>
+      <p class="text-sm text-slate-300 mt-1">
+        RoyaleAPI 전적으로 이동하시겠습니까?
+      </p>
+      <div class="flex items-center justify-center gap-1.5 mt-2 text-xs font-mono text-slate-400">
+        <span id="modal-member-tag">#TAG</span>
+        <span>·</span>
+        <span id="modal-member-trophies" class="text-amber-400 font-semibold">🏆 0</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 my-3.5 text-xs">
-        <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-          <div class="text-[10px] text-slate-400">접속 상태</div>
-          <div id="modal-member-status" class="font-semibold text-white mt-0.5 flex items-center gap-1.5">-</div>
-          <div id="modal-member-exact-seen" class="text-[10px] text-slate-500 font-mono mt-0.5 truncate">-</div>
-        </div>
-        <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-          <div class="text-[10px] text-slate-400">최근 배틀 기록</div>
-          <div id="modal-member-battle" class="font-semibold text-indigo-300 mt-0.5">-</div>
-        </div>
-        <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-          <div class="text-[10px] text-slate-400">주간 카드 지원량</div>
-          <div id="modal-member-donations" class="font-bold text-amber-400 text-sm font-mono mt-0.5">0개</div>
-          <div id="modal-member-Share" class="text-[10px] text-slate-500 mt-0.5">클랜 내 비중 0%</div>
-        </div>
-        <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-          <div class="text-[10px] text-slate-400">주간 지원 받은 카드</div>
-          <div id="modal-member-received" class="font-bold text-slate-200 text-sm font-mono mt-0.5">0개</div>
-        </div>
-      </div>
-
-      <div class="flex items-center pt-1">
-        <a id="btn-royaleapi-link" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-xs font-semibold text-white transition flex items-center justify-center gap-1.5">
-          <span>RoyaleAPI 전적 ↗</span>
+      <div class="flex items-center gap-2 mt-5">
+        <button type="button" onclick="window.app.closeMemberModal()" class="flex-1 py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] active:scale-[0.98] text-xs font-semibold text-slate-300 hover:text-white transition">
+          취소
+        </button>
+        <a id="btn-royaleapi-link" href="#" target="_blank" rel="noopener noreferrer" onclick="window.app.closeMemberModal()" class="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-xs font-semibold text-white transition flex items-center justify-center gap-1">
+          <span>이동하기 ↗</span>
         </a>
       </div>
     </div>
@@ -418,7 +404,7 @@
   <div id="toast-container" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-max max-w-[90vw]"></div>
 
   <!-- Scripts with Cache Busting v1.8.2 -->
-  <script src="js/api.js?v=1.8.2"></script>
-  <script src="js/app.js?v=1.8.2"></script>
+  <script src="js/api.js?v=1.8.3"></script>
+  <script src="js/app.js?v=1.8.3"></script>
 </body>
 </html>

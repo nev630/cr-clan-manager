@@ -1695,38 +1695,14 @@ class ClanManagerApp {
     const modal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
     if (!modal) return;
 
-    const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
-    const effectiveDate = this.getEffectiveActiveDate(member.lastSeen, member.lastBattleTime);
-    const exactSeen = effectiveDate ? effectiveDate.toLocaleString("ko-KR") : "기록 없음";
-    const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
-    const donations = member.donations || 0;
-    const received = member.donationsReceived || 0;
-    const totalClanDonations = (typeof this.currentData.donationsPerWeek === "number" && this.currentData.donationsPerWeek > 0)
-      ? this.currentData.donationsPerWeek
-      : this.currentData.memberList.reduce((acc, cur) => acc + (cur.donations || 0), 0) || 1;
-    const sharePercent = ((donations / totalClanDonations) * 100).toFixed(1);
-
-    const setElHtml = (id, html) => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = html;
-    };
     const setElText = (id, text) => {
       const el = document.getElementById(id);
       if (el) el.textContent = text;
     };
 
-    setElText("modal-member-rank", `#${member.clanRank || "-"}`);
-    setElText("modal-member-name", member.name || "-");
-    setElHtml("modal-member-role", this.getRoleBadge(member.role));
-    setElText("modal-member-tag", member.tag || "-");
+    setElText("modal-member-name", member.name || "클랜원");
+    setElText("modal-member-tag", member.tag || "");
     setElText("modal-member-trophies", `🏆 ${(member.trophies || 0).toLocaleString()}`);
-
-    setElHtml("modal-member-status", `<span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span><span class="${status.textColor}">${status.text}</span>`);
-    setElText("modal-member-exact-seen", exactSeen);
-    setElText("modal-member-battle", relativeBattle);
-    setElText("modal-member-donations", `${donations.toLocaleString()}개`);
-    setElText("modal-member-Share", `클랜 내 기여 비중 ${sharePercent}%`);
-    setElText("modal-member-received", `${received.toLocaleString()}개`);
 
     const royaleLink = document.getElementById("btn-royaleapi-link");
     if (royaleLink) {
