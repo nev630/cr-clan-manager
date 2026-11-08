@@ -341,14 +341,18 @@ class ClanManagerApp {
 
     await new Promise((resolve) => setTimeout(resolve, 280));
 
-    if (this.currentData?.memberList) {
-      this.renderPodium(this.currentData.memberList, false);
-      this.renderActivityDonut(this.currentData.memberList, false);
-    }
-
     modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
     modal.style.opacity = "0";
     modal.style.pointerEvents = "none";
+
+    if (this.currentData?.memberList) {
+      this.renderPodium(this.currentData.memberList, true);
+      this.renderActivityDonut(this.currentData.memberList, true);
+      setTimeout(() => {
+        this.elements.podiumContainer?.classList.remove("podium-animate");
+        this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+      }, 900);
+    }
 
     setTimeout(() => {
       modal.classList.add("hidden");
@@ -1220,19 +1224,16 @@ class ClanManagerApp {
 
     const chartData = [seenToday, seen1to2d, seenDormant];
 
+    if (this.charts.activity && triggerAnimation) {
+      this.charts.activity.destroy();
+      this.charts.activity = null;
+    }
+
     if (this.charts.activity) {
       this.charts.activity.data.datasets[0].data = chartData;
-      if (triggerAnimation) {
-        this.charts.activity.resize();
-        this.charts.activity.reset();
-        this.charts.activity.update({
-          duration: 680,
-          easing: "easeOutQuart"
-        });
-      } else {
-        this.charts.activity.update("none");
-      }
+      this.charts.activity.update("none");
     } else {
+      const isLight = document.documentElement.classList.contains("light");
       const ctx = activityCanvas.getContext("2d");
       this.charts.activity = new Chart(ctx, {
         type: "doughnut",
