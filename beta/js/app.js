@@ -251,11 +251,11 @@ class ClanManagerApp {
 
     const loopItems = [...CR_EMOTES_POOL, ...CR_EMOTES_POOL];
     const itemsHtml = loopItems.map((item) => `
-      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-[#141824]">
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
           <img src="${item.url}" 
                alt="${item.name}" 
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)] pointer-events-none select-none" />
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain pointer-events-none select-none" />
         </div>
       </div>
     `).join("");
@@ -284,11 +284,11 @@ class ClanManagerApp {
     const decelItems = [...dummies, targetEmote];
 
     const decelHtml = decelItems.map((item) => `
-      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-[#141824]">
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
           <img src="${item.url}" 
                alt="${item.name}" 
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)] pointer-events-none select-none" />
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)] pointer-events-none select-none" />
         </div>
       </div>
     `).join("");
@@ -334,18 +334,14 @@ class ClanManagerApp {
 
     await new Promise((resolve) => setTimeout(resolve, 280));
 
+    if (this.currentData?.memberList) {
+      this.renderPodium(this.currentData.memberList, false);
+      this.renderActivityDonut(this.currentData.memberList, false);
+    }
+
     modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
     modal.style.opacity = "0";
     modal.style.pointerEvents = "none";
-
-    if (this.currentData?.memberList) {
-      this.renderPodium(this.currentData.memberList, true);
-      this.renderActivityDonut(this.currentData.memberList, true);
-      setTimeout(() => {
-        this.elements.podiumContainer?.classList.remove("podium-animate");
-        this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
-      }, 850);
-    }
 
     setTimeout(() => {
       modal.classList.add("hidden");
@@ -1336,11 +1332,10 @@ class ClanManagerApp {
       if (chart.options.scales?.x?.ticks) {
         chart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
       }
-      chart.resize();
 
       if (triggerAnimation) {
         chart.update({
-          duration: 460,
+          duration: 400,
           easing: "easeOutQuart"
         });
       } else {

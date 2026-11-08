@@ -896,7 +896,7 @@ html.light .toast-pill {
   animation: slotStopDecel 0.42s cubic-bezier(0.12, 0.8, 0.25, 1) forwards !important;
 }
 
-/* v1.8.5 Patch: 룰렛 창 투명 검정 틈새 방지 및 확인 팝업 중앙 즉각 고정 */
+/* v1.8.6: 팝업 0.5초 낙하 원천 차단(0px Y이동) & 룰렛 칠흑색 틈새 완전 제거 */
 .slot-window {
   background-color: #141824 !important;
 }
@@ -904,10 +904,18 @@ html.light .slot-window {
   background-color: #e2e8f0 !important;
 }
 
+.slot-reel-strip {
+  background-color: #141824 !important;
+}
+
+.slot-spin-infinite-0, .slot-spin-infinite-1, .slot-spin-infinite-2 {
+  filter: blur(0.2px) !important;
+}
+
 #member-detail-modal .modal-panel {
-  transform: translate3d(0, 8px, 0) scale3d(0.96, 0.96, 1) !important;
+  transform: translate3d(0, 0, 0) scale3d(0.96, 0.96, 1) !important;
   transform-origin: center center !important;
-  transition: transform 0.24s var(--ease-spring), opacity 0.24s var(--ease-silky) !important;
+  transition: transform 0.22s var(--ease-spring), opacity 0.22s var(--ease-silky) !important;
 }
 #member-detail-modal.is-open .modal-panel {
   opacity: 1 !important;
