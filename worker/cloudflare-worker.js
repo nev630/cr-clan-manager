@@ -1,10 +1,10 @@
 /**
- * Clash Royale API Cloudflare Worker Proxy (v1.4.5)
+ * Clash Royale API Cloudflare Worker Proxy (v1.8.0)
  * 
  * [목적]
  * 1. 브라우저의 CORS 제한 해결 및 HTTPS -> HTTP 종단 처리
  * 2. 슈퍼셀 Developer API의 IP 화이트리스트 통과를 위해 오라클 서울 인스턴스(168.110.63.115) 경유
- * 3. v1.4.5: X-Forwarded-For 클라이언트 IP 전달 & Cache-Control: no-store, no-cache 강제 적용
+ * 3. v1.8.0: X-Forwarded-For 클라이언트 IP 전달, COALESCED 캐시 상태 헤더 투과 및 무캐시 응답 보장
  */
 
 export default {
@@ -26,7 +26,6 @@ export default {
       });
     }
 
-    // 허용 HTTP 메서드 검증 (GET, HEAD만 허용)
     if (request.method !== "GET" && request.method !== "HEAD") {
       return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
         status: 405,
@@ -40,7 +39,6 @@ export default {
 
     const url = new URL(request.url);
 
-    // 경로 조작(Path Traversal) 방지
     if (url.pathname.includes("..")) {
       return new Response(JSON.stringify({ error: "Invalid path traversal" }), {
         status: 400,
@@ -51,12 +49,11 @@ export default {
       });
     }
 
-    // 기본 핑 테스트
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(JSON.stringify({
         status: "online",
-        version: "1.4.5",
-        message: "Clash Royale API Proxy (Oracle Dedicated Instance with TTL Cache) is active!",
+        version: "1.8.0",
+        message: "Clash Royale API Proxy v1.8.0 (Oracle Dedicated Instance with TTL Cache & Request Coalescing) is active!",
         timestamp: new Date().toISOString()
       }), {
         headers: {
@@ -66,11 +63,9 @@ export default {
       });
     }
 
-    // 2. 오라클 서울 Always Free 인스턴스(고정 IP: 168.110.63.115, Nginx 80)로 전달
     const targetPath = url.pathname.startsWith("/v1") ? url.pathname : `/v1${url.pathname}`;
     const targetUrl = `http://168.110.63.115.sslip.io${targetPath}${url.search}`;
 
-    // 클라이언트 실제 IP 추출 및 전달
     const clientIp = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "";
 
     const forwardHeaders = {
@@ -90,8 +85,6 @@ export default {
       });
 
       const responseBody = await apiResponse.text();
-
-      // 3. CORS 및 무캐시 헤더를 부착하여 응답 반환 (실시간 동기화 보장)
       const cacheStatus = apiResponse.headers.get("x-cache-status") || "DYNAMIC";
 
       return new Response(responseBody, {
