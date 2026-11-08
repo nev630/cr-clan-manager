@@ -935,14 +935,20 @@ html.light .slot-window {
   filter: blur(0.2px) !important;
 }
 
+#member-detail-modal {
+  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
 #member-detail-modal .modal-panel {
   width: 340px !important;
   max-width: calc(100vw - 32px) !important;
   box-sizing: border-box !important;
-  transform: none !important;
-  transition: opacity 0.2s ease !important;
+  opacity: 0;
+  transform: scale3d(0.97, 0.97, 1) !important;
+  transform-origin: center center !important;
+  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 #member-detail-modal.is-open .modal-panel {
   opacity: 1 !important;
-  transform: none !important;
+  transform: scale3d(1, 1, 1) !important;
 }
