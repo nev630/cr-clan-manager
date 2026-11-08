@@ -1050,3 +1050,9 @@ html.light .compare-grid-line.compare-baseline {
 html.light .compare-tick-text {
   color: #64748b !important;
 }
+html.light .compare-header-num {
+  color: #0f172a !important;
+}
+html.light .compare-clan-name {
+  color: #0f172a !important;
+}
