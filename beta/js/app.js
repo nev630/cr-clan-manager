@@ -7,7 +7,7 @@
  * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.15 - 120fps 슬라이딩 탭 & 비교 차트 레이아웃 안정화 & GPU 시상대 애니메이션', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.16 - 120fps 슬라이딩 탭 & 비교 차트 레이아웃 안정화 & GPU 시상대 애니메이션', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -1369,9 +1369,9 @@ class ClanManagerApp {
 
       html += `
         <div class="flex-1 max-w-[95px] sm:max-w-[130px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
-          <!-- 막대 본체 + 상단 수치 -->
-          <div class="w-full relative" style="height: ${barHeightPercent.toFixed(2)}%;">
-            <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1 sm:mb-1.5 w-full text-center pointer-events-none whitespace-nowrap">
+          <!-- 막대 본체 + 상단 수치 (막대 굵기 절반: w-1/2) -->
+          <div class="w-1/2 relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
+            <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1 sm:mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
               <span class="text-xs sm:text-[13px] font-bold font-mono ${valColor} tracking-tight">${val.toLocaleString()}${meta.suffix}</span>
             </div>
             <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-lg ${barClasses}"></div>
