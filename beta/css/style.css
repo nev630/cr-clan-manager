@@ -1003,16 +1003,41 @@ html.light .slot-window {
   will-change: transform, opacity !important;
 }
 
+/* 비교 차트 상단 수치 라벨 전용 키프레임 (X축 -50% 센터링 유지하며 Y축만 12px -> 0 상승) */
+.compare-bar-header {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate3d(-50%, 0, 0);
+  pointer-events: none;
+  white-space: nowrap;
+  text-align: center;
+}
+
+@keyframes compareHeaderRise {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 12px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
 .compare-animate .compare-bar-header-0 {
-  animation: podiumHeaderRise 0.56s var(--ease-spring) both !important;
+  animation: compareHeaderRise 0.56s var(--ease-spring) both !important;
+  transform-origin: bottom center !important;
   will-change: transform, opacity !important;
 }
 .compare-animate .compare-bar-header-1 {
-  animation: podiumHeaderRise 0.56s var(--ease-spring) 0.06s both !important;
+  animation: compareHeaderRise 0.56s var(--ease-spring) 0.06s both !important;
+  transform-origin: bottom center !important;
   will-change: transform, opacity !important;
 }
 .compare-animate .compare-bar-header-2 {
-  animation: podiumHeaderRise 0.56s var(--ease-spring) 0.12s both !important;
+  animation: compareHeaderRise 0.56s var(--ease-spring) 0.12s both !important;
+  transform-origin: bottom center !important;
   will-change: transform, opacity !important;
 }
 

@@ -7,7 +7,7 @@
  * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.16 - 120fps 슬라이딩 탭 & 비교 차트 레이아웃 안정화 & GPU 시상대 애니메이션', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.17 - 120fps 슬라이딩 탭 & 비교 차트 레이아웃 안정화 & GPU 시상대 애니메이션', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
