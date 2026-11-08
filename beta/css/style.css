@@ -978,3 +978,44 @@ html.light .slot-window {
   opacity: 1 !important;
   transform: scale3d(1, 1, 1) !important;
 }
+
+/* ============================================================
+   타 갤클 비교 막대 - 주간 지원 기여도 시상대(Podium)와 100% 동일한 GPU Scale Rise 엔진
+   - 가로 눈금선은 배경에 절대 고정되어 전혀 흔들리지 않음
+   - 3대 클랜의 컬러 막대와 상단 수치만 바닥(0)에서부터 부드럽게 솟아오름
+   ============================================================ */
+.compare-animate .compare-bar-0 {
+  animation: podiumScaleRise 0.62s var(--ease-spring) both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-1 {
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.06s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-2 {
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.12s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+
+.compare-animate .compare-bar-header-0 {
+  animation: podiumHeaderRise 0.56s var(--ease-spring) both !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-header-1 {
+  animation: podiumHeaderRise 0.56s var(--ease-spring) 0.06s both !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-header-2 {
+  animation: podiumHeaderRise 0.56s var(--ease-spring) 0.12s both !important;
+  will-change: transform, opacity !important;
+}
+
+html.light .compare-grid-line {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+html.light .compare-tick-text {
+  color: #64748b !important;
+}
