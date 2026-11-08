@@ -639,9 +639,7 @@ class ClanManagerApp {
       }
 
       requestAnimationFrame(() => {
-        setTimeout(() => {
-          this.renderComparisonView(true);
-        }, 50);
+        this.renderComparisonView(true);
       });
 
       if (!this.hasCompareLoaded || Date.now() - this.lastCompareSyncTime > this.compareThrottleMs) {
@@ -1322,18 +1320,13 @@ class ClanManagerApp {
     const backgroundColors = clans.map((c) => c.isHome ? "rgba(99, 102, 241, 0.85)" : (c.name || "").includes("Vandros") ? "rgba(16, 185, 129, 0.85)" : "rgba(244, 63, 94, 0.85)");
     const borderColors = clans.map((c) => c.isHome ? "#6366f1" : (c.name || "").includes("Vandros") ? "#10b981" : "#f43f5e");
 
-    const donationCanvas = this.elements.chartCompareDonations;
+    const donationCanvas = this.elements.chartCompareDonations || document.getElementById("chart-compare-donations");
     if (!donationCanvas) return;
 
-    // 애니메이션 요청 시 기존 인스턴스를 파괴하고 바닥(0)에서 솟아오르는 Rise 애니메이션 보장
-    if (this.charts.compareDonations && triggerAnimation) {
-      this.charts.compareDonations.destroy();
-      this.charts.compareDonations = null;
-    }
+    const isLight = document.documentElement.classList.contains("light");
 
     if (this.charts.compareDonations) {
       const chart = this.charts.compareDonations;
-      const isLight = document.documentElement.classList.contains("light");
       chart.data.labels = labels;
       chart.data.datasets[0].label = meta.label;
       chart.data.datasets[0].data = metricData;
@@ -1352,7 +1345,6 @@ class ClanManagerApp {
 
       chart.update("none");
     } else {
-      const isLight = document.documentElement.classList.contains("light");
       const barDataLabelsPlugin = {
         id: "barDataLabels",
         afterDatasetsDraw(chart, args, options) {
@@ -1393,17 +1385,7 @@ class ClanManagerApp {
         },
         plugins: [barDataLabelsPlugin],
         options: {
-          animations: {
-            y: {
-              duration: 650,
-              easing: "easeOutQuart",
-              from: (ctx) => {
-                if (ctx.type === "data" && ctx.chart?.scales?.y) {
-                  return ctx.chart.scales.y.getPixelForValue(0);
-                }
-              }
-            }
-          },
+          animation: false,
           responsive: true,
           maintainAspectRatio: false,
           layout: { padding: { top: 24 } },
@@ -1431,6 +1413,13 @@ class ClanManagerApp {
           }
         }
       });
+    }
+
+    // 주간 지원 기여도 시상대와 100% 동일한 GPU Scale Rise 애니메이션 트리거
+    if (triggerAnimation) {
+      donationCanvas.classList.remove("chart-animate-rise");
+      void donationCanvas.offsetWidth;
+      donationCanvas.classList.add("chart-animate-rise");
     }
   }
 

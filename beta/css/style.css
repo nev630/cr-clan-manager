@@ -361,6 +361,29 @@ body {
   animation: podiumScaleRise 0.62s var(--ease-spring) both;
   will-change: transform, opacity;
 }
+
+/* 비교 차트 - 주간 지원 기여도 시상대(Podium)와 100% 동일한 GPU Scale Rise 애니메이션 */
+@keyframes chartScaleRise {
+  0% {
+    opacity: 0;
+    transform: scale3d(1, 0.08, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+.chart-animate-rise {
+  animation: chartScaleRise 0.62s var(--ease-spring) both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+
+.chart-container-compare {
+  transform-origin: bottom center;
+}
+
 .podium-animate .podium-2nd {
   animation: podiumScaleRise 0.62s var(--ease-spring) 0.06s both;
   will-change: transform, opacity;
