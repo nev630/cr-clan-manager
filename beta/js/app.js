@@ -61,6 +61,7 @@ class ClanManagerApp {
     this.syncThrottleMs = 15000;
     this.compareThrottleMs = 30000;
     this.loadingStartTime = Date.now();
+    this.lastTabSwitchTime = 0;
 
     this.init();
   }
@@ -85,6 +86,7 @@ class ClanManagerApp {
 
   init() {
     this.loadingStartTime = Date.now();
+    this.lastTabSwitchTime = 0;
     this.emotesReadyPromise = this.renderRandomLoadingEmotes();
 
     try {
@@ -273,6 +275,7 @@ class ClanManagerApp {
     `).join("");
 
     this.loadingStartTime = Date.now();
+    this.lastTabSwitchTime = 0;
   }
 
   stopSlotReel(slotIdx, targetEmote) {
@@ -597,6 +600,7 @@ class ClanManagerApp {
   switchMainTab(tabName) {
     if (this.activeMainTab === tabName) return;
     this.activeMainTab = tabName;
+    this.lastTabSwitchTime = Date.now();
 
     const { viewDashboard, viewCompare, tabBtnDashboard, tabBtnCompare, mainTabPill, tabContextHint: tabHint, btnQuickCompare: quickCompareBtn } = this.elements;
 
@@ -929,7 +933,7 @@ class ClanManagerApp {
     } catch (e) {
       console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
     } finally {
-      if (this.activeMainTab === "compare") {
+      if (this.activeMainTab === "compare" && (Date.now() - this.lastTabSwitchTime >= 1000)) {
         this.renderComparisonView(false);
       }
     }
@@ -1030,7 +1034,7 @@ class ClanManagerApp {
       if (clanData.clanWarTrophies) gfInCompare.clanWarTrophies = clanData.clanWarTrophies;
       if (clanData.description) gfInCompare.description = clanData.description;
 
-      if (this.activeMainTab === "compare") {
+      if (this.activeMainTab === "compare" && (Date.now() - this.lastTabSwitchTime >= 1000)) {
         this.renderComparisonView(false);
       }
     }
@@ -1320,6 +1324,12 @@ class ClanManagerApp {
     const donationCanvas = this.elements.chartCompareDonations;
     if (!donationCanvas) return;
 
+    // 애니메이션 요청 시 기존 인스턴스를 파괴하고 바닥(0)에서 솟아오르는 Rise 애니메이션 보장
+    if (this.charts.compareDonations && triggerAnimation) {
+      this.charts.compareDonations.destroy();
+      this.charts.compareDonations = null;
+    }
+
     if (this.charts.compareDonations) {
       const chart = this.charts.compareDonations;
       const isLight = document.documentElement.classList.contains("light");
@@ -1339,16 +1349,9 @@ class ClanManagerApp {
         chart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
       }
 
-      if (triggerAnimation) {
-        chart.reset();
-        chart.update({
-          duration: 650,
-          easing: "easeOutQuart"
-        });
-      } else {
-        chart.update("none");
-      }
+      chart.update("none");
     } else {
+      const isLight = document.documentElement.classList.contains("light");
       const barDataLabelsPlugin = {
         id: "barDataLabels",
         afterDatasetsDraw(chart, args, options) {
@@ -1389,9 +1392,16 @@ class ClanManagerApp {
         },
         plugins: [barDataLabelsPlugin],
         options: {
-          animation: {
-            duration: 460,
-            easing: "easeOutQuart"
+          animations: {
+            y: {
+              duration: 650,
+              easing: "easeOutQuart",
+              from: (ctx) => {
+                if (ctx.type === "data" && ctx.chart?.scales?.y) {
+                  return ctx.chart.scales.y.getPixelForValue(0);
+                }
+              }
+            }
           },
           responsive: true,
           maintainAspectRatio: false,
@@ -1399,21 +1409,21 @@ class ClanManagerApp {
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { color: "#94a3b8", font: { size: 10 } },
-              grid: { color: "rgba(255,255,255,0.05)" },
+              ticks: { color: isLight ? "#475569" : "#94a3b8", font: { size: 10 } },
+              grid: { color: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)" },
               title: { display: false },
               grace: "18%"
             },
-            x: { ticks: { color: "#f8fafc", font: { size: 11, weight: "bold" } }, grid: { display: false } }
+            x: { ticks: { color: isLight ? "#0f172a" : "#f8fafc", font: { size: 11, weight: "bold" } }, grid: { display: false } }
           },
           plugins: {
             barDataLabels: { suffix: meta.suffix },
             legend: { display: false },
             tooltip: {
-              backgroundColor: "#171b26",
-              titleColor: "#f8fafc",
-              bodyColor: "#94a3b8",
-              borderColor: "rgba(255,255,255,0.1)",
+              backgroundColor: isLight ? "#ffffff" : "#171b26",
+              titleColor: isLight ? "#0f172a" : "#f8fafc",
+              bodyColor: isLight ? "#334155" : "#94a3b8",
+              borderColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)",
               borderWidth: 1,
               callbacks: { label: (ctx) => ` ${meta.label}: ${ctx.raw.toLocaleString()}${meta.suffix}` }
             }
