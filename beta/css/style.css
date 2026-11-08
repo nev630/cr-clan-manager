@@ -913,11 +913,13 @@ html.light .slot-window {
 }
 
 #member-detail-modal .modal-panel {
-  transform: translate3d(0, 0, 0) scale3d(0.96, 0.96, 1) !important;
-  transform-origin: center center !important;
-  transition: transform 0.22s var(--ease-spring), opacity 0.22s var(--ease-silky) !important;
+  width: 340px !important;
+  max-width: calc(100vw - 32px) !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+  transition: opacity 0.2s ease !important;
 }
 #member-detail-modal.is-open .modal-panel {
   opacity: 1 !important;
-  transform: translate3d(0, 0, 0) scale3d(1, 1, 1) !important;
+  transform: none !important;
 }

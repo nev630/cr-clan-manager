@@ -125,6 +125,10 @@ class ClanManagerApp {
 
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
+        const memberModal = document.getElementById("member-detail-modal");
+        if (memberModal && memberModal.getAttribute("aria-hidden") === "true") {
+          memberModal.classList.remove("is-open");
+        }
         this.autoSyncLive(false);
         if (this.activeMainTab === "compare") {
           this.syncCompareLive(false);
@@ -627,7 +631,9 @@ class ClanManagerApp {
       }
 
       requestAnimationFrame(() => {
-        this.renderComparisonView(true);
+        setTimeout(() => {
+          this.renderComparisonView(true);
+        }, 50);
       });
 
       if (!this.hasCompareLoaded || Date.now() - this.lastCompareSyncTime > this.compareThrottleMs) {
@@ -1334,8 +1340,9 @@ class ClanManagerApp {
       }
 
       if (triggerAnimation) {
+        chart.reset();
         chart.update({
-          duration: 400,
+          duration: 650,
           easing: "easeOutQuart"
         });
       } else {
@@ -1702,9 +1709,15 @@ class ClanManagerApp {
     this.openModalSmooth(modal);
   }
 
-  closeMemberModal() {
+  closeMemberModal(immediate = false) {
     const modal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
-    this.closeModalSmooth(modal);
+    if (!modal) return;
+    if (immediate) {
+      modal.setAttribute("aria-hidden", "true");
+      modal.classList.remove("is-open");
+    } else {
+      this.closeModalSmooth(modal);
+    }
   }
 
   applyFilterAndRender(shouldStagger = false) {
