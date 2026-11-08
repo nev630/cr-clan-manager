@@ -860,27 +860,27 @@ html.light .toast-pill {
 }
 
 .slot-spin-infinite-0 {
-  filter: blur(1.5px);
+  filter: blur(0.4px);
   animation: slotSpinLoop 0.24s linear infinite !important;
 }
 
 .slot-spin-infinite-1 {
-  filter: blur(1.5px);
+  filter: blur(0.4px);
   animation: slotSpinLoop 0.21s linear infinite !important;
 }
 
 .slot-spin-infinite-2 {
-  filter: blur(1.5px);
+  filter: blur(0.4px);
   animation: slotSpinLoop 0.26s linear infinite !important;
 }
 
 @keyframes slotStopDecel {
   0% {
     transform: translate3d(0, 0%, 0);
-    filter: blur(1.5px);
+    filter: blur(0.4px);
   }
   50% {
-    filter: blur(0.5px);
+    filter: blur(0.2px);
   }
   82% {
     transform: translate3d(0, -82.6%, 0);
@@ -894,4 +894,22 @@ html.light .toast-pill {
 
 .slot-stopping {
   animation: slotStopDecel 0.42s cubic-bezier(0.12, 0.8, 0.25, 1) forwards !important;
+}
+
+/* v1.8.5 Patch: 룰렛 창 투명 검정 틈새 방지 및 확인 팝업 중앙 즉각 고정 */
+.slot-window {
+  background-color: #141824 !important;
+}
+html.light .slot-window {
+  background-color: #e2e8f0 !important;
+}
+
+#member-detail-modal .modal-panel {
+  transform: translate3d(0, 8px, 0) scale3d(0.96, 0.96, 1) !important;
+  transform-origin: center center !important;
+  transition: transform 0.24s var(--ease-spring), opacity 0.24s var(--ease-silky) !important;
+}
+#member-detail-modal.is-open .modal-panel {
+  opacity: 1 !important;
+  transform: translate3d(0, 0, 0) scale3d(1, 1, 1) !important;
 }

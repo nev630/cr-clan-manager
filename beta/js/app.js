@@ -246,7 +246,7 @@ class ClanManagerApp {
       });
     });
 
-    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 300));
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 1500));
     await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
 
     const loopItems = [...CR_EMOTES_POOL, ...CR_EMOTES_POOL];
@@ -255,7 +255,7 @@ class ClanManagerApp {
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
           <img src="${item.url}" 
                alt="${item.name}" 
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)] pointer-events-none select-none" />
         </div>
       </div>
     `).join("");
@@ -288,7 +288,7 @@ class ClanManagerApp {
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
           <img src="${item.url}" 
                alt="${item.name}" 
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)] pointer-events-none select-none" />
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)] pointer-events-none select-none" />
         </div>
       </div>
     `).join("");
