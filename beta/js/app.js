@@ -639,7 +639,9 @@ class ClanManagerApp {
       }
 
       requestAnimationFrame(() => {
-        this.renderComparisonView(true);
+        setTimeout(() => {
+          this.renderComparisonView(true);
+        }, 60);
       });
 
       if (!this.hasCompareLoaded || Date.now() - this.lastCompareSyncTime > this.compareThrottleMs) {
@@ -1343,7 +1345,16 @@ class ClanManagerApp {
         chart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
       }
 
-      chart.update("none");
+      if (triggerAnimation) {
+        // 가로선(그리드)은 고정된 채, 차트 막대기만 바닥(0)에서 위로 솟아오르는 Rise 애니메이션
+        chart.reset();
+        chart.update({
+          duration: 750,
+          easing: "easeOutQuart"
+        });
+      } else {
+        chart.update("none");
+      }
     } else {
       const barDataLabelsPlugin = {
         id: "barDataLabels",
@@ -1356,10 +1367,19 @@ class ClanManagerApp {
             metaSet.data.forEach((element, index) => {
               const rawVal = dataset.data[index];
               if (rawVal === undefined || rawVal === null) return;
+              
+              // 막대가 올라오는 높이에 따라 데이터 라벨 텍스트도 자연스럽게 페이드인
+              const baselineY = chart.scales.y.getPixelForValue(0);
+              const barHeight = baselineY - element.y;
+              const textAlpha = Math.min(1, Math.max(0, barHeight / 24));
+              if (textAlpha <= 0) return;
+
               ctx.font = "bold 12px Pretendard, -apple-system, sans-serif";
               ctx.textAlign = "center";
               ctx.textBaseline = "bottom";
-              ctx.fillStyle = document.documentElement.classList.contains("light") ? "#0f172a" : "#ffffff";
+              ctx.fillStyle = isLight 
+                ? `rgba(15, 23, 42, ${textAlpha})` 
+                : `rgba(255, 255, 255, ${textAlpha})`;
               const suffix = options?.suffix || "";
               const text = `${typeof rawVal === "number" ? rawVal.toLocaleString() : rawVal}${suffix}`;
               ctx.fillText(text, element.x, element.y - 6);
@@ -1385,7 +1405,21 @@ class ClanManagerApp {
         },
         plugins: [barDataLabelsPlugin],
         options: {
-          animation: false,
+          animation: {
+            duration: 750,
+            easing: "easeOutQuart"
+          },
+          animations: {
+            y: {
+              duration: 750,
+              easing: "easeOutQuart",
+              from: (ctx) => {
+                if (ctx.type === "data" && ctx.chart?.scales?.y) {
+                  return ctx.chart.scales.y.getPixelForValue(0);
+                }
+              }
+            }
+          },
           responsive: true,
           maintainAspectRatio: false,
           layout: { padding: { top: 24 } },
@@ -1413,13 +1447,6 @@ class ClanManagerApp {
           }
         }
       });
-    }
-
-    // 주간 지원 기여도 시상대와 100% 동일한 GPU Scale Rise 애니메이션 트리거
-    if (triggerAnimation) {
-      donationCanvas.classList.remove("chart-animate-rise");
-      void donationCanvas.offsetWidth;
-      donationCanvas.classList.add("chart-animate-rise");
     }
   }
 
