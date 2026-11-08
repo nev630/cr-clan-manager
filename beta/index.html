@@ -56,7 +56,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted v1.8.2) -->
-  <link rel="stylesheet" href="css/style.css?v=1.8.3" />
+  <link rel="stylesheet" href="css/style.css?v=1.8.4" />
 </head>
 <body class="bg-[#090b10] text-slate-100 min-h-screen">
 
@@ -351,18 +351,13 @@
       <p class="text-sm text-slate-300 mt-1">
         RoyaleAPI 전적으로 이동하시겠습니까?
       </p>
-      <div class="flex items-center justify-center gap-1.5 mt-2 text-xs font-mono text-slate-400">
-        <span id="modal-member-tag">#TAG</span>
-        <span>·</span>
-        <span id="modal-member-trophies" class="text-amber-400 font-semibold">🏆 0</span>
-      </div>
 
       <div class="flex items-center gap-2 mt-5">
         <button type="button" onclick="window.app.closeMemberModal()" class="flex-1 py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] active:scale-[0.98] text-xs font-semibold text-slate-300 hover:text-white transition">
           취소
         </button>
         <a id="btn-royaleapi-link" href="#" target="_blank" rel="noopener noreferrer" onclick="window.app.closeMemberModal()" class="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-xs font-semibold text-white transition flex items-center justify-center gap-1">
-          <span>이동하기 ↗</span>
+          <span>이동하기</span>
         </a>
       </div>
     </div>
@@ -404,7 +399,7 @@
   <div id="toast-container" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-max max-w-[90vw]"></div>
 
   <!-- Scripts with Cache Busting v1.8.2 -->
-  <script src="js/api.js?v=1.8.3"></script>
-  <script src="js/app.js?v=1.8.3"></script>
+  <script src="js/api.js?v=1.8.4"></script>
+  <script src="js/app.js?v=1.8.4"></script>
 </body>
 </html>

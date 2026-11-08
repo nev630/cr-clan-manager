@@ -1695,14 +1695,8 @@ class ClanManagerApp {
     const modal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
     if (!modal) return;
 
-    const setElText = (id, text) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = text;
-    };
-
-    setElText("modal-member-name", member.name || "클랜원");
-    setElText("modal-member-tag", member.tag || "");
-    setElText("modal-member-trophies", `🏆 ${(member.trophies || 0).toLocaleString()}`);
+    const nameEl = document.getElementById("modal-member-name");
+    if (nameEl) nameEl.textContent = member.name || "클랜원";
 
     const royaleLink = document.getElementById("btn-royaleapi-link");
     if (royaleLink) {
