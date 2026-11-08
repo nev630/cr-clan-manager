@@ -1322,36 +1322,37 @@ class ClanManagerApp {
       tickMax = Math.max(50, Math.ceil(tickMax / 50) * 50);
     }
 
-    const ticks = [
-      tickMax,
-      Math.round(tickMax * 0.75),
-      Math.round(tickMax * 0.5),
-      Math.round(tickMax * 0.25),
-      0
+    const tickSteps = [
+      { val: tickMax, percent: 100 },
+      { val: Math.round(tickMax * 0.75), percent: 75 },
+      { val: Math.round(tickMax * 0.5), percent: 50 },
+      { val: Math.round(tickMax * 0.25), percent: 25 },
+      { val: 0, percent: 0 }
     ];
 
-    const maxBarHeightPx = window.innerWidth < 640 ? 112 : 142;
     const isLight = document.documentElement.classList.contains("light");
 
     let html = `
-      <!-- 1. 정적 가로선 그리드 (배경에 완전 고정되어 애니메이션 중 절대 흔들리지 않음) -->
-      <div class="absolute inset-x-1 sm:inset-x-2 top-5 bottom-8 flex flex-col justify-between pointer-events-none z-0">
-        ${ticks.map((t) => `
-          <div class="w-full flex items-center gap-2 border-b border-white/[0.05] compare-grid-line h-0">
-            <span class="text-[9px] font-mono text-slate-500 compare-tick-text w-11 shrink-0 text-left -translate-y-2">${t.toLocaleString()}</span>
-            <div class="flex-1"></div>
-          </div>
-        `).join("")}
-      </div>
+      <!-- 단일 절대 좌표계 플롯 박스 (left: 44px, right: 10px, top: 26px, bottom: 28px) -->
+      <div class="absolute left-11 sm:left-12 right-2.5 sm:right-3.5 top-6 sm:top-7 bottom-7 sm:bottom-7">
+        
+        <!-- 1. 정적 가로선 그리드 (플롯 박스의 bottom: 0% ~ 100%에 정확히 고정) -->
+        <div class="absolute inset-0 pointer-events-none z-0">
+          ${tickSteps.map((t) => `
+            <div class="absolute left-0 right-0 border-b ${t.percent === 0 ? 'border-white/[0.14] compare-baseline' : 'border-white/[0.05]'} compare-grid-line" style="bottom: ${t.percent}%;">
+              <span class="absolute right-full mr-2 text-[9px] font-mono text-slate-500 compare-tick-text select-none text-right whitespace-nowrap" style="top: 0; transform: translateY(-50%);">${t.val.toLocaleString()}</span>
+            </div>
+          `).join("")}
+        </div>
 
-      <!-- 2. 주간 지원 기여도 시상대와 100% 동일한 3대 클랜 GPU Scale Rise 막대 -->
-      <div class="relative z-10 w-full h-full flex items-end justify-between gap-3 sm:gap-6 pl-12 pr-1 pb-7 ${triggerAnimation ? 'compare-animate' : ''}">
+        <!-- 2. 플롯 박스와 동일한 좌표계를 공유하는 3대 클랜 막대 영역 -->
+        <div id="compare-bars-wrapper" class="absolute inset-0 flex items-end justify-between px-1.5 sm:px-5 pointer-events-none z-10 ${triggerAnimation ? 'compare-animate' : ''}">
     `;
 
     clans.forEach((c, idx) => {
       const val = c[metricKey] || 0;
-      const heightRatio = Math.max(0.04, Math.min(1, val / tickMax));
-      const barHeightPx = Math.max(14, Math.round(heightRatio * maxBarHeightPx));
+      // 0이어도 최소 3.5%는 표시되어 기준선 위에 살짝 보이도록 설정, 최대 100%
+      const barHeightPercent = Math.max(3.5, Math.min(100, (val / tickMax) * 100));
 
       let barClasses = "bg-gradient-to-t from-rose-600/85 to-rose-500/95 border-t border-x border-rose-400/60 shadow-[0_0_12px_rgba(244,63,94,0.2)]";
       let valColor = "text-rose-400";
@@ -1365,18 +1366,35 @@ class ClanManagerApp {
       }
 
       html += `
-        <div class="flex-1 max-w-[125px] sm:max-w-[145px] flex flex-col items-center">
-          <div class="compare-bar-header compare-bar-header-${idx} text-center mb-1.5 w-full">
-            <span class="text-xs sm:text-[13px] font-bold font-mono ${valColor} tracking-tight">${val.toLocaleString()}${meta.suffix}</span>
+        <div class="flex-1 max-w-[95px] sm:max-w-[130px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
+          <!-- 막대 본체 + 상단 수치 -->
+          <div class="w-full relative" style="height: ${barHeightPercent.toFixed(2)}%;">
+            <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1 sm:mb-1.5 w-full text-center pointer-events-none whitespace-nowrap">
+              <span class="text-xs sm:text-[13px] font-bold font-mono ${valColor} tracking-tight">${val.toLocaleString()}${meta.suffix}</span>
+            </div>
+            <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-lg ${barClasses}"></div>
           </div>
-          <div class="compare-bar compare-bar-${idx} w-full rounded-t-lg ${barClasses}" style="height: ${barHeightPx}px;"></div>
-          <div class="text-[11px] sm:text-xs font-semibold text-slate-300 mt-2 truncate w-full text-center" title="${this.escapeHtml(c.name)}">${this.escapeHtml(c.name)}</div>
+          <!-- 0선(바닥) 아래에 고정되는 클랜 이름 -->
+          <div class="absolute top-full pt-1.5 sm:pt-2 w-full text-center text-[11px] sm:text-xs font-semibold text-slate-300 truncate select-none" title="${this.escapeHtml(c.name)}">
+            ${this.escapeHtml(c.name)}
+          </div>
         </div>
       `;
     });
 
-    html += `</div>`;
+    html += `
+        </div>
+      </div>
+    `;
+
     stage.innerHTML = html;
+
+    if (triggerAnimation) {
+      setTimeout(() => {
+        const barsWrapper = document.getElementById("compare-bars-wrapper");
+        if (barsWrapper) barsWrapper.classList.remove("compare-animate");
+      }, 850);
+    }
   }
 
   renderCompareSummaryList(clans, metricKey = "donationsWeekly", triggerAnimation = false) {

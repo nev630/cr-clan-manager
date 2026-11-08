@@ -1016,6 +1016,9 @@ html.light .slot-window {
 html.light .compare-grid-line {
   border-color: rgba(0, 0, 0, 0.06) !important;
 }
+html.light .compare-grid-line.compare-baseline {
+  border-color: rgba(0, 0, 0, 0.18) !important;
+}
 html.light .compare-tick-text {
   color: #64748b !important;
 }
