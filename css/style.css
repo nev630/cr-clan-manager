@@ -374,11 +374,7 @@ body {
   }
 }
 
-.chart-animate-rise {
-  animation: chartScaleRise 0.62s var(--ease-spring) both !important;
-  transform-origin: bottom center !important;
-  will-change: transform, opacity !important;
-}
+
 
 .chart-container-compare {
   transform-origin: bottom center;
@@ -433,15 +429,18 @@ body {
   }
 }
 
-/* 비교 차트 컨테이너 */
+/* 비교 차트 컨테이너 - flex 레이아웃 붕괴 방지 및 고정 높이 절대 보장 */
 .chart-container-compare {
   position: relative;
   height: 230px;
+  min-height: 230px;
   width: 100%;
+  flex: none;
 }
 @media (max-width: 640px) {
   .chart-container-compare {
     height: 185px;
+    min-height: 185px;
   }
 }
 
@@ -935,14 +934,119 @@ html.light .slot-window {
   filter: blur(0.2px) !important;
 }
 
+#member-detail-modal {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background-color: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  transition: opacity 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+              backdrop-filter 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+              -webkit-backdrop-filter 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.42s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: opacity, backdrop-filter;
+}
+
+#member-detail-modal.is-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background-color: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
 #member-detail-modal .modal-panel {
   width: 340px !important;
   max-width: calc(100vw - 32px) !important;
   box-sizing: border-box !important;
-  transform: none !important;
-  transition: opacity 0.2s ease !important;
+  opacity: 0;
+  transform: scale3d(0.95, 0.95, 1) !important;
+  transform-origin: center center !important;
+  background: rgba(15, 18, 26, 0.9) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55),
+              0 0 0 1px rgba(255, 255, 255, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  transition: opacity 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.42s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform, opacity;
 }
+
 #member-detail-modal.is-open .modal-panel {
   opacity: 1 !important;
-  transform: none !important;
+  transform: scale3d(1, 1, 1) !important;
+}
+
+/* ============================================================
+   타 갤클 비교 막대 - 주간 지원 기여도 시상대(Podium)와 100% 동일한 GPU Scale Rise 엔진
+   - 가로 눈금선은 배경에 절대 고정되어 전혀 흔들리지 않음
+   - 3대 클랜의 컬러 막대와 상단 수치만 바닥(0)에서부터 부드럽게 솟아오름
+   ============================================================ */
+.compare-animate .compare-bar-0 {
+  animation: podiumScaleRise 0.62s var(--ease-spring) both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-1 {
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.06s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-2 {
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.12s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+
+/* 비교 차트 상단 수치 라벨 전용 키프레임 (X축 -50% 센터링 유지하며 Y축만 12px -> 0 상승) */
+.compare-bar-header {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate3d(-50%, 0, 0);
+  pointer-events: none;
+  white-space: nowrap;
+  text-align: center;
+}
+
+@keyframes compareHeaderRise {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 12px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.compare-animate .compare-bar-header-0 {
+  animation: compareHeaderRise 0.56s var(--ease-spring) both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-header-1 {
+  animation: compareHeaderRise 0.56s var(--ease-spring) 0.06s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-header-2 {
+  animation: compareHeaderRise 0.56s var(--ease-spring) 0.12s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+
+html.light .compare-grid-line {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+html.light .compare-grid-line.compare-baseline {
+  border-color: rgba(0, 0, 0, 0.18) !important;
+}
+html.light .compare-tick-text {
+  color: #64748b !important;
 }

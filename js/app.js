@@ -7,7 +7,7 @@
  * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.2 - 120fps 슬라이딩 탭 & 양방향 스프링 팝업 모달 & GPU 시상대 애니메이션 완성', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.17 - 120fps 슬라이딩 탭 & 비교 차트 레이아웃 안정화 & GPU 시상대 애니메이션', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -190,6 +190,8 @@ class ClanManagerApp {
       podiumRunnersContainer: document.getElementById("podium-runners-container"),
       chartActivity: document.getElementById("chart-activity"),
       chartCompareDonations: document.getElementById("chart-compare-donations"),
+      compareBarsStage: document.getElementById("compare-bars-stage"),
+      compareChartContainer: document.getElementById("compare-chart-container"),
       compareChartTitle: document.getElementById("compare-chart-title"),
       compareChartUnit: document.getElementById("compare-chart-unit"),
       compareListTitle: document.getElementById("compare-list-title"),
@@ -563,16 +565,8 @@ class ClanManagerApp {
       donutChart.update("none");
     }
 
-    if (this.charts.compareDonations) {
-      const compareChart = this.charts.compareDonations;
-      if (compareChart.options.scales?.y?.ticks) {
-        compareChart.options.scales.y.ticks.color = isLight ? "#475569" : "#94a3b8";
-        compareChart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)";
-      }
-      if (compareChart.options.scales?.x?.ticks) {
-        compareChart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
-      }
-      compareChart.update("none");
+    if (this.activeMainTab === "compare") {
+      this.renderComparisonView(false);
     }
 
     if (this.currentData) {
@@ -639,7 +633,9 @@ class ClanManagerApp {
       }
 
       requestAnimationFrame(() => {
-        this.renderComparisonView(true);
+        setTimeout(() => {
+          this.renderComparisonView(true);
+        }, 60);
       });
 
       if (!this.hasCompareLoaded || Date.now() - this.lastCompareSyncTime > this.compareThrottleMs) {
@@ -1312,114 +1308,94 @@ class ClanManagerApp {
   }
 
   renderCompareCharts(clans, metricKey = "donationsWeekly", triggerAnimation = false) {
-    if (!window.Chart) return;
+    const stage = this.elements?.compareBarsStage || document.getElementById("compare-bars-stage") || this.elements?.compareChartContainer || document.getElementById("compare-chart-container");
+    if (!stage) return;
 
     const meta = COMPARE_METRICS_META[metricKey] || COMPARE_METRICS_META.donationsWeekly;
-    const labels = clans.map((c) => c.name);
-    const metricData = clans.map((c) => c[metricKey] || 0);
-    const backgroundColors = clans.map((c) => c.isHome ? "rgba(99, 102, 241, 0.85)" : (c.name || "").includes("Vandros") ? "rgba(16, 185, 129, 0.85)" : "rgba(244, 63, 94, 0.85)");
-    const borderColors = clans.map((c) => c.isHome ? "#6366f1" : (c.name || "").includes("Vandros") ? "#10b981" : "#f43f5e");
+    const isDonation = metricKey === "donationsWeekly";
+    const values = clans.map((c) => c[metricKey] || 0);
+    const maxVal = Math.max(...values, 1);
 
-    const donationCanvas = this.elements.chartCompareDonations || document.getElementById("chart-compare-donations");
-    if (!donationCanvas) return;
+    // 가로선 눈금 기준 계산 (총 지원량: 5,000단위, 1인 평균: 50단위 올림)
+    let tickMax = Math.ceil(maxVal * 1.15);
+    if (isDonation) {
+      tickMax = Math.max(5000, Math.ceil(tickMax / 5000) * 5000);
+    } else {
+      tickMax = Math.max(50, Math.ceil(tickMax / 50) * 50);
+    }
+
+    const tickSteps = [
+      { val: tickMax, percent: 100 },
+      { val: Math.round(tickMax * 0.75), percent: 75 },
+      { val: Math.round(tickMax * 0.5), percent: 50 },
+      { val: Math.round(tickMax * 0.25), percent: 25 },
+      { val: 0, percent: 0 }
+    ];
 
     const isLight = document.documentElement.classList.contains("light");
 
-    if (this.charts.compareDonations) {
-      const chart = this.charts.compareDonations;
-      chart.data.labels = labels;
-      chart.data.datasets[0].label = meta.label;
-      chart.data.datasets[0].data = metricData;
-      chart.data.datasets[0].backgroundColor = backgroundColors;
-      chart.data.datasets[0].borderColor = borderColors;
-      chart.options.plugins.barDataLabels.suffix = meta.suffix;
-      chart.options.plugins.tooltip.callbacks.label = (ctx) => ` ${meta.label}: ${ctx.raw.toLocaleString()}${meta.suffix}`;
+    let html = `
+      <!-- 단일 절대 좌표계 플롯 박스 (left: 44px, right: 10px, top: 26px, bottom: 28px) -->
+      <div class="absolute left-11 sm:left-12 right-2.5 sm:right-3.5 top-6 sm:top-7 bottom-7 sm:bottom-7">
+        
+        <!-- 1. 정적 가로선 그리드 (플롯 박스의 bottom: 0% ~ 100%에 정확히 고정) -->
+        <div class="absolute inset-0 pointer-events-none z-0">
+          ${tickSteps.map((t) => `
+            <div class="absolute left-0 right-0 border-b ${t.percent === 0 ? 'border-white/[0.14] compare-baseline' : 'border-white/[0.05]'} compare-grid-line" style="bottom: ${t.percent}%;">
+              <span class="absolute right-full mr-2 text-[9px] font-mono text-slate-500 compare-tick-text select-none text-right whitespace-nowrap" style="top: 0; transform: translateY(-50%);">${t.val.toLocaleString()}</span>
+            </div>
+          `).join("")}
+        </div>
 
-      if (chart.options.scales?.y?.ticks) {
-        chart.options.scales.y.ticks.color = isLight ? "#475569" : "#94a3b8";
-        chart.options.scales.y.grid.color = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)";
+        <!-- 2. 플롯 박스와 동일한 좌표계를 공유하는 3대 클랜 막대 영역 -->
+        <div id="compare-bars-wrapper" class="absolute inset-0 flex items-end justify-between px-1.5 sm:px-5 pointer-events-none z-10 ${triggerAnimation ? 'compare-animate' : ''}">
+    `;
+
+    clans.forEach((c, idx) => {
+      const val = c[metricKey] || 0;
+      // 0이어도 최소 3.5%는 표시되어 기준선 위에 살짝 보이도록 설정, 최대 100%
+      const barHeightPercent = Math.max(3.5, Math.min(100, (val / tickMax) * 100));
+
+      let barClasses = "bg-gradient-to-t from-rose-600/85 to-rose-500/95 border-t border-x border-rose-400/60 shadow-[0_0_12px_rgba(244,63,94,0.2)]";
+      let valColor = "text-rose-400";
+
+      if (c.isHome) {
+        barClasses = "bg-gradient-to-t from-indigo-600/85 to-indigo-500/95 border-t border-x border-indigo-400/60 shadow-[0_0_12px_rgba(99,102,241,0.25)]";
+        valColor = isLight ? "text-indigo-600" : "text-indigo-300";
+      } else if ((c.name || "").includes("Vandros")) {
+        barClasses = "bg-gradient-to-t from-emerald-600/85 to-emerald-500/95 border-t border-x border-emerald-400/60 shadow-[0_0_12px_rgba(16,185,129,0.2)]";
+        valColor = isLight ? "text-emerald-600" : "text-emerald-400";
       }
-      if (chart.options.scales?.x?.ticks) {
-        chart.options.scales.x.ticks.color = isLight ? "#0f172a" : "#94a3b8";
-      }
 
-      chart.update("none");
-    } else {
-      const barDataLabelsPlugin = {
-        id: "barDataLabels",
-        afterDatasetsDraw(chart, args, options) {
-          const { ctx } = chart;
-          ctx.save();
-          chart.data.datasets.forEach((dataset, i) => {
-            const metaSet = chart.getDatasetMeta(i);
-            if (metaSet.hidden) return;
-            metaSet.data.forEach((element, index) => {
-              const rawVal = dataset.data[index];
-              if (rawVal === undefined || rawVal === null) return;
-              ctx.font = "bold 12px Pretendard, -apple-system, sans-serif";
-              ctx.textAlign = "center";
-              ctx.textBaseline = "bottom";
-              ctx.fillStyle = document.documentElement.classList.contains("light") ? "#0f172a" : "#ffffff";
-              const suffix = options?.suffix || "";
-              const text = `${typeof rawVal === "number" ? rawVal.toLocaleString() : rawVal}${suffix}`;
-              ctx.fillText(text, element.x, element.y - 6);
-            });
-          });
-          ctx.restore();
-        }
-      };
+      html += `
+        <div class="flex-1 max-w-[95px] sm:max-w-[130px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
+          <!-- 막대 본체 + 상단 수치 (막대 굵기 절반: w-1/2) -->
+          <div class="w-1/2 relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
+            <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1 sm:mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
+              <span class="text-xs sm:text-[13px] font-bold font-mono ${valColor} tracking-tight">${val.toLocaleString()}${meta.suffix}</span>
+            </div>
+            <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-lg ${barClasses}"></div>
+          </div>
+          <!-- 0선(바닥) 아래에 고정되는 클랜 이름 -->
+          <div class="absolute top-full pt-1.5 sm:pt-2 w-full text-center text-[11px] sm:text-xs font-semibold text-slate-300 truncate select-none" title="${this.escapeHtml(c.name)}">
+            ${this.escapeHtml(c.name)}
+          </div>
+        </div>
+      `;
+    });
 
-      const ctx = donationCanvas.getContext("2d");
-      this.charts.compareDonations = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: meta.label,
-            data: metricData,
-            backgroundColor: backgroundColors,
-            borderColor: borderColors,
-            borderWidth: 1.5,
-            borderRadius: 6
-          }]
-        },
-        plugins: [barDataLabelsPlugin],
-        options: {
-          animation: false,
-          responsive: true,
-          maintainAspectRatio: false,
-          layout: { padding: { top: 24 } },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { color: isLight ? "#475569" : "#94a3b8", font: { size: 10 } },
-              grid: { color: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.05)" },
-              title: { display: false },
-              grace: "18%"
-            },
-            x: { ticks: { color: isLight ? "#0f172a" : "#f8fafc", font: { size: 11, weight: "bold" } }, grid: { display: false } }
-          },
-          plugins: {
-            barDataLabels: { suffix: meta.suffix },
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: isLight ? "#ffffff" : "#171b26",
-              titleColor: isLight ? "#0f172a" : "#f8fafc",
-              bodyColor: isLight ? "#334155" : "#94a3b8",
-              borderColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)",
-              borderWidth: 1,
-              callbacks: { label: (ctx) => ` ${meta.label}: ${ctx.raw.toLocaleString()}${meta.suffix}` }
-            }
-          }
-        }
-      });
-    }
+    html += `
+        </div>
+      </div>
+    `;
 
-    // 주간 지원 기여도 시상대와 100% 동일한 GPU Scale Rise 애니메이션 트리거
+    stage.innerHTML = html;
+
     if (triggerAnimation) {
-      donationCanvas.classList.remove("chart-animate-rise");
-      void donationCanvas.offsetWidth;
-      donationCanvas.classList.add("chart-animate-rise");
+      setTimeout(() => {
+        const barsWrapper = document.getElementById("compare-bars-wrapper");
+        if (barsWrapper) barsWrapper.classList.remove("compare-animate");
+      }, 850);
     }
   }
 
