@@ -429,15 +429,18 @@ body {
   }
 }
 
-/* 비교 차트 컨테이너 */
+/* 비교 차트 컨테이너 - flex 레이아웃 붕괴 방지 및 고정 높이 절대 보장 */
 .chart-container-compare {
   position: relative;
   height: 230px;
+  min-height: 230px;
   width: 100%;
+  flex: none;
 }
 @media (max-width: 640px) {
   .chart-container-compare {
     height: 185px;
+    min-height: 185px;
   }
 }
 

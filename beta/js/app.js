@@ -7,7 +7,7 @@
  * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.2 - 120fps 슬라이딩 탭 & 양방향 스프링 팝업 모달 & GPU 시상대 애니메이션 완성', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.15 - 120fps 슬라이딩 탭 & 비교 차트 레이아웃 안정화 & GPU 시상대 애니메이션', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -190,6 +190,8 @@ class ClanManagerApp {
       podiumRunnersContainer: document.getElementById("podium-runners-container"),
       chartActivity: document.getElementById("chart-activity"),
       chartCompareDonations: document.getElementById("chart-compare-donations"),
+      compareBarsStage: document.getElementById("compare-bars-stage"),
+      compareChartContainer: document.getElementById("compare-chart-container"),
       compareChartTitle: document.getElementById("compare-chart-title"),
       compareChartUnit: document.getElementById("compare-chart-unit"),
       compareListTitle: document.getElementById("compare-list-title"),
@@ -1306,7 +1308,7 @@ class ClanManagerApp {
   }
 
   renderCompareCharts(clans, metricKey = "donationsWeekly", triggerAnimation = false) {
-    const stage = document.getElementById("compare-bars-stage") || document.getElementById("compare-chart-container");
+    const stage = this.elements?.compareBarsStage || document.getElementById("compare-bars-stage") || this.elements?.compareChartContainer || document.getElementById("compare-chart-container");
     if (!stage) return;
 
     const meta = COMPARE_METRICS_META[metricKey] || COMPARE_METRICS_META.donationsWeekly;
