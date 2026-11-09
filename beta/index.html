@@ -9,7 +9,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: https://api-assets.clashroyale.com https://static.wikia.nocookie.net; connect-src 'self' https://green-disk-88a6.marble593812345.workers.dev https://api.clashroyale.com https://proxy.royaleapi.dev https://corsproxy.io https://api.allorigins.win;" />
-  <title>Good Fellas | 클랜 관리 및 타 갤클 비교 대시보드</title>
+  <title>Good Fellas | 클랜 관리 대시보드 (v1.9.0)</title>
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%2310b981%22/></svg>">
 
@@ -30,6 +30,10 @@
     })();
   </script>
 
+    <!-- Google Fonts: JetBrains Mono -->
+  <link rel=preconnect href="https://fonts.googleapis.com">
+  <link rel=preconnect href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -37,11 +41,15 @@
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          },
           colors: {
             brand: {
-              base: '#090b10',
-              surface: '#0f121a',
-              elevated: '#171b26'
+              base: '#0B0C0E',
+              surface: '#121417',
+              elevated: '#1B1E24'
             }
           }
         }
@@ -56,9 +64,9 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted v1.8.2) -->
-  <link rel="stylesheet" href="css/style.css?v=1.8.18" />
+  <link rel="stylesheet" href="css/style.css?v=1.9.0" />
 </head>
-<body class="bg-[#090b10] text-slate-100 min-h-screen">
+<body class="bg-[#0B0C0E] text-slate-100 min-h-screen font-sans">
 
   <!-- 메인 레이아웃: PC에서도 모바일 원래 너비(max-w-md, 약 448px)와 패딩으로 중앙 정렬 -->
   <div class="max-w-md mx-auto px-3.5 py-5">
@@ -129,19 +137,19 @@
       <!-- 2. 핵심 3대 지표 스트립 -->
       <section class="grid grid-cols-3 gap-2 mt-4">
         <div class="surface-card p-3">
-          <div class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">전체 클랜원</div>
+          <div class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">MEMBERS</div>
           <div class="text-lg font-bold text-white mt-0.5" id="stat-total-members">- / 50</div>
           <div class="text-[10px] text-emerald-400 mt-0.5 truncate" id="stat-member-vacant">실시간 집계 중...</div>
         </div>
 
         <div class="surface-card p-3">
-          <div class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">주간 총 지원량</div>
+          <div class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">DONATIONS</div>
           <div class="text-lg font-bold text-amber-400 mt-0.5" id="stat-total-donations">-</div>
           <div class="text-[10px] text-slate-400 mt-0.5 truncate" id="stat-avg-donations">1인 평균 계산 중...</div>
         </div>
 
         <div class="surface-card p-3 cursor-pointer hover:border-rose-500/30 active:scale-[0.97] transition-transform duration-150 group" onclick="window.app.openDormantModal()">
-          <div class="text-[10px] font-medium text-slate-400 group-hover:text-rose-400 uppercase tracking-wider">3일+ 미접속</div>
+          <div class="text-[10px] font-medium text-slate-400 group-hover:text-rose-400 uppercase tracking-wider">INACTIVE (3D+)</div>
           <div class="text-lg font-bold text-rose-400 mt-0.5" id="stat-dormant-count">-</div>
           <div class="text-[10px] text-slate-500 group-hover:text-rose-400/80 mt-0.5 truncate underline">대상자 보기</div>
         </div>
@@ -193,12 +201,12 @@
           <div class="relative flex-1">
             <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
             <input type="text" id="search-input" placeholder="닉네임 또는 #태그 검색..."
-              class="w-full pl-8 pr-7 py-1.5 bg-[#0f121a] border border-white/[0.06] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition" />
+              class="w-full pl-8 pr-7 py-1.5 bg-[#121417] border border-white/[0.06] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition" />
             <button type="button" id="btn-search-clear" onclick="window.app.clearSearch()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/[0.08] hover:bg-white/[0.16] text-slate-400 hover:text-white items-center justify-center text-[10px] leading-none transition" title="검색어 지우기" aria-label="검색어 지우기">✕</button>
           </div>
 
           <!-- 정렬 기준 선택: 지원량 / 마지막 접속 / 마지막 배틀 / 트로피 -->
-          <select id="sort-key-select" class="bg-[#0f121a] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer shrink-0">
+          <select id="sort-key-select" class="bg-[#121417] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer shrink-0">
             <option value="lastSeen" selected>마지막 접속</option>
             <option value="donations">지원량</option>
             <option value="lastBattle">마지막 배틀</option>
@@ -206,7 +214,7 @@
           </select>
 
           <!-- 오름차순 / 내림차순 원클릭 토글 버튼 -->
-          <button id="btn-sort-order" type="button" class="flex items-center gap-1.5 bg-[#0f121a] hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0 select-none active:scale-95" title="정렬 순서 변경">
+          <button id="btn-sort-order" type="button" class="flex items-center gap-1.5 bg-[#121417] hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0 select-none active:scale-95" title="정렬 순서 변경">
             <span id="sort-order-icon-wrapper" class="inline-flex items-center justify-center transition-transform duration-300 ease-out origin-center">
               <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-indigo-400" id="sort-order-icon"></i>
             </span>
@@ -399,7 +407,7 @@
   <div id="toast-container" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-max max-w-[90vw]"></div>
 
   <!-- Scripts with Cache Busting v1.8.2 -->
-  <script src="js/api.js?v=1.8.18"></script>
-  <script src="js/app.js?v=1.8.18"></script>
+  <script src="js/api.js?v=1.9.0"></script>
+  <script src="js/app.js?v=1.9.0"></script>
 </body>
 </html>

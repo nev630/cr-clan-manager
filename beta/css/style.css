@@ -1,22 +1,24 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
 @charset "UTF-8";
 
 /* Pretendard Web Font */
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 
 :root {
-  --bg-base: #090b10;
-  --bg-surface: #0f121a;
-  --bg-surface-hover: #151924;
-  --bg-elevated: #1a1f2c;
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-focus: rgba(99, 102, 241, 0.4);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent-green: #10b981;
-  --accent-amber: #f59e0b;
-  --accent-rose: #f43f5e;
-  --accent-blue: #3b82f6;
+  --bg-base: #0B0C0E;
+  --bg-surface: #121417;
+  --bg-surface-hover: #181B20;
+  --bg-elevated: #1D2128;
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-focus: rgba(255, 255, 255, 0.2);
+  --text-primary: #EDEDEF;
+  --text-secondary: #8A8F98;
+  --text-muted: #5E646E;
+  --accent-green: #30A46C;
+  --accent-amber: #F5A623;
+  --accent-rose: #E5484D;
+  --accent-blue: #5B68DF;
+  --accent-indigo: #4F5EE8;
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-silky: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -41,7 +43,8 @@ body {
 .surface-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* 미니멀 상태 점 (Status Dot) */
@@ -54,14 +57,14 @@ body {
 }
 .status-dot.green {
   background-color: var(--accent-green);
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 0 2px rgba(48, 164, 108, 0.2);
 }
 .status-dot.amber {
   background-color: var(--accent-amber);
 }
 .status-dot.rose, .status-dot.red {
   background-color: var(--accent-rose);
-  box-shadow: 0 0 6px rgba(244, 63, 94, 0.4);
+  box-shadow: 0 0 0 2px rgba(229, 72, 77, 0.2);
 }
 .status-dot.slate {
   background-color: #64748b;
@@ -113,25 +116,25 @@ body {
 
 .segmented-pill {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
-  border-radius: 9px;
-  background: var(--bg-elevated);
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 6px;
+  background: #1C2027;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   transform: translate3d(0%, 0, 0);
-  transition: transform 0.38s var(--ease-spring), background-color 0.25s ease, border-color 0.25s ease;
+  transition: transform 0.34s var(--ease-spring);
   will-change: transform;
   pointer-events: none;
   z-index: 1;
 }
 
 .segmented-pill.compare-pill {
-  border-radius: 8px;
-  border-color: rgba(99, 102, 241, 0.35);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.28);
+  border-radius: 6px;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .segmented-pill.slide-right {
@@ -311,17 +314,25 @@ body {
 }
 
 .podium-1st {
-  border-color: #fbbf24 rgba(251, 191, 36, 0.2) transparent rgba(251, 191, 36, 0.2);
-  background: linear-gradient(180deg, rgba(251, 191, 36, 0.15) 0%, rgba(15, 18, 26, 0.95) 100%);
-  box-shadow: 0 -4px 20px rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 2px solid #F5A623 !important;
+  background: linear-gradient(180deg, rgba(245, 166, 35, 0.08) 0%, #15181F 100%) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 8px 8px 0 0;
 }
 .podium-2nd {
-  border-color: #cbd5e1 rgba(203, 213, 225, 0.15) transparent rgba(203, 213, 225, 0.15);
-  background: linear-gradient(180deg, rgba(203, 213, 225, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 2px solid #D4D8DF !important;
+  background: linear-gradient(180deg, rgba(212, 216, 223, 0.06) 0%, #13151A 100%) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+  border-radius: 8px 8px 0 0;
 }
 .podium-3rd {
-  border-color: #d97706 rgba(217, 119, 6, 0.15) transparent rgba(217, 119, 6, 0.15);
-  background: linear-gradient(180deg, rgba(217, 119, 6, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 2px solid #C07D3E !important;
+  background: linear-gradient(180deg, rgba(192, 125, 62, 0.06) 0%, #13151A 100%) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+  border-radius: 8px 8px 0 0;
 }
 
 @keyframes podiumScaleRise {
@@ -716,12 +727,12 @@ html.dark #icon-moon {
    ============================================================ */
 @keyframes goldAuraPulse {
   0%, 100% {
-    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7)) drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
     transform: scale3d(1, 1, 1);
+    opacity: 0.95;
   }
   50% {
-    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.65));
-    transform: scale3d(1.05, 1.05, 1);
+    transform: scale3d(1.04, 1.04, 1);
+    opacity: 1;
   }
 }
 .crown-aura-glow {

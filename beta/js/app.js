@@ -7,7 +7,7 @@
  * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.18 - 120fps 슬라이딩 탭 & 비교 차트 레이아웃 안정화 & GPU 시상대 애니메이션', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.9.0 - Raycast Minimal Tech & Precision Design System', 'color: #30A46C; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -1131,47 +1131,47 @@ class ClanManagerApp {
     podiumContainer.innerHTML = `
       <!-- 2등 은메달 -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(second.tag)}')">
-        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
+        <div class="podium-header text-center mb-2 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-slate-300 drop-shadow-[0_0_6px_rgba(203,213,225,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
-          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
-          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
+          <div class="text-xs text-white font-bold truncate tracking-tight" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
+          <div class="text-[11px] font-mono font-semibold text-slate-300 mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-2nd w-full h-20 sm:h-24">
-          <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
+          <span class="text-lg sm:text-xl font-bold text-slate-400 font-mono mb-2">02</span>
         </div>
       </div>
       <!-- 1등 금메달 -->
       <div class="flex-1 max-w-[145px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(first.tag)}')">
-        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer">
+        <div class="podium-header text-center mb-2 w-full px-1 cursor-pointer">
           <div class="flex items-center justify-center mb-1">
-            <svg class="crown-aura-glow w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
-          <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs font-bold text-slate-300 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
+          <div class="text-xs sm:text-sm text-white font-bold truncate tracking-tight" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
+          <div class="text-xs font-mono font-bold text-amber-400 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-1st w-full h-28 sm:h-32">
-          <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
+          <span class="text-xl sm:text-2xl font-bold text-amber-400 font-mono mb-2">01</span>
         </div>
       </div>
       <!-- 3등 동메달 -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(third.tag)}')">
-        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
+        <div class="podium-header text-center mb-2 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-amber-600 drop-shadow-[0_0_6px_rgba(217,119,6,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-3.5 h-3.5 text-amber-600" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
-          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
+          <div class="text-xs text-white font-bold truncate tracking-tight" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
+          <div class="text-[11px] font-mono font-semibold text-amber-500/90 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-3rd w-full h-14 sm:h-16">
-          <span class="text-lg sm:text-xl font-black text-amber-600/80 font-mono mb-1">3</span>
+          <span class="text-base sm:text-lg font-bold text-amber-700/80 font-mono mb-1.5">03</span>
         </div>
       </div>
     `;
@@ -1182,11 +1182,11 @@ class ClanManagerApp {
 
       runnersContainer.innerHTML = runners.map((m, idx) => `
         <div onclick="window.app.openMemberModal('${this.escapeHtml(m.tag)}')" class="podium-runner-item cursor-pointer hover:bg-white/[0.05] active:scale-[0.98] transition flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
-          <div class="flex items-center gap-1 min-w-0">
-            <span class="text-[10px] font-mono text-slate-500 w-3">${idx + 4}</span>
-            <span class="text-[11px] text-slate-300 font-medium truncate">${this.escapeHtml(m.name)}</span>
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-[10px] font-mono font-bold text-slate-500 w-4">${(idx + 4).toString().padStart(2, '0')}</span>
+            <span class="text-[11.5px] text-slate-200 font-medium truncate">${this.escapeHtml(m.name)}</span>
           </div>
-          <span class="text-[11px] font-bold text-slate-400 shrink-0 ml-1">${(m.donations || 0).toLocaleString()}</span>
+          <span class="text-[11px] font-mono font-bold text-slate-300 shrink-0 ml-1">${(m.donations || 0).toLocaleString()}</span>
         </div>
       `).join("");
     }
@@ -1271,7 +1271,7 @@ class ClanManagerApp {
               callbacks: { label: (c) => ` ${c.label}: ${c.raw}명` }
             }
           },
-          cutout: "68%"
+          cutout: "72%"
         }
       });
     }
@@ -1356,12 +1356,12 @@ class ClanManagerApp {
       // 0이어도 최소 3.5%는 표시되어 기준선 위에 살짝 보이도록 설정, 최대 100%
       const barHeightPercent = Math.max(3.5, Math.min(100, (val / tickMax) * 100));
 
-      let barClasses = "bg-gradient-to-t from-[#d41f45] to-[#eb3a60] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
+      let barClasses = "bg-[#D82A52] border-t-2 border-rose-300/60 shadow-sm";
 
       if (c.isHome) {
-        barClasses = "bg-gradient-to-t from-[#3d4ac6] to-[#4f5ddb] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
+        barClasses = "bg-[#4856DF] border-t-2 border-indigo-300/60 shadow-sm";
       } else if ((c.name || "").includes("Vandros")) {
-        barClasses = "bg-gradient-to-t from-[#059669] to-[#10b981] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
+        barClasses = "bg-[#10B981] border-t-2 border-emerald-300/60 shadow-sm";
       }
 
       html += `
@@ -1849,38 +1849,39 @@ class ClanManagerApp {
       const staggerClass = animateCard ? "card-stagger-in" : "";
       const staggerStyle = animateCard ? `style="animation-delay: ${(idx * 0.024).toFixed(3)}s"` : "";
 
+      const rankStr = (member.clanRank || idx + 1).toString().padStart(2, '0');
       cardsHtml += `
         <div class="mobile-member-card ${staggerClass}" ${staggerStyle} onclick="window.app.openMemberModal('${this.escapeHtml(member.tag)}')">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
-              <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
-              <span class="font-bold text-white text-[13px] truncate">${this.escapeHtml(member.name)}</span>
+              <span class="font-mono text-xs font-bold text-slate-500 w-5 shrink-0">${rankStr}</span>
+              <span class="font-bold text-white text-[13px] tracking-tight truncate">${this.escapeHtml(member.name)}</span>
               ${this.getRoleBadge(member.role)}
               <span class="text-[10px] font-mono text-slate-500 truncate hidden sm:inline">${this.escapeHtml(member.tag)}</span>
             </div>
-            <span class="text-xs font-semibold text-amber-400 shrink-0">🏆 ${(member.trophies || 0).toLocaleString()}</span>
+            <span class="text-xs font-mono font-semibold text-amber-400 shrink-0 flex items-center gap-1">🏆 ${(member.trophies || 0).toLocaleString()}</span>
           </div>
 
-          <div class="grid grid-cols-3 gap-1 pt-2.5 mt-2 border-t border-white/[0.03] items-center">
+          <div class="grid grid-cols-3 gap-1 pt-2.5 mt-2 border-t border-white/[0.04] items-center">
             <div class="text-left">
-              <div class="text-[10px] text-slate-500 font-medium">접속 상태</div>
-              <div class="text-xs ${status.textColor} mt-0.5 font-medium flex items-center gap-1 truncate">
+              <div class="text-[9.5px] font-mono text-slate-500 uppercase tracking-wider">STATUS</div>
+              <div class="text-[11.5px] font-mono ${status.textColor} mt-0.5 font-medium flex items-center gap-1.5 truncate">
                 <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
                 <span class="truncate">${status.text}</span>
               </div>
             </div>
 
             <div class="text-center">
-              <div class="text-[10px] text-slate-500 font-medium">최근 배틀</div>
-              <div class="text-xs ${battleTextColor} mt-0.5 font-medium flex items-center justify-center gap-1 truncate">
+              <div class="text-[9.5px] font-mono text-slate-500 uppercase tracking-wider">BATTLE</div>
+              <div class="text-[11.5px] font-mono ${battleTextColor} mt-0.5 font-medium flex items-center justify-center gap-1 truncate">
                 ${SWORDS_INLINE_SVG}
                 <span class="truncate">${relativeBattle}</span>
               </div>
             </div>
 
             <div class="text-right">
-              <div class="text-[10px] text-slate-500 font-medium">주간 지원량</div>
-              <div class="text-xs font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5 font-mono truncate">
+              <div class="text-[9.5px] font-mono text-slate-500 uppercase tracking-wider">DONATIONS</div>
+              <div class="text-[11.5px] font-mono font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5 text-right truncate">
                 ${donations.toLocaleString()}<span class="text-[10px] font-normal text-slate-500 ml-0.5">/ ${received}</span>
               </div>
             </div>
