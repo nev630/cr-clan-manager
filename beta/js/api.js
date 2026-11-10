@@ -1,5 +1,5 @@
 /**
- * Clash Royale API Client (v1.9.0 Raycast Minimal Tech Clash Royale API Client (v1.8.0 Instant Sync, Home Cache Reuse & Precision Guard) Precision Sync)
+ * Clash Royale API Client (v1.8.0 Instant Sync, Home Cache Reuse & Precision Guard)
  * - Supercell Clash Royale Official API 지원
  * - Cloudflare Worker / Oracle 프록시 실시간 통신
  * - 신규 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
