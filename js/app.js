@@ -7,7 +7,7 @@
  * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.17 - 120fps 슬라이딩 탭 & 비교 차트 레이아웃 안정화 & GPU 시상대 애니메이션', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.20-beta - RoyaleAPI 팝업 라이트모드 지원 & 감각적인 소프트 옵시디언 서피스 & 120fps 스프링 인터랙션 & 고대비 타이포그래피', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -1342,7 +1342,7 @@ class ClanManagerApp {
         <div class="absolute inset-0 pointer-events-none z-0">
           ${tickSteps.map((t) => `
             <div class="absolute left-0 right-0 border-b ${t.percent === 0 ? 'border-white/[0.14] compare-baseline' : 'border-white/[0.05]'} compare-grid-line" style="bottom: ${t.percent}%;">
-              <span class="absolute right-full mr-2 text-[9px] font-mono text-slate-500 compare-tick-text select-none text-right whitespace-nowrap" style="top: 0; transform: translateY(-50%);">${t.val.toLocaleString()}</span>
+              <span class="absolute right-full mr-2 sm:mr-2.5 text-[10px] sm:text-[11px] font-mono text-slate-400 compare-tick-text select-none text-right whitespace-nowrap" style="top: 0; transform: translateY(-50%);">${t.val.toLocaleString()}</span>
             </div>
           `).join("")}
         </div>
@@ -1356,28 +1356,25 @@ class ClanManagerApp {
       // 0이어도 최소 3.5%는 표시되어 기준선 위에 살짝 보이도록 설정, 최대 100%
       const barHeightPercent = Math.max(3.5, Math.min(100, (val / tickMax) * 100));
 
-      let barClasses = "bg-gradient-to-t from-rose-600/85 to-rose-500/95 border-t border-x border-rose-400/60 shadow-[0_0_12px_rgba(244,63,94,0.2)]";
-      let valColor = "text-rose-400";
+      let barClasses = "bg-gradient-to-t from-[#d41f45] to-[#eb3a60] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
 
       if (c.isHome) {
-        barClasses = "bg-gradient-to-t from-indigo-600/85 to-indigo-500/95 border-t border-x border-indigo-400/60 shadow-[0_0_12px_rgba(99,102,241,0.25)]";
-        valColor = isLight ? "text-indigo-600" : "text-indigo-300";
+        barClasses = "bg-gradient-to-t from-[#3d4ac6] to-[#4f5ddb] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
       } else if ((c.name || "").includes("Vandros")) {
-        barClasses = "bg-gradient-to-t from-emerald-600/85 to-emerald-500/95 border-t border-x border-emerald-400/60 shadow-[0_0_12px_rgba(16,185,129,0.2)]";
-        valColor = isLight ? "text-emerald-600" : "text-emerald-400";
+        barClasses = "bg-gradient-to-t from-[#059669] to-[#10b981] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
       }
 
       html += `
         <div class="flex-1 max-w-[95px] sm:max-w-[130px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
-          <!-- 막대 본체 + 상단 수치 (막대 굵기 절반: w-1/2) -->
-          <div class="w-1/2 relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
+          <!-- 막대 본체 + 상단 수치 (레퍼런스 이미지 디자인 일치: w-[76%] sm:w-[72%] max-w-[72px] sm:max-w-[96px]) -->
+          <div class="w-[76%] sm:w-[72%] max-w-[72px] sm:max-w-[96px] relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
             <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1 sm:mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
-              <span class="text-xs sm:text-[13px] font-bold font-mono ${valColor} tracking-tight">${val.toLocaleString()}${meta.suffix}</span>
+              <span class="text-xs sm:text-[13px] font-bold tracking-tight text-white compare-header-num">${val.toLocaleString()}${meta.suffix}</span>
             </div>
-            <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-lg ${barClasses}"></div>
+            <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-xl ${barClasses}"></div>
           </div>
-          <!-- 0선(바닥) 아래에 고정되는 클랜 이름 -->
-          <div class="absolute top-full pt-1.5 sm:pt-2 w-full text-center text-[11px] sm:text-xs font-semibold text-slate-300 truncate select-none" title="${this.escapeHtml(c.name)}">
+          <!-- 0선(바닥) 아래에 고정되는 클랜 이름 (레퍼런스 이미지 일치: 볼드 화이트) -->
+          <div class="compare-clan-name absolute top-full pt-1.5 sm:pt-2 w-full text-center text-xs sm:text-[13px] font-bold text-white tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
             ${this.escapeHtml(c.name)}
           </div>
         </div>
