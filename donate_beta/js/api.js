@@ -9,10 +9,12 @@ class DonateAPIClient {
     this.proxyBase = 'https://green-disk-88a6.marble593812345.workers.dev';
     this.clanTag = '#G890J9JC';
     this.gasUrlKey = 'cr_gas_db_url';
+    // 구글 드라이브 Apps Script 웹 앱 기본 연동 URL
+    this.defaultGasUrl = 'https://script.google.com/macros/s/AKfycbwB8rpScojCEETsDuzeg3_BH-j-2YxCVdbbBDGt-yq7NUqIRZTwNhvVMRL68eX5UfsJ/exec';
   }
 
   getGasUrl() {
-    return localStorage.getItem(this.gasUrlKey) || '';
+    return localStorage.getItem(this.gasUrlKey) || this.defaultGasUrl;
   }
 
   setGasUrl(url) {
