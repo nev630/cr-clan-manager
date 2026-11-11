@@ -1099,3 +1099,98 @@ html.light .compare-header-num {
 html.light .compare-clan-name {
   color: #0f172a !important;
 }
+
+
+/* ============================================================
+   RoyaleAPI 이동 모달 & 공통 모달 - 라이트 모드 테마 완벽 지원 (v1.8.20-beta)
+   ============================================================ */
+html.light #member-detail-modal {
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+html.light #member-detail-modal.is-open {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+html.light #member-detail-modal .modal-panel {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15),
+              0 0 0 1px rgba(0, 0, 0, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.light #member-detail-modal .modal-panel > div:first-child {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: #4f46e5 !important;
+}
+
+html.light #member-detail-modal h3 {
+  color: #0f172a !important;
+}
+
+html.light #member-detail-modal #modal-member-name {
+  color: #4f46e5 !important;
+}
+
+html.light #member-detail-modal p {
+  color: #475569 !important;
+}
+
+html.light #member-detail-modal button {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light #member-detail-modal button:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.light #member-detail-modal #btn-royaleapi-link {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+  border: 1px solid #4338ca !important;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3) !important;
+}
+
+html.light #member-detail-modal #btn-royaleapi-link:hover {
+  background-color: #4338ca !important;
+}
+
+/* 3일+ 미접속 모달 및 에러 모달 라이트 모드 보정 */
+html.light #dormant-members-modal.is-open,
+html.light #sync-error-modal.is-open {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+html.light #dormant-members-modal .modal-panel,
+html.light #sync-error-modal .modal-panel {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15) !important;
+}
+
+html.light #dormant-members-modal h3,
+html.light #sync-error-modal h3 {
+  color: #0f172a !important;
+}
+
+html.light #dormant-members-modal button,
+html.light #sync-error-modal #btn-error-close {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light #sync-error-modal #error-modal-message {
+  background-color: #f8fafc !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: #475569 !important;
+}
