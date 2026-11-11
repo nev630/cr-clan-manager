@@ -4,21 +4,26 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 
 :root {
-  --bg-base: #090b10;
-  --bg-surface: #0f121a;
-  --bg-surface-hover: #151924;
-  --bg-elevated: #1a1f2c;
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-focus: rgba(99, 102, 241, 0.4);
+  --bg-base: #0b0d13;
+  --bg-surface: #11141e;
+  --bg-surface-hover: #171c2b;
+  --bg-elevated: #1e2438;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --border-focus: rgba(99, 102, 241, 0.5);
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --accent-green: #10b981;
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
+  --accent-indigo: #6366f1;
   --accent-blue: #3b82f6;
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --card-shadow-hover: 0 8px 30px -4px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.25);
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-silky: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 * {
@@ -37,11 +42,43 @@ body {
   overflow-x: hidden;
 }
 
-/* 정교한 서피스 카드 */
+/* 정교한 서피스 카드 (소프트 옵시디언 & 14px 블러 뎁스) */
 .surface-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: border-color 0.22s var(--ease-silky), box-shadow 0.22s var(--ease-silky), transform 0.18s var(--ease-spring);
+}
+.surface-card:hover {
+  border-color: var(--border-hover);
+}
+
+/* 고정폭 수치 타이포그래피 (자릿수 흔들림 방지) */
+.tabular-nums,
+#stat-total-members,
+#stat-total-donations,
+#stat-dormant-count,
+.compare-header-num,
+.compare-clan-val,
+.compare-tick-text,
+#chip-count-all,
+#chip-count-low {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* 햅틱 탄성 인터랙션 피드백 */
+button:active,
+.surface-card[onclick]:active,
+.filter-chip:active,
+.main-nav-btn:active,
+.compare-metric-chip:active,
+.mobile-member-card:active {
+  transform: scale3d(0.975, 0.975, 1) !important;
+  transition: transform 0.1s var(--ease-spring) !important;
 }
 
 /* 미니멀 상태 점 (Status Dot) */
@@ -461,16 +498,18 @@ body {
    다크 / 라이트 모드 고대비 테마 변수 및 라이트 오버라이드
    ============================================================ */
 html.light {
-  --bg-base: #f1f5f9;
+  --bg-base: #f8fafc;
   --bg-surface: #ffffff;
-  --bg-surface-hover: #f8fafc;
+  --bg-surface-hover: #f1f5f9;
   --bg-elevated: #e2e8f0;
-  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-hover: rgba(15, 23, 42, 0.16);
   --border-focus: rgba(99, 102, 241, 0.5);
   --text-primary: #0f172a;
   --text-secondary: #334155;
   --text-muted: #64748b;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --card-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --card-shadow-hover: 0 8px 24px -2px rgba(15, 23, 42, 0.1), 0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
 html.light body {
@@ -480,8 +519,12 @@ html.light body {
 
 html.light .surface-card {
   background: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+html.light .surface-card:hover {
+  border-color: rgba(15, 23, 42, 0.16) !important;
+  box-shadow: 0 8px 24px -2px rgba(15, 23, 42, 0.1), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
 }
 
 /* 텍스트 시인성 확보 */
@@ -1049,4 +1092,105 @@ html.light .compare-grid-line.compare-baseline {
 }
 html.light .compare-tick-text {
   color: #64748b !important;
+}
+html.light .compare-header-num {
+  color: #0f172a !important;
+}
+html.light .compare-clan-name {
+  color: #0f172a !important;
+}
+
+
+/* ============================================================
+   RoyaleAPI 이동 모달 & 공통 모달 - 라이트 모드 테마 완벽 지원 (v1.8.20-beta)
+   ============================================================ */
+html.light #member-detail-modal {
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+html.light #member-detail-modal.is-open {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+html.light #member-detail-modal .modal-panel {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15),
+              0 0 0 1px rgba(0, 0, 0, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.light #member-detail-modal .modal-panel > div:first-child {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: #4f46e5 !important;
+}
+
+html.light #member-detail-modal h3 {
+  color: #0f172a !important;
+}
+
+html.light #member-detail-modal #modal-member-name {
+  color: #4f46e5 !important;
+}
+
+html.light #member-detail-modal p {
+  color: #475569 !important;
+}
+
+html.light #member-detail-modal button {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light #member-detail-modal button:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.light #member-detail-modal #btn-royaleapi-link {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+  border: 1px solid #4338ca !important;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3) !important;
+}
+
+html.light #member-detail-modal #btn-royaleapi-link:hover {
+  background-color: #4338ca !important;
+}
+
+/* 3일+ 미접속 모달 및 에러 모달 라이트 모드 보정 */
+html.light #dormant-members-modal.is-open,
+html.light #sync-error-modal.is-open {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+html.light #dormant-members-modal .modal-panel,
+html.light #sync-error-modal .modal-panel {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15) !important;
+}
+
+html.light #dormant-members-modal h3,
+html.light #sync-error-modal h3 {
+  color: #0f172a !important;
+}
+
+html.light #dormant-members-modal button,
+html.light #sync-error-modal #btn-error-close {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light #sync-error-modal #error-modal-message {
+  background-color: #f8fafc !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: #475569 !important;
 }
