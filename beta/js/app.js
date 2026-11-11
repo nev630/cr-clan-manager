@@ -7,7 +7,7 @@
  * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.23-beta - 팝업 스크롤 락 해제 및 크기 고정 - RoyaleAPI 팝업 라이트모드 지원 & 감각적인 소프트 옵시디언 서피스 & 120fps 스프링 인터랙션 & 고대비 타이포그래피', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.24-beta - 라이트 모드 룰렛 이모지 배경 흰색(#ffffff) 지원 및 팝업 스크롤 락 해제 & Zero-Scale Lock - RoyaleAPI 팝업 라이트모드 지원 & 감각적인 소프트 옵시디언 서피스 & 120fps 스프링 인터랙션 & 고대비 타이포그래피', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -241,7 +241,7 @@ class ClanManagerApp {
     this.slotStopTriggered = false;
 
     container.innerHTML = this.targetEmotes.map((_, idx) => `
-      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${idx}"></div>
+      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl border" id="slot-window-${idx}"></div>
     `).join("");
 
     const preloadPromises = CR_EMOTES_POOL.map((emote) => {
@@ -258,7 +258,7 @@ class ClanManagerApp {
 
     const loopItems = [...CR_EMOTES_POOL, ...CR_EMOTES_POOL];
     const itemsHtml = loopItems.map((item) => `
-      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-[#141824]">
+      <div class="slot-item w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
           <img src="${item.url}" 
                alt="${item.name}" 
@@ -268,7 +268,7 @@ class ClanManagerApp {
     `).join("");
 
     container.innerHTML = [0, 1, 2].map((slotIdx) => `
-      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl bg-white/[0.04] border border-white/[0.08]" id="slot-window-${slotIdx}">
+      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl border" id="slot-window-${slotIdx}">
         <div class="slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-spin-infinite-${slotIdx}" id="slot-reel-${slotIdx}">
           ${itemsHtml}
         </div>
@@ -292,7 +292,7 @@ class ClanManagerApp {
     const decelItems = [...dummies, targetEmote];
 
     const decelHtml = decelItems.map((item) => `
-      <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-[#141824]">
+      <div class="slot-item w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
           <img src="${item.url}" 
                alt="${item.name}" 
