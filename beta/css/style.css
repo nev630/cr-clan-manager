@@ -984,11 +984,11 @@ html.light .slot-window {
   background-color: rgba(0, 0, 0, 0);
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
-  transition: opacity 0.42s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.42s cubic-bezier(0.16, 1, 0.3, 1),
-              backdrop-filter 0.42s cubic-bezier(0.16, 1, 0.3, 1),
-              -webkit-backdrop-filter 0.42s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0.42s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.28s var(--ease-silky),
+              background-color 0.28s var(--ease-silky),
+              backdrop-filter 0.28s var(--ease-silky),
+              -webkit-backdrop-filter 0.28s var(--ease-silky),
+              visibility 0.28s var(--ease-silky) !important;
   will-change: opacity, backdrop-filter;
 }
 
@@ -1002,8 +1002,7 @@ html.light .slot-window {
 }
 
 #member-detail-modal .modal-panel {
-  width: 340px !important;
-  max-width: calc(100vw - 32px) !important;
+  width: min(340px, calc(100vw - 32px)) !important;
   box-sizing: border-box !important;
   opacity: 0;
   transform: scale3d(0.95, 0.95, 1) !important;
@@ -1015,8 +1014,8 @@ html.light .slot-window {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55),
               0 0 0 1px rgba(255, 255, 255, 0.06),
               inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  transition: opacity 0.42s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.42s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.28s var(--ease-silky),
+              transform 0.28s var(--ease-spring) !important;
   will-change: transform, opacity;
 }
 
@@ -1115,6 +1114,7 @@ html.light #member-detail-modal.is-open {
 }
 
 html.light #member-detail-modal .modal-panel {
+  width: min(340px, calc(100vw - 32px)) !important;
   background: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
   box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15),
