@@ -977,6 +977,10 @@ html.light .slot-window {
   filter: blur(0.2px) !important;
 }
 
+/* ============================================================
+   RoyaleAPI 확인 모달 패널 - 크기 요동/스케일 변형 원천 차단 (Zero-Scale Lock)
+   - transform을 완전히 배제(transform: none)하여 어떠한 환경에서도 크기가 변형되지 않음
+   ============================================================ */
 #member-detail-modal {
   opacity: 0;
   visibility: hidden;
@@ -984,12 +988,8 @@ html.light .slot-window {
   background-color: rgba(0, 0, 0, 0);
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
-  transition: opacity 0.28s var(--ease-silky),
-              background-color 0.28s var(--ease-silky),
-              backdrop-filter 0.28s var(--ease-silky),
-              -webkit-backdrop-filter 0.28s var(--ease-silky),
-              visibility 0.28s var(--ease-silky) !important;
-  will-change: opacity, backdrop-filter;
+  transition: opacity 0.18s ease-out, visibility 0.18s ease-out !important;
+  will-change: opacity;
 }
 
 #member-detail-modal.is-open {
@@ -1001,27 +1001,28 @@ html.light .slot-window {
   -webkit-backdrop-filter: blur(14px) !important;
 }
 
-#member-detail-modal .modal-panel {
-  width: min(340px, calc(100vw - 32px)) !important;
+#member-detail-modal .modal-panel,
+#member-detail-modal .royaleapi-confirm-card {
+  width: 340px !important;
+  max-width: calc(100vw - 32px) !important;
   box-sizing: border-box !important;
   opacity: 0;
-  transform: scale3d(0.95, 0.95, 1) !important;
-  transform-origin: center center !important;
-  background: rgba(15, 18, 26, 0.9) !important;
+  transform: none !important;
+  background: rgba(15, 18, 26, 0.95) !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55),
               0 0 0 1px rgba(255, 255, 255, 0.06),
               inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  transition: opacity 0.28s var(--ease-silky),
-              transform 0.28s var(--ease-spring) !important;
-  will-change: transform, opacity;
+  transition: opacity 0.18s ease-out !important;
+  will-change: opacity;
 }
 
-#member-detail-modal.is-open .modal-panel {
+#member-detail-modal.is-open .modal-panel,
+#member-detail-modal.is-open .royaleapi-confirm-card {
   opacity: 1 !important;
-  transform: scale3d(1, 1, 1) !important;
+  transform: none !important;
 }
 
 /* ============================================================
@@ -1113,9 +1114,12 @@ html.light #member-detail-modal.is-open {
   -webkit-backdrop-filter: blur(10px) !important;
 }
 
-html.light #member-detail-modal .modal-panel {
-  width: min(340px, calc(100vw - 32px)) !important;
+html.light #member-detail-modal .modal-panel,
+html.light #member-detail-modal .royaleapi-confirm-card {
+  width: 340px !important;
+  max-width: calc(100vw - 32px) !important;
   background: #ffffff !important;
+  transform: none !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
   box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15),
               0 0 0 1px rgba(0, 0, 0, 0.04),
