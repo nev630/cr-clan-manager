@@ -7,7 +7,7 @@
  * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
  */
 
-console.log('%c[Good Fellas App] v1.8.20-beta - RoyaleAPI 팝업 라이트모드 지원 & 감각적인 소프트 옵시디언 서피스 & 120fps 스프링 인터랙션 & 고대비 타이포그래피', 'color: #10b981; font-weight: bold; font-size: 14px;');
+console.log('%c[Good Fellas App] v1.8.21-beta - RoyaleAPI 팝업 라이트모드 지원 & 감각적인 소프트 옵시디언 서피스 & 120fps 스프링 인터랙션 & 고대비 타이포그래피', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -812,6 +812,16 @@ class ClanManagerApp {
   processIncomingClanData(liveData, shouldAnimate = false) {
     if (!liveData || !liveData.memberList) return;
 
+    // 모달 팝업이 활성화되어 있는 동안 백그라운드 DOM 전면 재렌더링을 보류하여 팝업 레이아웃 요동/소폭 축소(Reflow) 완벽 방지
+    const memberModal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
+    const dormantModal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
+    const isModalOpen = (memberModal && memberModal.classList.contains("is-open")) ||
+                        (dormantModal && dormantModal.classList.contains("is-open"));
+    if (isModalOpen) {
+      this.pendingClanData = { liveData, shouldAnimate };
+      return;
+    }
+
     const missingBattleMembers = liveData.memberList.filter((m) => (!m.lastBattleTime || m._fromCache) && !m._noBattles);
 
     let hasCacheUpdated = false;
@@ -1534,6 +1544,14 @@ class ClanManagerApp {
   closeDormantModal() {
     const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
     this.closeModalSmooth(modal);
+
+    if (this.pendingClanData) {
+      const { liveData, shouldAnimate } = this.pendingClanData;
+      this.pendingClanData = null;
+      setTimeout(() => {
+        this.processIncomingClanData(liveData, shouldAnimate);
+      }, 80);
+    }
   }
 
   // 미접속 대상자 팝업에서 클랜원 클릭 시 끊김 없이 상세 팝업으로 부드럽게 교차 전환
@@ -1690,6 +1708,15 @@ class ClanManagerApp {
       modal.classList.remove("is-open");
     } else {
       this.closeModalSmooth(modal);
+    }
+
+    // 모달 닫힘 시점에 대기 중이던 최신 데이터 조용히 반영
+    if (this.pendingClanData) {
+      const { liveData, shouldAnimate } = this.pendingClanData;
+      this.pendingClanData = null;
+      setTimeout(() => {
+        this.processIncomingClanData(liveData, shouldAnimate);
+      }, 80);
     }
   }
 
