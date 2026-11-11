@@ -690,7 +690,7 @@ html.light .bg-indigo-950\/20 {
 }
 
 html.light #initial-sync-modal {
-  background-color: rgba(241, 245, 249, 0.95) !important;
+  background-color: rgba(255, 255, 255, 0.96) !important;
 }
 
 /* ============================================================
@@ -961,16 +961,36 @@ html.light .toast-pill {
   animation: slotStopDecel 0.42s cubic-bezier(0.12, 0.8, 0.25, 1) forwards !important;
 }
 
-/* v1.8.6: 팝업 0.5초 낙하 원천 차단(0px Y이동) & 룰렛 칠흑색 틈새 완전 제거 */
+/* v1.8.24: 라이트 모드 룰렛 이모지 배경 흰색(#ffffff) 지원 및 틈새 제거 */
 .slot-window {
   background-color: #141824 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
-html.light .slot-window {
-  background-color: #e2e8f0 !important;
-}
-
 .slot-reel-strip {
   background-color: #141824 !important;
+}
+.slot-item {
+  background-color: #141824;
+}
+
+html.light .slot-window {
+  background-color: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.8) !important;
+}
+
+html.light .slot-window.slot-locked {
+  border-color: rgba(245, 158, 11, 0.9) !important;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.45), 0 6px 16px rgba(15, 23, 42, 0.08) !important;
+  transform: scale3d(1.03, 1.03, 1);
+}
+
+html.light .slot-reel-strip {
+  background-color: #ffffff !important;
+}
+
+html.light .slot-item {
+  background-color: #ffffff !important;
 }
 
 .slot-spin-infinite-0, .slot-spin-infinite-1, .slot-spin-infinite-2 {
