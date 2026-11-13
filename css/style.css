@@ -266,26 +266,24 @@ button:active,
   background: rgba(255, 255, 255, 0.02);
 }
 
-/* 모바일 전용 멤버 아이템 카드 */
+/* 모바일 전용 멤버 아이템 카드 - 클릭 시 색상 변화 배제, 눌림(scale) 애니메이션 유지 */
 .mobile-member-card {
   padding: 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   background: var(--bg-surface);
-  transition: background-color 0.15s ease, transform 0.14s var(--ease-spring);
+  transition: transform 0.14s var(--ease-spring);
   cursor: pointer;
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .mobile-member-card:last-child {
   border-bottom: none;
 }
-.mobile-member-card:hover {
-  background: var(--bg-surface-hover);
-}
+.mobile-member-card:hover,
 .mobile-member-card:active {
-  transform: scale3d(0.985, 0.985, 1);
-  background: var(--bg-surface-hover) !important;
+  background: var(--bg-surface) !important;
 }
 
 /* 직책 뱃지 미니멀 */
@@ -645,14 +643,14 @@ html.light .badge-member {
   border-color: #e2e8f0 !important;
 }
 
-/* 모바일 멤버 카드 */
+/* 모바일 멤버 카드 (라이트 모드) - 클릭 시 색상 변화 배제 */
 html.light .mobile-member-card {
   background: #ffffff !important;
   border-color: rgba(0, 0, 0, 0.05) !important;
 }
 html.light .mobile-member-card:hover,
 html.light .mobile-member-card:active {
-  background: #f8fafc !important;
+  background: #ffffff !important;
 }
 
 /* 필터 칩 (라이트 모드) */
