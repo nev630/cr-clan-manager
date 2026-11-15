@@ -1,8 +1,8 @@
 /**
- * Clash Royale API Client (v1.8.0 Instant Sync, Home Cache Reuse & Precision Guard)
+ * Clash Royale API Client (v1.8.26-beta Unified API & Date Precision)
  * - Supercell Clash Royale Official API 지원
  * - Cloudflare Worker / Oracle 프록시 실시간 통신
- * - 신규 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
+ * - 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
  * - 타 갤클 비교 시 내 클랜(#G890J9JC) 중복 네트워크 호출 제거 및 즉시 재사용
  */
 
@@ -35,23 +35,28 @@ class ClashRoyaleAPI {
     return encodeURIComponent(this.normalizeTag(tag));
   }
 
-  // Supercell API 날짜 형식 변환
+  // Supercell API 날짜 형식 및 ISO 날짜 형식 통합 파싱
   parseApiDate(dateStr) {
     if (!dateStr) return null;
-    if (typeof dateStr !== "string") return new Date(dateStr);
+    if (dateStr instanceof Date) {
+      return isNaN(dateStr.getTime()) ? null : dateStr;
+    }
+    if (typeof dateStr !== "string") {
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? null : d;
+    }
     if (dateStr.includes("-")) {
       const d = new Date(dateStr);
       return isNaN(d.getTime()) ? null : d;
     }
     try {
-      const year = dateStr.slice(0, 4);
-      const month = dateStr.slice(4, 6);
-      const day = dateStr.slice(6, 8);
-      const timePart = dateStr.slice(9);
-      const hour = timePart.slice(0, 2);
-      const minute = timePart.slice(2, 4);
-      const second = timePart.slice(4, 6);
-      const d = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`);
+      const year = Number(dateStr.slice(0, 4));
+      const month = Number(dateStr.slice(4, 6)) - 1;
+      const day = Number(dateStr.slice(6, 8));
+      const hour = Number(dateStr.slice(9, 11));
+      const minute = Number(dateStr.slice(11, 13));
+      const second = Number(dateStr.slice(13, 15));
+      const d = new Date(Date.UTC(year, month, day, hour, minute, second));
       return isNaN(d.getTime()) ? null : d;
     } catch {
       const d = new Date(dateStr);
@@ -89,7 +94,7 @@ class ClashRoyaleAPI {
     const sep = endpoint.includes("?") ? "&" : "?";
     const cacheBustedEndpoint = `${endpoint}${sep}_t=${Date.now()}`;
     const url = this.buildUrl(cacheBustedEndpoint);
-    const headers = { 
+    const headers = {
       "Accept": "application/json",
       "Cache-Control": "no-cache, no-store, must-revalidate",
       "Pragma": "no-cache"
@@ -103,8 +108,8 @@ class ClashRoyaleAPI {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(url, { 
-        method: "GET", 
+      const response = await fetch(url, {
+        method: "GET",
         headers,
         cache: "no-store",
         signal: controller.signal
@@ -124,14 +129,18 @@ class ClashRoyaleAPI {
             }
           }
         }
-        throw new Error(`API 오류 (${response.status}): ${errText || response.statusText}`);
+        const err = new Error(`API 오류 (${response.status}): ${errText || response.statusText}`);
+        err.status = response.status;
+        throw err;
       }
 
       return rawText ? JSON.parse(rawText) : null;
     } catch (e) {
       clearTimeout(timer);
       if (e.name === "AbortError") {
-        throw new Error(`API 응답 시간 초과 (${timeoutMs / 1000}초)`);
+        const timeoutErr = new Error(`API 응답 시간 초과 (${timeoutMs / 1000}초)`);
+        timeoutErr.status = 504;
+        throw timeoutErr;
       }
       throw e;
     }
@@ -140,7 +149,7 @@ class ClashRoyaleAPI {
   // 1. 신규 단일 통합 요약 조회 (클랜 + 50명 배틀로그 원샷 반환)
   async fetchClanSummary(clanTag, force = false) {
     try {
-      const q = force ? '?force=1' : '';
+      const q = force ? "?force=1" : "";
       return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}/summary${q}`, 3500);
     } catch (e) {
       console.warn("단일 통합 요약 엔드포인트 미지원 또는 응답 지연 -> 일반 조회로 폴백:", e.message);
@@ -156,8 +165,26 @@ class ClashRoyaleAPI {
     return await this.fetchWithAuth(`/v1/players/${this.encodeTag(playerTag)}`);
   }
 
-  async fetchPlayerBattleLog(playerTag) {
-    return await this.fetchWithAuth(`/v1/players/${this.encodeTag(playerTag)}/battlelog`);
+  // 재시도 및 타임아웃이 통합된 플레이어 배틀로그 조회
+  async fetchPlayerBattleLog(playerTag, retries = 1) {
+    if (!playerTag) return null;
+    const encoded = this.encodeTag(playerTag);
+    if (!encoded) return null;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const data = await this.fetchWithAuth(`/v1/players/${encoded}/battlelog`, 5000);
+        return Array.isArray(data) ? data : null;
+      } catch (e) {
+        const isRetryable = e.status === 429 || e.status === 403 || e.status === 502 || e.status === 504 || !e.status;
+        if (isRetryable && attempt < retries) {
+          await new Promise((r) => setTimeout(r, e.status === 429 ? 180 : 120));
+          continue;
+        }
+        return null;
+      }
+    }
+    return null;
   }
 
   async fetchClanFullData(clanTag, onPartialData = null, force = false) {
@@ -227,7 +254,7 @@ class ClashRoyaleAPI {
   async fetchMultipleClans(clanTags = ["#G890J9JC", "#JYQRP2C2", "#Q0U22YGQ"], cachedHomeClan = null) {
     const presets = this.getGalleryClansPreset();
     const presetMap = new Map();
-    presets.forEach(p => {
+    presets.forEach((p) => {
       presetMap.set(this.normalizeTag(p.tag), p);
     });
 
