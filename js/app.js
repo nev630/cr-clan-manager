@@ -1,13 +1,11 @@
 /**
- * Good Fellas Clan Manager - Core Application Logic (v1.8.2)
- * Ultra-Smooth 120fps Animation Engine:
- * - 상단 메인 탭 & 타 갤클 비교 탭에 하드웨어 가속 슬라이딩 필(Segmented Pill) 및 탭 뷰 글라이드 트랜지션 탑재
- * - 팝업 모달(3일+ 미접속 대상자, 클랜원 상세, 동기화 에러) 상시 마운트 + 양방향(열기/닫기) 120fps 스프링 트랜지션 구현
- * - 시상대(Podium) 단상 애니메이션을 Layout Reflow 없는 scale3d(1, scaleY, 1) GPU 합성으로 전환
- * - 도넛 차트 탭 전환 시 캔버스 파괴(destroy) 대신 비파괴 reset()+update() 적용으로 프레임 드랍 원천 차단
+ * Good Fellas Clan Manager - Core Application Logic (v1.8.26-beta)
+ * Refactored Architecture:
+ * 1. API & 날짜 유틸리티 단일화 (window.crApi 위임 및 timestamp 숫자 비교)
+ * 2. 배틀로그 일괄 조회 후 단일 배치 렌더링으로 DOM Reflow 최소화
+ * 3. 모달 상태 관리 및 pendingClanData 플러시 로직 closeModalSmooth 단일 통합
+ * 4. 이벤트 위임(Event Delegation) 기반 카드/테이블/시상대 클릭 처리
  */
-
-console.log('%c[Good Fellas App] v1.8.25-beta - 라이트 모드 룰렛 이모지 배경 흰색(#ffffff) 지원 및 팝업 스크롤 락 해제 & Zero-Scale Lock - RoyaleAPI 팝업 라이트모드 지원 & 감각적인 소프트 옵시디언 서피스 & 120fps 스프링 인터랙션 & 고대비 타이포그래피', 'color: #10b981; font-weight: bold; font-size: 14px;');
 
 const CR_EMOTES_POOL = [
   { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
@@ -55,6 +53,9 @@ class ClanManagerApp {
     this.battleLogCache = this.loadBattleLogCache();
     this.charts = { activity: null, compareDonations: null };
     this.elements = {};
+
+    this.pendingClanData = null;
+    this.pendingFlushTimer = null;
 
     this.lastSyncTime = 0;
     this.lastCompareSyncTime = 0;
@@ -127,7 +128,7 @@ class ClanManagerApp {
 
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
-        const memberModal = document.getElementById("member-detail-modal");
+        const memberModal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
         if (memberModal && memberModal.getAttribute("aria-hidden") === "true") {
           memberModal.classList.remove("is-open");
         }
@@ -217,19 +218,46 @@ class ClanManagerApp {
     } catch (e) {}
   }
 
+  isAnyModalOpen() {
+    const modals = [
+      this.elements.memberDetailModal || document.getElementById("member-detail-modal"),
+      this.elements.dormantMembersModal || document.getElementById("dormant-members-modal"),
+      this.elements.syncErrorModal || document.getElementById("sync-error-modal")
+    ];
+    return modals.some((m) => m && m.classList.contains("is-open"));
+  }
+
   // 상시 마운트된 모달을 레이아웃 스래싱 없이 120fps로 부드럽게 오픈
   openModalSmooth(modalEl) {
     if (!modalEl) return;
+    if (this.pendingFlushTimer) {
+      clearTimeout(this.pendingFlushTimer);
+      this.pendingFlushTimer = null;
+    }
     modalEl.setAttribute("aria-hidden", "false");
     modalEl.classList.add("is-open");
   }
 
-  // 모달 닫힘 애니메이션 후 비활성화
+  // 모달 닫힘 단일 진입점: 열린 모달이 없을 때만 스크롤 복원 및 대기 데이터(pendingClanData) 안전 반영
   closeModalSmooth(modalEl) {
     if (!modalEl) return;
     modalEl.setAttribute("aria-hidden", "true");
     modalEl.classList.remove("is-open");
-    document.body.style.overflow = "";
+
+    if (!this.isAnyModalOpen()) {
+      document.body.style.overflow = "";
+      if (this.pendingClanData) {
+        if (this.pendingFlushTimer) clearTimeout(this.pendingFlushTimer);
+        this.pendingFlushTimer = setTimeout(() => {
+          this.pendingFlushTimer = null;
+          if (!this.isAnyModalOpen() && this.pendingClanData) {
+            const { liveData, shouldAnimate } = this.pendingClanData;
+            this.pendingClanData = null;
+            this.processIncomingClanData(liveData, shouldAnimate);
+          }
+        }, 160);
+      }
+    }
   }
 
   async renderRandomLoadingEmotes() {
@@ -260,8 +288,8 @@ class ClanManagerApp {
     const itemsHtml = loopItems.map((item) => `
       <div class="slot-item w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
-          <img src="${item.url}" 
-               alt="${item.name}" 
+          <img src="${item.url}"
+               alt="${item.name}"
                class="w-16 h-16 sm:w-20 sm:h-20 object-contain pointer-events-none select-none" />
         </div>
       </div>
@@ -284,7 +312,7 @@ class ClanManagerApp {
     const windowEl = document.getElementById(`slot-window-${slotIdx}`);
     if (!reelEl || !windowEl) return;
 
-    const pool = CR_EMOTES_POOL.filter(e => e.name !== targetEmote.name);
+    const pool = CR_EMOTES_POOL.filter((e) => e.name !== targetEmote.name);
     const dummies = [];
     for (let i = 0; i < 4; i++) {
       dummies.push(pool[Math.floor(Math.random() * pool.length)]);
@@ -294,8 +322,8 @@ class ClanManagerApp {
     const decelHtml = decelItems.map((item) => `
       <div class="slot-item w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
         <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
-          <img src="${item.url}" 
-               alt="${item.name}" 
+          <img src="${item.url}"
+               alt="${item.name}"
                class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)] pointer-events-none select-none" />
         </div>
       </div>
@@ -316,18 +344,18 @@ class ClanManagerApp {
     const elapsed = Date.now() - (this.loadingStartTime || Date.now());
     const minSpinDuration = 550;
     if (elapsed < minSpinDuration) {
-      await new Promise(r => setTimeout(r, minSpinDuration - elapsed));
+      await new Promise((r) => setTimeout(r, minSpinDuration - elapsed));
     }
 
     const targets = this.targetEmotes || CR_EMOTES_POOL.slice(0, 3);
 
     this.stopSlotReel(0, targets[0]);
-    await new Promise(r => setTimeout(r, 180));
+    await new Promise((r) => setTimeout(r, 180));
     this.stopSlotReel(1, targets[1]);
-    await new Promise(r => setTimeout(r, 180));
+    await new Promise((r) => setTimeout(r, 180));
     this.stopSlotReel(2, targets[2]);
 
-    await new Promise(r => setTimeout(r, 420 + 260));
+    await new Promise((r) => setTimeout(r, 420 + 260));
     await this.hideInitialSyncModal();
   }
 
@@ -363,7 +391,17 @@ class ClanManagerApp {
   }
 
   bindEvents() {
-    const { searchInput, btnSearchClear, sortKeySelect, btnSortOrder } = this.elements;
+    const {
+      searchInput,
+      btnSearchClear,
+      sortKeySelect,
+      btnSortOrder,
+      memberMobileList,
+      memberTableBody,
+      podiumContainer,
+      podiumRunnersContainer,
+      dormantModalList
+    } = this.elements;
 
     if (searchInput) {
       let searchTimeout;
@@ -394,6 +432,31 @@ class ClanManagerApp {
 
     if (this.elements.btnThemeToggle) {
       this.elements.btnThemeToggle.addEventListener("click", (e) => this.toggleTheme(e));
+    }
+
+    // 이벤트 위임(Event Delegation): 카드 · 테이블 · 시상대 · 미접속 모달 목록 단일 리스너 등록
+    const delegateMemberOpen = (container) => {
+      if (!container) return;
+      container.addEventListener("click", (e) => {
+        const targetEl = e.target.closest("[data-member-tag]");
+        if (!targetEl) return;
+        const tag = targetEl.getAttribute("data-member-tag");
+        if (tag) this.openMemberModal(tag);
+      });
+    };
+
+    delegateMemberOpen(memberMobileList);
+    delegateMemberOpen(memberTableBody);
+    delegateMemberOpen(podiumContainer);
+    delegateMemberOpen(podiumRunnersContainer);
+
+    if (dormantModalList) {
+      dormantModalList.addEventListener("click", (e) => {
+        const targetEl = e.target.closest("[data-dormant-tag]");
+        if (!targetEl) return;
+        const tag = targetEl.getAttribute("data-dormant-tag");
+        if (tag) this.switchFromDormantToMember(tag);
+      });
     }
 
     document.addEventListener("keydown", (e) => {
@@ -514,8 +577,8 @@ class ClanManagerApp {
     ring.style.borderRadius = "50%";
     ring.style.transform = "translate(-50%, -50%) scale(1)";
     ring.style.border = theme === "light" ? "3px solid rgba(245, 158, 11, 0.6)" : "3px solid rgba(99, 102, 241, 0.6)";
-    ring.style.boxShadow = theme === "light" 
-      ? "0 0 35px 15px rgba(245, 158, 11, 0.25)" 
+    ring.style.boxShadow = theme === "light"
+      ? "0 0 35px 15px rgba(245, 158, 11, 0.25)"
       : "0 0 35px 15px rgba(99, 102, 241, 0.25)";
     ring.style.pointerEvents = "none";
     ring.style.zIndex = "999999";
@@ -601,7 +664,6 @@ class ClanManagerApp {
 
     const { viewDashboard, viewCompare, tabBtnDashboard, tabBtnCompare, mainTabPill, tabContextHint: tabHint, btnQuickCompare: quickCompareBtn } = this.elements;
 
-    // 1. 슬라이딩 필 즉시 이동 (GPU transform)
     if (mainTabPill) {
       mainTabPill.classList.toggle("slide-right", tabName === "compare");
     }
@@ -609,7 +671,6 @@ class ClanManagerApp {
     if (tabBtnDashboard) tabBtnDashboard.classList.toggle("active", tabName !== "compare");
     if (tabBtnCompare) tabBtnCompare.classList.toggle("active", tabName === "compare");
 
-    // smooth 스크롤과 탭 전환 애니메이션이 충돌하지 않도록 스크롤이 내려가 있을 때만 즉시 상단 정렬
     if (window.scrollY > 60) {
       window.scrollTo(0, 0);
     }
@@ -692,42 +753,6 @@ class ClanManagerApp {
     });
   }
 
-  async fetchPlayerBattleLog(playerTag, retries = 1) {
-    if (!playerTag) return null;
-    const normalized = encodeURIComponent(window.crApi ? window.crApi.normalizeTag(playerTag) : playerTag);
-    const proxy = window.crApi?.settings?.workerUrl || window.crApi?.workerUrl || "https://green-disk-88a6.marble593812345.workers.dev";
-    const url = `${proxy}/v1/players/${normalized}/battlelog?_t=${Date.now()}`;
-
-    for (let i = 0; i <= retries; i++) {
-      try {
-        const res = await fetch(url, {
-          cache: "no-store",
-          headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
-        });
-
-        if ((res.status === 429 || res.status === 403) && i < retries) {
-          await new Promise((r) => setTimeout(r, 150));
-          continue;
-        }
-
-        if (!res.ok) return null;
-
-        const rawText = await res.text();
-        if (!rawText) return null;
-
-        const data = JSON.parse(rawText);
-        return Array.isArray(data) ? data : null;
-      } catch (e) {
-        if (i < retries) {
-          await new Promise((r) => setTimeout(r, 100));
-          continue;
-        }
-        return null;
-      }
-    }
-    return null;
-  }
-
   bindCachedBattleLogs(members) {
     if (!Array.isArray(members)) return;
     members.forEach((m) => {
@@ -754,8 +779,10 @@ class ClanManagerApp {
     });
   }
 
+  // 전 클랜원 배틀로그 병렬 수집 후 최종 1회 배치 렌더링으로 리플로우 최소화
   async fetchAllMembersBattleLogs(members) {
     if (!Array.isArray(members) || members.length === 0) return;
+    if (!window.crApi || typeof window.crApi.fetchPlayerBattleLog !== "function") return;
 
     let hasNewData = false;
     const chunkSize = 10;
@@ -766,19 +793,28 @@ class ClanManagerApp {
       const chunkPromises = chunk.map(async (m) => {
         if (this.battleLogCache.has(m.tag)) {
           const cached = this.battleLogCache.get(m.tag);
-          if (!m.lastBattleTime || cached.time > m.lastBattleTime) {
-            m.lastBattleTime = cached.time;
-            m.lastBattleType = cached.type;
+          if (cached.time && cached.time !== "none") {
+            const memberDate = this.parseDateSafe(m.lastBattleTime);
+            const cachedDate = this.parseDateSafe(cached.time);
+            if (cachedDate && (!memberDate || cachedDate.getTime() > memberDate.getTime())) {
+              m.lastBattleTime = cached.time;
+              m.lastBattleType = cached.type;
+            }
           }
         }
 
-        const battlelog = await this.fetchPlayerBattleLog(m.tag);
+        const battlelog = await window.crApi.fetchPlayerBattleLog(m.tag, 1);
         if (Array.isArray(battlelog) && battlelog.length > 0) {
           const newTime = battlelog[0].battleTime;
           const newType = battlelog[0].type || "Battle";
-          if (m.lastBattleTime !== newTime) {
+          const curDate = this.parseDateSafe(m.lastBattleTime);
+          const newDate = this.parseDateSafe(newTime);
+
+          if (newDate && (!curDate || newDate.getTime() !== curDate.getTime())) {
             m.lastBattleTime = newTime;
             m.lastBattleType = newType;
+            m._fromCache = false;
+            m._noBattles = false;
             this.battleLogCache.set(m.tag, {
               time: newTime,
               type: newType
@@ -796,14 +832,17 @@ class ClanManagerApp {
 
       await Promise.allSettled(chunkPromises);
 
-      if (hasNewData) {
-        this.saveBattleLogCache();
-        this.applyFilterAndRender(false);
-        this.updateStats(this.currentData);
-      }
-
       if (i + chunkSize < members.length) {
         await new Promise((r) => setTimeout(r, 40));
+      }
+    }
+
+    if (hasNewData && this.currentData) {
+      this.saveBattleLogCache();
+      if (!this.isAnyModalOpen()) {
+        this.applyFilterAndRender(false);
+        this.updateStats(this.currentData);
+        this.renderActivityDonut(this.currentData.memberList || [], false);
       }
     }
   }
@@ -811,12 +850,8 @@ class ClanManagerApp {
   processIncomingClanData(liveData, shouldAnimate = false) {
     if (!liveData || !liveData.memberList) return;
 
-    // 모달 팝업이 활성화되어 있는 동안 백그라운드 DOM 전면 재렌더링을 보류하여 팝업 레이아웃 요동/소폭 축소(Reflow) 완벽 방지
-    const memberModal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
-    const dormantModal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
-    const isModalOpen = (memberModal && memberModal.classList.contains("is-open")) ||
-                        (dormantModal && dormantModal.classList.contains("is-open"));
-    if (isModalOpen) {
+    // 모달 팝업이 활성화되어 있는 동안 백그라운드 DOM 전면 재렌더링을 보류하여 팝업 레이아웃 요동 방지
+    if (this.isAnyModalOpen()) {
       this.pendingClanData = { liveData, shouldAnimate };
       return;
     }
@@ -888,7 +923,7 @@ class ClanManagerApp {
         resolvedAfterTimeout = true;
         if (!this.currentData) {
           const presets = window.crApi?.getGalleryClansPreset() || [];
-          const homeClan = presets.find(p => p.isHome) || presets[0];
+          const homeClan = presets.find((p) => p.isHome) || presets[0];
           if (homeClan) {
             this.renderClan({ ...homeClan, memberList: [] }, false, false);
           }
@@ -906,7 +941,7 @@ class ClanManagerApp {
 
       if (!this.currentData) {
         const presets = window.crApi?.getGalleryClansPreset() || [];
-        const homeClan = presets.find(p => p.isHome) || presets[0];
+        const homeClan = presets.find((p) => p.isHome) || presets[0];
         if (homeClan) {
           this.renderClan({ ...homeClan, memberList: [] }, false, false);
         }
@@ -1139,7 +1174,7 @@ class ClanManagerApp {
 
     podiumContainer.innerHTML = `
       <!-- 2등 은메달 -->
-      <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(second.tag)}')">
+      <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(second.tag)}">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
           <div class="flex items-center justify-center mb-1">
             <svg class="w-4 h-4 text-slate-300 drop-shadow-[0_0_6px_rgba(203,213,225,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1154,7 +1189,7 @@ class ClanManagerApp {
         </div>
       </div>
       <!-- 1등 금메달 -->
-      <div class="flex-1 max-w-[145px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(first.tag)}')">
+      <div class="flex-1 max-w-[145px] flex flex-col items-center" data-member-tag="${this.escapeHtml(first.tag)}">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer">
           <div class="flex items-center justify-center mb-1">
             <svg class="crown-aura-glow w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1169,7 +1204,7 @@ class ClanManagerApp {
         </div>
       </div>
       <!-- 3등 동메달 -->
-      <div class="flex-1 max-w-[130px] flex flex-col items-center" onclick="window.app.openMemberModal('${this.escapeHtml(third.tag)}')">
+      <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(third.tag)}">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
           <div class="flex items-center justify-center mb-1">
             <svg class="w-4 h-4 text-amber-600 drop-shadow-[0_0_6px_rgba(217,119,6,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1190,7 +1225,7 @@ class ClanManagerApp {
       runnersContainer.className = triggerAnimation ? `${baseRunnerClasses} podium-animate` : baseRunnerClasses;
 
       runnersContainer.innerHTML = runners.map((m, idx) => `
-        <div onclick="window.app.openMemberModal('${this.escapeHtml(m.tag)}')" class="podium-runner-item cursor-pointer hover:bg-white/[0.05] active:scale-[0.98] transition flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
+        <div data-member-tag="${this.escapeHtml(m.tag)}" class="podium-runner-item cursor-pointer hover:bg-white/[0.05] active:scale-[0.98] transition flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] font-mono text-slate-500 w-3">${idx + 4}</span>
             <span class="text-[11px] text-slate-300 font-medium truncate">${this.escapeHtml(m.name)}</span>
@@ -1201,7 +1236,6 @@ class ClanManagerApp {
     }
   }
 
-  // 비파괴(Non-destructive) reset+update로 탭 전환 시 차트 재생성 끊김 현상 완전 제거
   renderActivityDonut(members, triggerAnimation = false) {
     if (!window.Chart) return;
 
@@ -1245,7 +1279,7 @@ class ClanManagerApp {
           datasets: [{
             data: chartData,
             backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(59, 130, 246, 0.85)", "rgba(244, 63, 94, 0.85)"],
-            borderColor: document.documentElement.classList.contains("light") ? "#ffffff" : "#0f121a",
+            borderColor: isLight ? "#ffffff" : "#0f121a",
             borderWidth: 2,
             hoverOffset: 4
           }]
@@ -1260,22 +1294,22 @@ class ClanManagerApp {
             easing: "easeOutQuart"
           },
           plugins: {
-            legend: { 
-              position: "bottom", 
-              labels: { 
-                color: document.documentElement.classList.contains("light") ? "#0f172a" : "#94a3b8", 
-                boxWidth: 8, 
-                padding: 10, 
-                font: { size: 10, weight: "bold" } 
-              } 
+            legend: {
+              position: "bottom",
+              labels: {
+                color: isLight ? "#0f172a" : "#94a3b8",
+                boxWidth: 8,
+                padding: 10,
+                font: { size: 10, weight: "bold" }
+              }
             },
             tooltip: {
-              backgroundColor: document.documentElement.classList.contains("light") ? "#ffffff" : "#171b26", 
-              titleColor: document.documentElement.classList.contains("light") ? "#0f172a" : "#f8fafc", 
-              bodyColor: document.documentElement.classList.contains("light") ? "#334155" : "#94a3b8",
-              borderColor: document.documentElement.classList.contains("light") ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)", 
-              borderWidth: 1, 
-              padding: 8, 
+              backgroundColor: isLight ? "#ffffff" : "#171b26",
+              titleColor: isLight ? "#0f172a" : "#f8fafc",
+              bodyColor: isLight ? "#334155" : "#94a3b8",
+              borderColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)",
+              borderWidth: 1,
+              padding: 8,
               displayColors: true,
               callbacks: { label: (c) => ` ${c.label}: ${c.raw}명` }
             }
@@ -1325,7 +1359,6 @@ class ClanManagerApp {
     const values = clans.map((c) => c[metricKey] || 0);
     const maxVal = Math.max(...values, 1);
 
-    // 가로선 눈금 기준 계산 (총 지원량: 5,000단위, 1인 평균: 50단위 올림)
     let tickMax = Math.ceil(maxVal * 1.15);
     if (isDonation) {
       tickMax = Math.max(5000, Math.ceil(tickMax / 5000) * 5000);
@@ -1341,13 +1374,8 @@ class ClanManagerApp {
       { val: 0, percent: 0 }
     ];
 
-    const isLight = document.documentElement.classList.contains("light");
-
     let html = `
-      <!-- 단일 절대 좌표계 플롯 박스 (left: 44px, right: 10px, top: 26px, bottom: 28px) -->
       <div class="absolute left-11 sm:left-12 right-2.5 sm:right-3.5 top-6 sm:top-7 bottom-7 sm:bottom-7">
-        
-        <!-- 1. 정적 가로선 그리드 (플롯 박스의 bottom: 0% ~ 100%에 정확히 고정) -->
         <div class="absolute inset-0 pointer-events-none z-0">
           ${tickSteps.map((t) => `
             <div class="absolute left-0 right-0 border-b ${t.percent === 0 ? 'border-white/[0.14] compare-baseline' : 'border-white/[0.05]'} compare-grid-line" style="bottom: ${t.percent}%;">
@@ -1355,18 +1383,14 @@ class ClanManagerApp {
             </div>
           `).join("")}
         </div>
-
-        <!-- 2. 플롯 박스와 동일한 좌표계를 공유하는 3대 클랜 막대 영역 -->
         <div id="compare-bars-wrapper" class="absolute inset-0 flex items-end justify-between px-1.5 sm:px-5 pointer-events-none z-10 ${triggerAnimation ? 'compare-animate' : ''}">
     `;
 
     clans.forEach((c, idx) => {
       const val = c[metricKey] || 0;
-      // 0이어도 최소 3.5%는 표시되어 기준선 위에 살짝 보이도록 설정, 최대 100%
       const barHeightPercent = Math.max(3.5, Math.min(100, (val / tickMax) * 100));
 
       let barClasses = "bg-gradient-to-t from-[#d41f45] to-[#eb3a60] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
-
       if (c.isHome) {
         barClasses = "bg-gradient-to-t from-[#3d4ac6] to-[#4f5ddb] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
       } else if ((c.name || "").includes("Vandros")) {
@@ -1375,14 +1399,12 @@ class ClanManagerApp {
 
       html += `
         <div class="flex-1 max-w-[95px] sm:max-w-[130px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
-          <!-- 막대 본체 + 상단 수치 (레퍼런스 이미지 디자인 일치: w-[76%] sm:w-[72%] max-w-[72px] sm:max-w-[96px]) -->
           <div class="w-[76%] sm:w-[72%] max-w-[72px] sm:max-w-[96px] relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
             <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1 sm:mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
               <span class="text-xs sm:text-[13px] font-bold tracking-tight text-white compare-header-num">${val.toLocaleString()}${meta.suffix}</span>
             </div>
             <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-xl ${barClasses}"></div>
           </div>
-          <!-- 0선(바닥) 아래에 고정되는 클랜 이름 (레퍼런스 이미지 일치: 볼드 화이트) -->
           <div class="compare-clan-name absolute top-full pt-1.5 sm:pt-2 w-full text-center text-xs sm:text-[13px] font-bold text-white tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
             ${this.escapeHtml(c.name)}
           </div>
@@ -1512,7 +1534,7 @@ class ClanManagerApp {
         const donations = member.donations || 0;
 
         return `
-          <div class="p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition cursor-pointer flex items-center justify-between gap-2" onclick="window.app.switchFromDormantToMember('${this.escapeHtml(member.tag)}')">
+          <div class="p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition cursor-pointer flex items-center justify-between gap-2" data-dormant-tag="${this.escapeHtml(member.tag)}">
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${idx + 1}</span>
@@ -1542,16 +1564,7 @@ class ClanManagerApp {
 
   closeDormantModal() {
     const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
-    document.body.style.overflow = "";
     this.closeModalSmooth(modal);
-
-    if (this.pendingClanData) {
-      const { liveData, shouldAnimate } = this.pendingClanData;
-      this.pendingClanData = null;
-      setTimeout(() => {
-        this.processIncomingClanData(liveData, shouldAnimate);
-      }, 80);
-    }
   }
 
   // 미접속 대상자 팝업에서 클랜원 클릭 시 끊김 없이 상세 팝업으로 부드럽게 교차 전환
@@ -1574,20 +1587,14 @@ class ClanManagerApp {
     this.applyFilterAndRender(true);
   }
 
+  // 날짜 파싱 단일 진입점 (window.crApi.parseApiDate 위임)
   parseDateSafe(dateStr) {
     if (!dateStr) return null;
     if (window.crApi && typeof window.crApi.parseApiDate === "function") {
-      const d = window.crApi.parseApiDate(dateStr);
-      if (d && !isNaN(d.getTime())) return d;
+      return window.crApi.parseApiDate(dateStr);
     }
-    try {
-      const y = dateStr.slice(0, 4), m = dateStr.slice(4, 6), d = dateStr.slice(6, 8);
-      const h = dateStr.slice(9, 11), min = dateStr.slice(11, 13), s = dateStr.slice(13, 15);
-      const parsed = new Date(Date.UTC(y, m - 1, d, h, min, s));
-      return isNaN(parsed.getTime()) ? null : parsed;
-    } catch (e) {
-      return null;
-    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
   }
 
   getEffectiveActiveDate(lastSeenStr, lastBattleStr) {
@@ -1700,25 +1707,9 @@ class ClanManagerApp {
     this.openModalSmooth(modal);
   }
 
-  closeMemberModal(immediate = false) {
+  closeMemberModal() {
     const modal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
-    if (!modal) return;
-    document.body.style.overflow = "";
-    if (immediate) {
-      modal.setAttribute("aria-hidden", "true");
-      modal.classList.remove("is-open");
-    } else {
-      this.closeModalSmooth(modal);
-    }
-
-    // 모달 닫힘 시점에 대기 중이던 최신 데이터 조용히 반영
-    if (this.pendingClanData) {
-      const { liveData, shouldAnimate } = this.pendingClanData;
-      this.pendingClanData = null;
-      setTimeout(() => {
-        this.processIncomingClanData(liveData, shouldAnimate);
-      }, 80);
-    }
+    this.closeModalSmooth(modal);
   }
 
   applyFilterAndRender(shouldStagger = false) {
@@ -1804,7 +1795,7 @@ class ClanManagerApp {
       const received = member.donationsReceived || 0;
 
       rowsHtml += `
-        <tr onclick="window.app.openMemberModal('${this.escapeHtml(member.tag)}')">
+        <tr data-member-tag="${this.escapeHtml(member.tag)}" class="cursor-pointer">
           <td class="text-center font-mono text-xs text-slate-500">${member.clanRank || idx + 1}</td>
           <td>
             <div class="flex items-center gap-1.5">
@@ -1872,13 +1863,12 @@ class ClanManagerApp {
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
-      // 뷰포트에 보이는 상위 14개 아이템에만 스태거 애니메이션을 적용해 GPU 과부하 방지
       const animateCard = shouldStagger && idx < 14;
       const staggerClass = animateCard ? "card-stagger-in" : "";
       const staggerStyle = animateCard ? `style="animation-delay: ${(idx * 0.024).toFixed(3)}s"` : "";
 
       cardsHtml += `
-        <div class="mobile-member-card ${staggerClass}" ${staggerStyle} onclick="window.app.openMemberModal('${this.escapeHtml(member.tag)}')">
+        <div class="mobile-member-card ${staggerClass}" ${staggerStyle} data-member-tag="${this.escapeHtml(member.tag)}">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
