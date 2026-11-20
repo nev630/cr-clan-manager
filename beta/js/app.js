@@ -1,27 +1,32 @@
 /**
- * Good Fellas Clan Manager - Core Application Logic (v2.0.0)
- * - 슬림 상단 바 & 스켈레톤 초기 로딩
- * - 클랜원 카드 탭 시 RoyaleAPI 즉시 새 창 연결
- * - 배틀로그 캐시 TTL(1시간) 및 탈퇴 멤버 자동 정리
- * - 동기화 중복 실행 방지 가드(isSyncing / isCompareSyncing)
+ * Good Fellas Clan Manager - Core Application Logic (v1.9.0 Liquid Glass)
  */
 
+const CR_EMOTES_POOL = [
+  { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
+  { name: "우는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/a/af/Crying_King.png/revision/latest?cb=20230915211808", offsetY: 0 },
+  { name: "비명 호그라이더", url: "https://static.wikia.nocookie.net/clashroyale/images/b/b6/Hog_Rider_Scream.png/revision/latest?cb=20230922123136", offsetY: 0 },
+  { name: "이마 짚는 고블린", url: "https://static.wikia.nocookie.net/clashroyale/images/d/dc/Facepalm_Goblin.png/revision/latest?cb=20230918084628", offsetY: 2 },
+  { name: "브이 프린세스", url: "https://static.wikia.nocookie.net/clashroyale/images/0/0f/Peace_Princess.png/revision/latest?cb=20230920123025", offsetY: -3 },
+  { name: "따봉 일렉트로 마법사", url: "https://static.wikia.nocookie.net/clashroyale/images/3/37/Electro_Wizard_Thumbs-Up.png/revision/latest?cb=20181027033128", offsetY: -2 },
+  { name: "우는 해골", url: "https://static.wikia.nocookie.net/clashroyale/images/7/73/Crying_Skeleton.png/revision/latest?cb=20180921183431", offsetY: 3 },
+  { name: "고기 뜯는 자이언트", url: "https://static.wikia.nocookie.net/clashroyale/images/b/bb/Eating_Giant.png/revision/latest?cb=20230920123020", offsetY: 0 }
+];
+
 const SWORDS_INLINE_SVG = `<svg class="w-3 h-3 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>`;
-
-const EXTERNAL_LINK_SVG = `<svg class="w-3 h-3 text-slate-500 group-hover:text-blue-400 transition-colors shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>`;
-
-const BATTLE_NONE_TTL_MS = 60 * 60 * 1000; // 배틀 미보유 캐시 TTL: 1시간
 
 const COMPARE_METRICS_META = {
   donationsWeekly: {
     title: "주간 총 지원량 비교",
     listTitle: "클랜별 핵심 현황 및 지원량 격차",
+    unitText: "단위: 개",
     suffix: "개",
     label: "주간 지원량"
   },
   donationsAvg: {
     title: "1인당 평균 주간 지원량 비교",
     listTitle: "클랜별 1인 평균 지원량 및 격차",
+    unitText: "단위: 개/인",
     suffix: "개",
     label: "1인 평균 지원"
   }
@@ -31,7 +36,7 @@ class ClanManagerApp {
   constructor() {
     this.currentData = null;
     this.filteredMembers = [];
-    this.activeFilter = "all"; // 'all' | 'low-donations'
+    this.activeFilter = "all";
     this.searchQuery = "";
     this.sorting = { key: "lastSeen", order: "desc" };
     this.activeMainTab = "dashboard";
@@ -41,18 +46,18 @@ class ClanManagerApp {
     this.hasCompareLoaded = false;
 
     this.battleLogCache = this.loadBattleLogCache();
-    this.charts = { activity: null };
+    this.charts = { activity: null, compareDonations: null };
     this.elements = {};
 
     this.pendingClanData = null;
     this.pendingFlushTimer = null;
 
-    this.isSyncing = false;
-    this.isCompareSyncing = false;
     this.lastSyncTime = 0;
     this.lastCompareSyncTime = 0;
     this.syncThrottleMs = 15000;
     this.compareThrottleMs = 30000;
+    this.loadingStartTime = Date.now();
+    this.lastTabSwitchTime = 0;
 
     this.init();
   }
@@ -75,22 +80,11 @@ class ClanManagerApp {
     } catch (e) {}
   }
 
-  pruneBattleLogCache(members) {
-    if (!Array.isArray(members) || members.length === 0) return;
-    const validTags = new Set(members.map((m) => m.tag));
-    let removed = false;
-    for (const tag of this.battleLogCache.keys()) {
-      if (!validTags.has(tag)) {
-        this.battleLogCache.delete(tag);
-        removed = true;
-      }
-    }
-    if (removed) {
-      this.saveBattleLogCache();
-    }
-  }
-
   init() {
+    this.loadingStartTime = Date.now();
+    this.lastTabSwitchTime = 0;
+    this.emotesReadyPromise = this.renderRandomLoadingEmotes();
+
     try {
       document.addEventListener("touchstart", () => {}, { passive: true });
     } catch (e) {}
@@ -129,6 +123,10 @@ class ClanManagerApp {
 
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
+        const memberModal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
+        if (memberModal && memberModal.getAttribute("aria-hidden") === "true") {
+          memberModal.classList.remove("is-open");
+        }
         this.autoSyncLive(false);
         if (this.activeMainTab === "compare") {
           this.syncCompareLive(false);
@@ -138,13 +136,25 @@ class ClanManagerApp {
 
     setInterval(() => {
       if (document.visibilityState === "visible" && this.currentData) {
-        this.renderMobileList();
+        this.renderMobileList(false);
+        this.renderDesktopTable();
       }
     }, 60000);
+
+    window.addEventListener("resize", () => {
+      if (this.currentData) {
+        if (window.innerWidth >= 1024) {
+          this.renderDesktopTable();
+        } else {
+          this.renderMobileList(false);
+        }
+      }
+    });
   }
 
   cacheDOM() {
     this.elements = {
+      initialSyncModal: document.getElementById("initial-sync-modal"),
       searchInput: document.getElementById("search-input"),
       btnSearchClear: document.getElementById("btn-search-clear"),
       sortKeySelect: document.getElementById("sort-key-select"),
@@ -160,8 +170,11 @@ class ClanManagerApp {
       tabBtnCompare: document.getElementById("tab-btn-compare"),
       mainTabPill: document.getElementById("main-tab-pill"),
       compareTabPill: document.getElementById("compare-tab-pill"),
+      tabContextHint: document.getElementById("tab-context-hint"),
+      btnQuickCompare: document.getElementById("btn-quick-compare"),
       clanName: document.getElementById("clan-name"),
       clanTag: document.getElementById("clan-tag"),
+      clanDesc: document.getElementById("clan-desc"),
       statTotalMembers: document.getElementById("stat-total-members"),
       statMemberVacant: document.getElementById("stat-member-vacant"),
       statTotalDonations: document.getElementById("stat-total-donations"),
@@ -172,13 +185,17 @@ class ClanManagerApp {
       podiumContainer: document.getElementById("podium-container"),
       podiumRunnersContainer: document.getElementById("podium-runners-container"),
       chartActivity: document.getElementById("chart-activity"),
+      chartCompareDonations: document.getElementById("chart-compare-donations"),
       compareBarsStage: document.getElementById("compare-bars-stage"),
       compareChartContainer: document.getElementById("compare-chart-container"),
       compareChartTitle: document.getElementById("compare-chart-title"),
+      compareChartUnit: document.getElementById("compare-chart-unit"),
       compareListTitle: document.getElementById("compare-list-title"),
       compareSummaryList: document.getElementById("compare-summary-list"),
+      memberTableBody: document.getElementById("member-table-body"),
       emptyState: document.getElementById("empty-state"),
       memberMobileList: document.getElementById("member-mobile-list"),
+      memberDetailModal: document.getElementById("member-detail-modal"),
       dormantMembersModal: document.getElementById("dormant-members-modal"),
       dormantModalCount: document.getElementById("dormant-modal-count"),
       dormantModalList: document.getElementById("dormant-modal-list"),
@@ -192,17 +209,13 @@ class ClanManagerApp {
       const saved = localStorage.getItem("cr_theme");
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       const initialTheme = saved === "light" || (!saved && !prefersDark) ? "light" : "dark";
-      this.applyTheme(initialTheme);
+      this.applyTheme(initialTheme, false);
     } catch (e) {}
-  }
-
-  getRoyaleApiUrl(tag) {
-    const cleanTag = String(tag || "").replace("#", "");
-    return `https://royaleapi.com/player/${encodeURIComponent(cleanTag)}`;
   }
 
   isAnyModalOpen() {
     const modals = [
+      this.elements.memberDetailModal || document.getElementById("member-detail-modal"),
       this.elements.dormantMembersModal || document.getElementById("dormant-members-modal"),
       this.elements.syncErrorModal || document.getElementById("sync-error-modal")
     ];
@@ -231,13 +244,143 @@ class ClanManagerApp {
         this.pendingFlushTimer = setTimeout(() => {
           this.pendingFlushTimer = null;
           if (!this.isAnyModalOpen() && this.pendingClanData) {
-            const { liveData } = this.pendingClanData;
+            const { liveData, shouldAnimate } = this.pendingClanData;
             this.pendingClanData = null;
-            this.processIncomingClanData(liveData);
+            this.processIncomingClanData(liveData, shouldAnimate);
           }
         }, 160);
       }
     }
+  }
+
+  async renderRandomLoadingEmotes() {
+    const container = document.getElementById("loading-emotes-container");
+    if (!container) return;
+
+    const shuffled = [...CR_EMOTES_POOL].sort(() => Math.random() - 0.5);
+    this.targetEmotes = shuffled.slice(0, 3);
+    this.slotStopTriggered = false;
+
+    container.innerHTML = this.targetEmotes.map((_, idx) => `
+      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl border" id="slot-window-${idx}"></div>
+    `).join("");
+
+    const preloadPromises = CR_EMOTES_POOL.map((emote) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.src = emote.url;
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+      });
+    });
+
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 1500));
+    await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
+
+    const loopItems = [...CR_EMOTES_POOL, ...CR_EMOTES_POOL];
+    const itemsHtml = loopItems.map((item) => `
+      <div class="slot-item w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
+          <img src="${item.url}"
+               alt="${item.name}"
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain pointer-events-none select-none" />
+        </div>
+      </div>
+    `).join("");
+
+    container.innerHTML = [0, 1, 2].map((slotIdx) => `
+      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl border" id="slot-window-${slotIdx}">
+        <div class="slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-spin-infinite-${slotIdx}" id="slot-reel-${slotIdx}">
+          ${itemsHtml}
+        </div>
+      </div>
+    `).join("");
+
+    this.loadingStartTime = Date.now();
+    this.lastTabSwitchTime = 0;
+  }
+
+  stopSlotReel(slotIdx, targetEmote) {
+    const reelEl = document.getElementById(`slot-reel-${slotIdx}`);
+    const windowEl = document.getElementById(`slot-window-${slotIdx}`);
+    if (!reelEl || !windowEl) return;
+
+    const pool = CR_EMOTES_POOL.filter((e) => e.name !== targetEmote.name);
+    const dummies = [];
+    for (let i = 0; i < 4; i++) {
+      dummies.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+    const decelItems = [...dummies, targetEmote];
+
+    const decelHtml = decelItems.map((item) => `
+      <div class="slot-item w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
+          <img src="${item.url}"
+               alt="${item.name}"
+               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)] pointer-events-none select-none" />
+        </div>
+      </div>
+    `).join("");
+
+    reelEl.className = "slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-stopping";
+    reelEl.innerHTML = decelHtml;
+
+    setTimeout(() => {
+      windowEl.classList.add("slot-locked");
+    }, 420);
+  }
+
+  async triggerSlotStopSequence() {
+    if (this.slotStopTriggered) return;
+    this.slotStopTriggered = true;
+
+    const elapsed = Date.now() - (this.loadingStartTime || Date.now());
+    const minSpinDuration = 550;
+    if (elapsed < minSpinDuration) {
+      await new Promise((r) => setTimeout(r, minSpinDuration - elapsed));
+    }
+
+    const targets = this.targetEmotes || CR_EMOTES_POOL.slice(0, 3);
+
+    this.stopSlotReel(0, targets[0]);
+    await new Promise((r) => setTimeout(r, 180));
+    this.stopSlotReel(1, targets[1]);
+    await new Promise((r) => setTimeout(r, 180));
+    this.stopSlotReel(2, targets[2]);
+
+    await new Promise((r) => setTimeout(r, 420 + 260));
+    await this.hideInitialSyncModal();
+  }
+
+  async hideInitialSyncModal() {
+    const modal = this.elements.initialSyncModal;
+    if (!modal || modal.dataset.dismissed) return;
+    modal.dataset.dismissed = "true";
+
+    for (let i = 0; i < 3; i++) {
+      document.getElementById(`slot-window-${i}`)?.classList.add("slot-locked");
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 280));
+
+    modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
+    modal.style.opacity = "0";
+    modal.style.pointerEvents = "none";
+
+    if (this.currentData?.memberList) {
+      this.renderPodium(this.currentData.memberList, true);
+      this.renderActivityDonut(this.currentData.memberList, true);
+      setTimeout(() => {
+        this.elements.podiumContainer?.classList.remove("podium-animate");
+        this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+      }, 900);
+    }
+
+    setTimeout(() => {
+      modal.classList.add("hidden");
+      const emotesContainer = document.getElementById("loading-emotes-container");
+      if (emotesContainer) emotesContainer.innerHTML = "";
+    }, 290);
   }
 
   bindEvents() {
@@ -245,7 +388,12 @@ class ClanManagerApp {
       searchInput,
       btnSearchClear,
       sortKeySelect,
-      btnSortOrder
+      btnSortOrder,
+      memberMobileList,
+      memberTableBody,
+      podiumContainer,
+      podiumRunnersContainer,
+      dormantModalList
     } = this.elements;
 
     if (searchInput) {
@@ -259,15 +407,15 @@ class ClanManagerApp {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
           this.searchQuery = rawVal.trim().toLowerCase();
-          this.applyFilterAndRender();
-        }, 200);
+          this.applyFilterAndRender(true);
+        }, 220);
       });
     }
 
     if (sortKeySelect) {
       sortKeySelect.addEventListener("change", (e) => {
         this.sorting.key = e.target.value;
-        this.applyFilterAndRender();
+        this.applyFilterAndRender(true);
       });
     }
 
@@ -279,8 +427,33 @@ class ClanManagerApp {
       this.elements.btnThemeToggle.addEventListener("click", (e) => this.toggleTheme(e));
     }
 
+    const delegateMemberOpen = (container) => {
+      if (!container) return;
+      container.addEventListener("click", (e) => {
+        const targetEl = e.target.closest("[data-member-tag]");
+        if (!targetEl) return;
+        const tag = targetEl.getAttribute("data-member-tag");
+        if (tag) this.openMemberModal(tag);
+      });
+    };
+
+    delegateMemberOpen(memberMobileList);
+    delegateMemberOpen(memberTableBody);
+    delegateMemberOpen(podiumContainer);
+    delegateMemberOpen(podiumRunnersContainer);
+
+    if (dormantModalList) {
+      dormantModalList.addEventListener("click", (e) => {
+        const targetEl = e.target.closest("[data-dormant-tag]");
+        if (!targetEl) return;
+        const tag = targetEl.getAttribute("data-dormant-tag");
+        if (tag) this.switchFromDormantToMember(tag);
+      });
+    }
+
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
+        this.closeMemberModal();
         this.closeDormantModal();
         this.closeErrorModal();
       }
@@ -296,7 +469,7 @@ class ClanManagerApp {
     }
     if (this.searchQuery !== "") {
       this.searchQuery = "";
-      this.applyFilterAndRender();
+      this.applyFilterAndRender(true);
     }
   }
 
@@ -318,7 +491,7 @@ class ClanManagerApp {
 
     const toast = document.createElement("div");
     toast.className = "toast-pill";
-    const dotColor = type === "error" ? "bg-rose-400" : type === "success" ? "bg-emerald-400" : "bg-blue-400";
+    const dotColor = type === "error" ? "bg-rose-400" : type === "success" ? "bg-emerald-400" : "bg-white/70";
     toast.innerHTML = `
       <span class="w-1.5 h-1.5 rounded-full ${dotColor} shrink-0"></span>
       <span>${this.escapeHtml(message)}</span>
@@ -327,7 +500,7 @@ class ClanManagerApp {
 
     setTimeout(() => {
       toast.classList.add("toast-leaving");
-      setTimeout(() => toast.remove(), 200);
+      setTimeout(() => toast.remove(), 220);
     }, 2200);
   }
 
@@ -336,7 +509,7 @@ class ClanManagerApp {
     const nextTheme = isDark ? "light" : "dark";
 
     let x = window.innerWidth - 36;
-    let y = 34;
+    let y = 36;
     const btn = this.elements.btnThemeToggle || document.getElementById("btn-theme-toggle");
     if (btn) {
       const rect = btn.getBoundingClientRect();
@@ -352,9 +525,13 @@ class ClanManagerApp {
       Math.max(y, window.innerHeight - y)
     ));
 
+    document.documentElement.style.setProperty("--theme-x", `${x}px`);
+    document.documentElement.style.setProperty("--theme-y", `${y}px`);
+    document.documentElement.style.setProperty("--theme-r", `${endRadius}px`);
+
     if (typeof document.startViewTransition === "function") {
       const transition = document.startViewTransition(() => {
-        this.applyTheme(nextTheme);
+        this.applyTheme(nextTheme, false);
       });
 
       if (transition.ready && typeof document.documentElement.animate === "function") {
@@ -368,8 +545,8 @@ class ClanManagerApp {
                 ]
               },
               {
-                duration: 360,
-                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                duration: 440,
+                easing: "cubic-bezier(0.16, 1, 0.3, 1)",
                 pseudoElement: "::view-transition-new(root)"
               }
             );
@@ -377,54 +554,70 @@ class ClanManagerApp {
         });
       }
     } else {
-      this.applyTheme(nextTheme);
+      this.triggerFallbackRipple(x, y, endRadius, nextTheme);
+      this.applyTheme(nextTheme, false);
     }
   }
 
-  applyTheme(theme) {
-    const isDark = theme === "dark";
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-      document.documentElement.classList.remove("light");
-    } else {
-      document.documentElement.classList.remove("dark");
-      document.documentElement.classList.add("light");
-    }
+  triggerFallbackRipple(x, y, radius, theme) {
+    const ring = document.createElement("div");
+    ring.style.position = "fixed";
+    ring.style.left = `${x}px`;
+    ring.style.top = `${y}px`;
+    ring.style.width = "10px";
+    ring.style.height = "10px";
+    ring.style.borderRadius = "50%";
+    ring.style.transform = "translate(-50%, -50%) scale(1)";
+    ring.style.border = theme === "light" ? "2px solid rgba(15, 23, 42, 0.25)" : "2px solid rgba(255, 255, 255, 0.3)";
+    ring.style.pointerEvents = "none";
+    ring.style.zIndex = "999999";
+    ring.style.transition = "transform 0.44s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.44s ease-out";
+    ring.style.opacity = "1";
+    document.body.appendChild(ring);
 
-    try {
-      localStorage.setItem("cr_theme", theme);
-    } catch (e) {}
+    requestAnimationFrame(() => {
+      ring.style.transform = `translate(-50%, -50%) scale(${radius / 5})`;
+      ring.style.opacity = "0";
+    });
+
+    setTimeout(() => {
+      ring.remove();
+    }, 450);
+  }
+
+  applyTheme(theme, shouldStagger = false) {
+    const isDark = theme === "dark";
+    document.documentElement.classList.toggle("dark", isDark);
+    document.documentElement.classList.toggle("light", !isDark);
+
+    try { localStorage.setItem("cr_theme", theme); } catch (e) {}
 
     const isLight = !isDark;
-
     if (this.charts.activity) {
       const donutChart = this.charts.activity;
-      donutChart.data.datasets[0].borderColor = isLight ? "#ffffff" : "#14171f";
+      donutChart.data.datasets[0].backgroundColor = isLight
+        ? ["rgba(16, 185, 129, 0.82)", "rgba(15, 23, 42, 0.18)", "rgba(225, 29, 72, 0.78)"]
+        : ["rgba(52, 211, 153, 0.85)", "rgba(255, 255, 255, 0.22)", "rgba(255, 107, 107, 0.82)"];
       if (donutChart.options.plugins?.legend?.labels) {
-        donutChart.options.plugins.legend.labels.color = isLight ? "#0f172a" : "#94a3b8";
+        donutChart.options.plugins.legend.labels.color = isLight ? "#475569" : "rgba(245, 245, 247, 0.62)";
       }
       if (donutChart.options.plugins?.tooltip) {
-        donutChart.options.plugins.tooltip.backgroundColor = isLight ? "#ffffff" : "#1d222e";
-        donutChart.options.plugins.tooltip.titleColor = isLight ? "#0f172a" : "#f8fafc";
-        donutChart.options.plugins.tooltip.bodyColor = isLight ? "#334155" : "#94a3b8";
-        donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(15,23,42,0.12)" : "rgba(255,255,255,0.1)";
+        donutChart.options.plugins.tooltip.backgroundColor = isLight ? "rgba(255,255,255,0.92)" : "rgba(20,24,34,0.92)";
+        donutChart.options.plugins.tooltip.titleColor = isLight ? "#0f172a" : "#f5f5f7";
+        donutChart.options.plugins.tooltip.bodyColor = isLight ? "#475569" : "#94a3b8";
+        donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(15,23,42,0.1)" : "rgba(255,255,255,0.12)";
       }
       donutChart.update("none");
     }
 
-    if (this.activeMainTab === "compare") {
-      this.renderComparisonView();
-    }
-
-    if (this.currentData) {
-      this.applyFilterAndRender();
-    }
+    if (this.activeMainTab === "compare") this.renderComparisonView(false);
+    if (this.currentData) this.applyFilterAndRender(shouldStagger);
   }
 
   toggleSortOrder() {
     this.sorting.order = this.sorting.order === "desc" ? "asc" : "desc";
     this.updateSortOrderUI();
-    this.applyFilterAndRender();
+    this.applyFilterAndRender(true);
   }
 
   updateSortOrderUI() {
@@ -436,6 +629,7 @@ class ClanManagerApp {
     }
     const target = iconWrapper || document.getElementById("sort-order-icon-wrapper") || iconEl || document.getElementById("sort-order-icon");
     if (target) {
+      target.style.transition = "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)";
       target.style.transform = isDesc ? "rotate(0deg)" : "rotate(180deg)";
     }
   }
@@ -443,8 +637,9 @@ class ClanManagerApp {
   switchMainTab(tabName) {
     if (this.activeMainTab === tabName) return;
     this.activeMainTab = tabName;
+    this.lastTabSwitchTime = Date.now();
 
-    const { viewDashboard, viewCompare, tabBtnDashboard, tabBtnCompare, mainTabPill } = this.elements;
+    const { viewDashboard, viewCompare, tabBtnDashboard, tabBtnCompare, mainTabPill, tabContextHint: tabHint, btnQuickCompare: quickCompareBtn } = this.elements;
 
     if (mainTabPill) {
       mainTabPill.classList.toggle("slide-right", tabName === "compare");
@@ -469,7 +664,16 @@ class ClanManagerApp {
         viewCompare.classList.add("tab-view-enter");
       }
 
-      this.renderComparisonView();
+      if (quickCompareBtn) quickCompareBtn.classList.add("opacity-50", "pointer-events-none");
+      if (tabHint) {
+        tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-white/60"></span><span>디시 갤러리 클랜 3자 비교 뷰</span>`;
+      }
+
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          this.renderComparisonView(true);
+        }, 60);
+      });
 
       if (!this.hasCompareLoaded || Date.now() - this.lastCompareSyncTime > this.compareThrottleMs) {
         this.syncCompareLive(false);
@@ -486,10 +690,21 @@ class ClanManagerApp {
         viewDashboard.classList.add("tab-view-enter");
       }
 
-      if (this.currentData?.memberList) {
-        this.renderPodium(this.currentData.memberList);
-        this.renderActivityDonut(this.currentData.memberList);
+      if (quickCompareBtn) quickCompareBtn.classList.remove("opacity-50", "pointer-events-none");
+      if (tabHint) {
+        tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-white/60"></span><span>Good Fellas 단독 뷰</span>`;
       }
+
+      requestAnimationFrame(() => {
+        if (this.currentData?.memberList) {
+          this.renderPodium(this.currentData.memberList, true);
+          this.renderActivityDonut(this.currentData.memberList, true);
+          setTimeout(() => {
+            this.elements.podiumContainer?.classList.remove("podium-animate");
+            this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+          }, 700);
+        }
+      });
     }
   }
 
@@ -506,49 +721,38 @@ class ClanManagerApp {
 
     const meta = COMPARE_METRICS_META[metricKey];
     if (this.elements.compareChartTitle) this.elements.compareChartTitle.textContent = meta.title;
+    if (this.elements.compareChartUnit) this.elements.compareChartUnit.textContent = meta.unitText;
     if (this.elements.compareListTitle) this.elements.compareListTitle.textContent = meta.listTitle;
 
-    this.renderComparisonView();
+    requestAnimationFrame(() => {
+      this.renderComparisonView(true);
+    });
   }
 
-  // 배틀 이력 캐시 바인딩 (time: "none"은 1시간 TTL 만료 후 재조회 허용)
   bindCachedBattleLogs(members) {
     if (!Array.isArray(members)) return;
-    const now = Date.now();
-    let cacheChanged = false;
-
     members.forEach((m) => {
-      if (!this.battleLogCache.has(m.tag)) return;
-      const c = this.battleLogCache.get(m.tag);
-
-      if (c.time === "none") {
-        if (c.checkedAt && now - c.checkedAt < BATTLE_NONE_TTL_MS) {
+      if (this.battleLogCache.has(m.tag)) {
+        const c = this.battleLogCache.get(m.tag);
+        if (c.time === "none") {
           m._noBattles = true;
-        } else {
-          this.battleLogCache.delete(m.tag);
-          cacheChanged = true;
+          return;
         }
-        return;
-      }
-
-      if (!m.lastBattleTime) {
-        m.lastBattleTime = c.time;
-        m.lastBattleType = c.type;
-        m._fromCache = true;
-      } else {
-        const memberDate = this.parseDateSafe(m.lastBattleTime);
-        const cachedDate = this.parseDateSafe(c.time);
-        if (cachedDate && (!memberDate || cachedDate.getTime() > memberDate.getTime())) {
+        if (!m.lastBattleTime) {
           m.lastBattleTime = c.time;
           m.lastBattleType = c.type;
           m._fromCache = true;
+        } else {
+          const memberDate = this.parseDateSafe(m.lastBattleTime);
+          const cachedDate = this.parseDateSafe(c.time);
+          if (cachedDate && (!memberDate || cachedDate.getTime() > memberDate.getTime())) {
+            m.lastBattleTime = c.time;
+            m.lastBattleType = c.type;
+            m._fromCache = true;
+          }
         }
       }
     });
-
-    if (cacheChanged) {
-      this.saveBattleLogCache();
-    }
   }
 
   async fetchAllMembersBattleLogs(members) {
@@ -559,14 +763,22 @@ class ClanManagerApp {
     const chunkSize = 10;
 
     for (let i = 0; i < members.length; i += chunkSize) {
-      if (window.crApi.isRateLimited?.()) break;
-
       const chunk = members.slice(i, i + chunkSize);
 
       const chunkPromises = chunk.map(async (m) => {
-        if (window.crApi.isRateLimited?.()) return;
+        if (this.battleLogCache.has(m.tag)) {
+          const cached = this.battleLogCache.get(m.tag);
+          if (cached.time && cached.time !== "none") {
+            const memberDate = this.parseDateSafe(m.lastBattleTime);
+            const cachedDate = this.parseDateSafe(cached.time);
+            if (cachedDate && (!memberDate || cachedDate.getTime() > memberDate.getTime())) {
+              m.lastBattleTime = cached.time;
+              m.lastBattleType = cached.type;
+            }
+          }
+        }
 
-        const battlelog = await window.crApi.fetchPlayerBattleLog(m.tag);
+        const battlelog = await window.crApi.fetchPlayerBattleLog(m.tag, 1);
         if (Array.isArray(battlelog) && battlelog.length > 0) {
           const newTime = battlelog[0].battleTime;
           const newType = battlelog[0].type || "Battle";
@@ -580,25 +792,22 @@ class ClanManagerApp {
             m._noBattles = false;
             this.battleLogCache.set(m.tag, {
               time: newTime,
-              type: newType,
-              checkedAt: Date.now()
+              type: newType
             });
             hasNewData = true;
           }
         } else if (Array.isArray(battlelog) && battlelog.length === 0) {
-          this.battleLogCache.set(m.tag, {
-            time: "none",
-            type: "None",
-            checkedAt: Date.now()
-          });
-          m._noBattles = true;
-          hasNewData = true;
+          if (!this.battleLogCache.has(m.tag) || this.battleLogCache.get(m.tag).time !== "none") {
+            this.battleLogCache.set(m.tag, { time: "none", type: "None" });
+            m._noBattles = true;
+            hasNewData = true;
+          }
         }
       });
 
       await Promise.allSettled(chunkPromises);
 
-      if (i + chunkSize < members.length && !window.crApi.isRateLimited?.()) {
+      if (i + chunkSize < members.length) {
         await new Promise((r) => setTimeout(r, 40));
       }
     }
@@ -606,27 +815,22 @@ class ClanManagerApp {
     if (hasNewData && this.currentData) {
       this.saveBattleLogCache();
       if (!this.isAnyModalOpen()) {
-        this.applyFilterAndRender();
+        this.applyFilterAndRender(false);
         this.updateStats(this.currentData);
-        this.renderActivityDonut(this.currentData.memberList || []);
+        this.renderActivityDonut(this.currentData.memberList || [], false);
       }
     }
   }
 
-  processIncomingClanData(liveData) {
+  processIncomingClanData(liveData, shouldAnimate = false) {
     if (!liveData || !liveData.memberList) return;
 
     if (this.isAnyModalOpen()) {
-      this.pendingClanData = { liveData };
+      this.pendingClanData = { liveData, shouldAnimate };
       return;
     }
 
-    this.pruneBattleLogCache(liveData.memberList);
-    this.bindCachedBattleLogs(liveData.memberList);
-
-    const missingBattleMembers = liveData.memberList.filter(
-      (m) => (!m.lastBattleTime || m._fromCache) && !m._noBattles
-    );
+    const missingBattleMembers = liveData.memberList.filter((m) => (!m.lastBattleTime || m._fromCache) && !m._noBattles);
 
     let hasCacheUpdated = false;
     liveData.memberList.forEach((m) => {
@@ -635,8 +839,7 @@ class ClanManagerApp {
         if (!existing || existing.time !== m.lastBattleTime) {
           this.battleLogCache.set(m.tag, {
             time: m.lastBattleTime,
-            type: m.lastBattleType || "Battle",
-            checkedAt: Date.now()
+            type: m.lastBattleType || "Battle"
           });
           hasCacheUpdated = true;
         }
@@ -646,7 +849,15 @@ class ClanManagerApp {
       this.saveBattleLogCache();
     }
 
-    this.renderClan(liveData);
+    this.bindCachedBattleLogs(liveData.memberList);
+    this.renderClan(liveData, shouldAnimate, shouldAnimate);
+
+    if (shouldAnimate) {
+      setTimeout(() => {
+        this.elements.podiumContainer?.classList.remove("podium-animate");
+        this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+      }, 850);
+    }
 
     if (missingBattleMembers.length > 0) {
       this.fetchAllMembersBattleLogs(missingBattleMembers);
@@ -654,45 +865,77 @@ class ClanManagerApp {
   }
 
   async autoSyncLive(isManual = false) {
-    if (this.isSyncing) return;
-
     const now = Date.now();
-    if (!isManual && now - this.lastSyncTime < this.syncThrottleMs) {
+    if (!isManual && (now - this.lastSyncTime < this.syncThrottleMs)) {
       return;
     }
-
-    this.isSyncing = true;
     this.lastSyncTime = now;
+
+    const isInitial = !this.elements.initialSyncModal?.dataset?.dismissed;
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
 
     try {
-      const liveData = await window.crApi.fetchClanFullData(tag, null, isManual);
-      if (liveData && liveData.memberList) {
-        this.processIncomingClanData(liveData);
+      let resolvedAfterTimeout = false;
+
+      const dataFetchPromise = window.crApi.fetchClanFullData(tag, null, isManual).then((liveData) => {
+        if (resolvedAfterTimeout && liveData && liveData.memberList) {
+          this.processIncomingClanData(liveData, false);
+        }
+        return liveData;
+      });
+
+      if (isInitial && this.emotesReadyPromise) {
+        await this.emotesReadyPromise;
+      }
+
+      const timeoutFallback = new Promise((resolve) => setTimeout(() => resolve("TIMEOUT"), 2500));
+      const raceResult = isInitial
+        ? await Promise.race([dataFetchPromise, timeoutFallback])
+        : await dataFetchPromise;
+
+      if (raceResult === "TIMEOUT") {
+        resolvedAfterTimeout = true;
+        if (!this.currentData) {
+          const presets = window.crApi?.getGalleryClansPreset() || [];
+          const homeClan = presets.find((p) => p.isHome) || presets[0];
+          if (homeClan) {
+            this.renderClan({ ...homeClan, memberList: [] }, false, false);
+          }
+        }
+      } else if (raceResult && raceResult.memberList) {
+        const shouldAnimateManual = isManual && !isInitial;
+        this.processIncomingClanData(raceResult, shouldAnimateManual);
+      }
+
+      if (isInitial) {
+        await this.triggerSlotStopSequence();
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
 
       if (!this.currentData) {
+        const presets = window.crApi?.getGalleryClansPreset() || [];
+        const homeClan = presets.find((p) => p.isHome) || presets[0];
+        if (homeClan) {
+          this.renderClan({ ...homeClan, memberList: [] }, false, false);
+        }
         this.renderEmptyState(err.message);
         this.showErrorModal(err);
       } else if (isManual) {
         this.showToast(`데이터 갱신 실패: ${err.message}`, "error");
       }
     } finally {
-      this.isSyncing = false;
+      if (isInitial) {
+        await this.triggerSlotStopSequence();
+      }
     }
   }
 
   async syncCompareLive(force = false) {
-    if (this.isCompareSyncing) return;
-
     const now = Date.now();
-    if (!force && now - this.lastCompareSyncTime < this.compareThrottleMs) {
+    if (!force && (now - this.lastCompareSyncTime < this.compareThrottleMs)) {
       return;
     }
-
-    this.isCompareSyncing = true;
     this.lastCompareSyncTime = now;
 
     try {
@@ -704,11 +947,10 @@ class ClanManagerApp {
         }
       }
     } catch (e) {
-      console.warn("갤클 비교 실시간 조회 오류:", e.message);
+      console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
     } finally {
-      this.isCompareSyncing = false;
-      if (this.activeMainTab === "compare") {
-        this.renderComparisonView();
+      if (this.activeMainTab === "compare" && (Date.now() - this.lastTabSwitchTime >= 1000)) {
+        this.renderComparisonView(false);
       }
     }
   }
@@ -760,58 +1002,85 @@ class ClanManagerApp {
 
   renderEmptyState(reason) {
     const mobileList = this.elements.memberMobileList;
+    const desktopTbody = this.elements.memberTableBody;
     const emptyState = this.elements.emptyState;
     const podium = this.elements.podiumContainer;
-    const runners = this.elements.podiumRunnersContainer;
 
     if (podium) {
       podium.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">데이터를 불러오지 못했습니다.</div>`;
     }
-    if (runners) {
-      runners.innerHTML = "";
-    }
 
-    if (this.elements.statTotalMembers) this.elements.statTotalMembers.textContent = "- / 50";
-    if (this.elements.statMemberVacant) this.elements.statMemberVacant.textContent = "조회 실패";
-    if (this.elements.statTotalDonations) this.elements.statTotalDonations.textContent = "-";
-    if (this.elements.statAvgDonations) this.elements.statAvgDonations.textContent = "-";
-    if (this.elements.statDormantCount) this.elements.statDormantCount.textContent = "-";
-
-    if (mobileList) {
-      mobileList.innerHTML = `
-        <div class="py-12 px-4 text-center">
-          <p class="text-xs font-semibold text-slate-300">클랜 데이터를 불러올 수 없습니다</p>
-          <p class="text-[11px] text-slate-500 mt-1 max-w-xs mx-auto">${this.escapeHtml(reason || "API 서버 응답 실패")}</p>
-          <button onclick="window.app.autoSyncLive(true)" class="mt-3 px-3 py-1.5 bg-[#1d222e] hover:bg-white/[0.1] text-xs text-slate-200 rounded-lg border border-white/[0.08] transition-colors inline-flex items-center gap-1.5">
-            <span>다시 시도</span>
-          </button>
+    const emptyHtml = `
+      <div class="py-12 px-4 text-center">
+        <div class="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-400/20 flex items-center justify-center mx-auto mb-2 text-rose-300">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
-      `;
+        <p class="text-xs font-semibold text-slate-300">클랜 데이터를 불러올 수 없습니다</p>
+        <p class="text-[11px] text-slate-500 mt-1 max-w-xs mx-auto">${this.escapeHtml(reason || "API 서버 응답 실패")}</p>
+        <button onclick="window.app.autoSyncLive(true)" class="mt-3 px-3.5 py-1.5 glass-control text-xs text-slate-200 rounded-full transition inline-flex items-center gap-1.5">
+          <span>다시 시도</span>
+        </button>
+      </div>
+    `;
+
+    if (mobileList) mobileList.innerHTML = emptyHtml;
+    if (desktopTbody) {
+      desktopTbody.innerHTML = `<tr><td colspan="4" class="py-10 text-center text-xs text-slate-500">${this.escapeHtml(reason || "데이터 수신 실패")}</td></tr>`;
     }
     if (emptyState) emptyState.classList.add("hidden");
   }
 
-  renderClan(clanData) {
+  renderClan(clanData, triggerAnimation = false, shouldStaggerList = false) {
+    const isFirstRender = !this.currentData || !this.currentData.memberList || this.currentData.memberList.length === 0;
     this.currentData = clanData;
-    const { clanName: nameEl, clanTag: tagEl } = this.elements;
+    const { clanName: nameEl, clanTag: tagEl, clanDesc: descEl } = this.elements;
 
     if (nameEl) nameEl.textContent = clanData.name || "Good Fellas";
     if (tagEl) tagEl.textContent = clanData.tag || "#G890J9JC";
+    if (descEl && clanData.description) descEl.textContent = clanData.description;
 
     const gfInCompare = (this.compareClansData || []).find((c) => (c.tag || "").toUpperCase() === "#G890J9JC");
     if (gfInCompare) {
       gfInCompare.name = clanData.name || gfInCompare.name;
-      gfInCompare.members = clanData.memberList ? clanData.memberList.length : (clanData.members ?? gfInCompare.members);
+      gfInCompare.members = clanData.memberList ? clanData.memberList.length : (clanData.members || 47);
       if (typeof clanData.donationsPerWeek === "number") gfInCompare.donationsPerWeek = clanData.donationsPerWeek;
+      if (clanData.clanScore) gfInCompare.clanScore = clanData.clanScore;
+      if (clanData.clanWarTrophies) gfInCompare.clanWarTrophies = clanData.clanWarTrophies;
+      if (clanData.description) gfInCompare.description = clanData.description;
 
-      if (this.activeMainTab === "compare") {
-        this.renderComparisonView();
+      if (this.activeMainTab === "compare" && (Date.now() - this.lastTabSwitchTime >= 1000)) {
+        this.renderComparisonView(false);
       }
     }
 
     this.updateStats(clanData);
-    this.renderCharts(clanData.memberList || []);
-    this.applyFilterAndRender();
+    this.renderCharts(clanData.memberList || [], triggerAnimation);
+    this.applyFilterAndRender(isFirstRender || shouldStaggerList);
+  }
+
+  animateNumber(element, targetVal, duration = 650, suffix = "", prefix = "") {
+    if (!element) return;
+    const hasPrevious = element.dataset.currentValue !== undefined;
+    const startVal = parseInt(element.dataset.currentValue, 10) || 0;
+    if (hasPrevious && startVal === targetVal && element.textContent) return;
+    element.dataset.currentValue = targetVal;
+
+    const startTime = performance.now();
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      const current = Math.round(startVal + (targetVal - startVal) * ease);
+      element.textContent = `${prefix}${current.toLocaleString()}${suffix}`;
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        element.textContent = `${prefix}${targetVal.toLocaleString()}${suffix}`;
+      }
+    };
+    requestAnimationFrame(step);
   }
 
   updateStats(clanData) {
@@ -822,16 +1091,9 @@ class ClanManagerApp {
     const now = Date.now();
 
     members.forEach((m) => {
-      const don = m.donations || 0;
-      if (don < 50) lowDonationCount++;
-
+      if ((m.donations || 0) < 50) lowDonationCount++;
       const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
-      if (effectiveDate) {
-        const daysAgo = (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysAgo >= 3) dormantCount++;
-      } else {
-        dormantCount++;
-      }
+      if (!effectiveDate || (now - effectiveDate.getTime()) / 86400000 >= 3) dormantCount++;
     });
 
     const officialWeeklyDonations = (clanData && typeof clanData.donationsPerWeek === "number")
@@ -839,26 +1101,29 @@ class ClanManagerApp {
       : members.reduce((sum, m) => sum + (m.donations || 0), 0);
 
     const avgDonations = Math.round(officialWeeklyDonations / (totalMembers || 1));
-
     const { statTotalMembers, statMemberVacant, statTotalDonations, statAvgDonations, statDormantCount, chipCountAll, chipCountLow } = this.elements;
 
-    if (statTotalMembers) statTotalMembers.textContent = `${totalMembers} / 50`;
-    if (statMemberVacant) statMemberVacant.textContent = `여유 자리: ${50 - totalMembers}석`;
-    if (statTotalDonations) statTotalDonations.textContent = officialWeeklyDonations.toLocaleString();
-    if (statAvgDonations) statAvgDonations.textContent = `1인 평균 ${avgDonations.toLocaleString()}개`;
-    if (statDormantCount) statDormantCount.textContent = `${dormantCount}명`;
+    if (statTotalMembers) this.animateNumber(statTotalMembers, totalMembers, 600, " / 50");
+    if (statMemberVacant) statMemberVacant.textContent = `여유 자리 ${50 - totalMembers}석`;
+    if (statTotalDonations) this.animateNumber(statTotalDonations, officialWeeklyDonations, 700);
+    if (statAvgDonations) statAvgDonations.textContent = `평균 ${avgDonations.toLocaleString()}개`;
+    if (statDormantCount) {
+      this.animateNumber(statDormantCount, dormantCount, 500, "명");
+      statDormantCount.classList.toggle("text-rose-400", dormantCount > 0);
+      statDormantCount.classList.toggle("text-white", dormantCount === 0);
+    }
 
-    if (chipCountAll) chipCountAll.textContent = totalMembers.toLocaleString();
-    if (chipCountLow) chipCountLow.textContent = lowDonationCount.toLocaleString();
+    if (chipCountAll) this.animateNumber(chipCountAll, totalMembers, 400);
+    if (chipCountLow) this.animateNumber(chipCountLow, lowDonationCount, 400);
   }
 
-  renderCharts(members) {
+  renderCharts(members, triggerAnimation = false) {
     if (members.length === 0) return;
-    this.renderPodium(members);
-    this.renderActivityDonut(members);
+    this.renderPodium(members, triggerAnimation);
+    this.renderActivityDonut(members, triggerAnimation);
   }
 
-  renderPodium(members) {
+  renderPodium(members, triggerAnimation = false) {
     const { podiumContainer, podiumRunnersContainer: runnersContainer } = this.elements;
     if (!podiumContainer) return;
 
@@ -869,81 +1134,96 @@ class ClanManagerApp {
       return;
     }
 
-    const first = sorted[0];
-    const second = sorted[1];
-    const third = sorted[2];
+    const [first, second, third] = sorted;
     const runners = sorted.slice(3);
+
+    const basePodiumClasses = "flex items-end justify-center gap-2.5 pt-3 pb-0 px-1 min-h-[144px]";
+    podiumContainer.className = triggerAnimation ? `${basePodiumClasses} podium-animate` : basePodiumClasses;
 
     podiumContainer.innerHTML = `
       <!-- 2위 -->
-      <a href="${this.getRoyaleApiUrl(second.tag)}" target="_blank" rel="noopener noreferrer" class="flex-1 max-w-[130px] flex flex-col items-center group">
-        <div class="text-center mb-1.5 w-full px-1">
-          <div class="text-xs text-white font-semibold truncate group-hover:text-blue-400 transition-colors" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
-          <div class="text-[11px] font-mono text-slate-400 mt-0.5 tabular-nums">${(second.donations || 0).toLocaleString()}개</div>
+      <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(second.tag)}">
+        <div class="podium-header text-center mb-2 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
+          <div class="text-xs text-white font-semibold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
+          <div class="text-[11px] font-medium text-slate-400 tabular-nums mt-0.5">${(second.donations || 0).toLocaleString()}</div>
         </div>
         <div class="podium-step podium-2nd w-full h-20 sm:h-24">
-          <span class="text-xl sm:text-2xl font-bold text-slate-400 font-mono mb-2">2</span>
+          <span class="text-xl font-bold text-slate-300/70 tabular-nums mb-2.5">2</span>
         </div>
-      </a>
+      </div>
       <!-- 1위 -->
-      <a href="${this.getRoyaleApiUrl(first.tag)}" target="_blank" rel="noopener noreferrer" class="flex-1 max-w-[145px] flex flex-col items-center group">
-        <div class="text-center mb-1.5 w-full px-1">
-          <div class="text-xs sm:text-sm text-white font-bold truncate group-hover:text-blue-400 transition-colors" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs font-mono font-semibold text-blue-400 mt-0.5 tabular-nums">${(first.donations || 0).toLocaleString()}개</div>
+      <div class="flex-1 max-w-[145px] flex flex-col items-center" data-member-tag="${this.escapeHtml(first.tag)}">
+        <div class="podium-header text-center mb-2 w-full px-1 cursor-pointer">
+          <div class="flex items-center justify-center mb-1">
+            <svg class="w-4 h-4 text-[#e6c989]" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+            </svg>
+          </div>
+          <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
+          <div class="text-xs font-semibold text-slate-300 tabular-nums mt-0.5">${(first.donations || 0).toLocaleString()}</div>
         </div>
         <div class="podium-step podium-1st w-full h-28 sm:h-32">
-          <span class="text-2xl sm:text-3xl font-bold text-blue-400 font-mono mb-2">1</span>
+          <span class="text-2xl font-bold text-[#e6c989] tabular-nums mb-2.5">1</span>
         </div>
-      </a>
+      </div>
       <!-- 3위 -->
-      <a href="${this.getRoyaleApiUrl(third.tag)}" target="_blank" rel="noopener noreferrer" class="flex-1 max-w-[130px] flex flex-col items-center group">
-        <div class="text-center mb-1.5 w-full px-1">
-          <div class="text-xs text-white font-semibold truncate group-hover:text-blue-400 transition-colors" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-[11px] font-mono text-slate-400 mt-0.5 tabular-nums">${(third.donations || 0).toLocaleString()}개</div>
+      <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(third.tag)}">
+        <div class="podium-header text-center mb-2 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
+          <div class="text-xs text-white font-semibold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
+          <div class="text-[11px] font-medium text-slate-400 tabular-nums mt-0.5">${(third.donations || 0).toLocaleString()}</div>
         </div>
         <div class="podium-step podium-3rd w-full h-14 sm:h-16">
-          <span class="text-lg sm:text-xl font-bold text-slate-500 font-mono mb-1">3</span>
+          <span class="text-lg font-bold text-slate-400/70 tabular-nums mb-1.5">3</span>
         </div>
-      </a>
+      </div>
     `;
 
     if (runnersContainer) {
+      const baseRunnerClasses = "grid grid-cols-2 gap-1.5 pt-3.5 mt-3.5 border-t border-white/[0.06]";
+      runnersContainer.className = triggerAnimation ? `${baseRunnerClasses} podium-animate` : baseRunnerClasses;
+
       runnersContainer.innerHTML = runners.map((m, idx) => `
-        <a href="${this.getRoyaleApiUrl(m.tag)}" target="_blank" rel="noopener noreferrer" class="hover:bg-white/[0.04] transition-colors flex items-center justify-between p-1.5 rounded bg-white/[0.02]">
+        <div data-member-tag="${this.escapeHtml(m.tag)}" class="podium-runner-item cursor-pointer hover:bg-white/[0.06] active:scale-[0.98] transition flex items-center justify-between px-2.5 py-2 rounded-2xl bg-white/[0.03] border border-white/[0.06]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="text-[10px] font-mono text-slate-500 w-3">${idx + 4}</span>
-            <span class="text-[11px] text-slate-300 font-medium truncate">${this.escapeHtml(m.name)}</span>
+            <span class="text-[11px] text-slate-200 font-medium truncate">${this.escapeHtml(m.name)}</span>
           </div>
-          <span class="text-[11px] font-mono font-semibold text-slate-400 shrink-0 ml-1 tabular-nums">${(m.donations || 0).toLocaleString()}</span>
-        </a>
+          <span class="text-[11px] font-semibold text-slate-400 tabular-nums shrink-0 ml-1">${(m.donations || 0).toLocaleString()}</span>
+        </div>
       `).join("");
     }
   }
 
-  renderActivityDonut(members) {
+  renderActivityDonut(members, triggerAnimation = false) {
     if (!window.Chart) return;
 
-    let seenToday = 0;
-    let seen1to2d = 0;
-    let seenDormant = 0;
+    let seenToday = 0, seen1to2d = 0, seenDormant = 0;
     const now = Date.now();
 
     members.forEach((m) => {
       const activeDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
-      if (!activeDate) {
-        seenDormant++;
-        return;
-      }
-      const daysAgo = (now - activeDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (!activeDate) { seenDormant++; return; }
+      const daysAgo = (now - activeDate.getTime()) / 86400000;
       if (daysAgo < 1) seenToday++;
       else if (daysAgo < 3) seen1to2d++;
       else seenDormant++;
     });
 
+    const centerValEl = document.getElementById("donut-center-value");
+    if (centerValEl) {
+      const pct = members.length ? Math.round((seenToday / members.length) * 100) : 0;
+      centerValEl.textContent = `${pct}%`;
+    }
+
     const activityCanvas = this.elements.chartActivity;
     if (!activityCanvas) return;
 
     const chartData = [seenToday, seen1to2d, seenDormant];
+
+    if (this.charts.activity && triggerAnimation) {
+      this.charts.activity.destroy();
+      this.charts.activity = null;
+    }
 
     if (this.charts.activity) {
       this.charts.activity.data.datasets[0].data = chartData;
@@ -957,46 +1237,50 @@ class ClanManagerApp {
           labels: ["오늘 접속", "1~2일 전", "3일+ 미접속"],
           datasets: [{
             data: chartData,
-            backgroundColor: ["#3b82f6", "#64748b", "#f43f5e"],
-            borderColor: isLight ? "#ffffff" : "#14171f",
-            borderWidth: 2,
-            hoverOffset: 2
+            backgroundColor: isLight
+              ? ["rgba(16, 185, 129, 0.82)", "rgba(15, 23, 42, 0.18)", "rgba(225, 29, 72, 0.78)"]
+              : ["rgba(52, 211, 153, 0.85)", "rgba(255, 255, 255, 0.22)", "rgba(255, 107, 107, 0.82)"],
+            borderWidth: 0,
+            borderRadius: 6,
+            spacing: 3,
+            hoverOffset: 3
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: {
-            duration: 300
-          },
+          cutout: "78%",
+          animation: { animateRotate: true, animateScale: true, duration: 680, easing: "easeOutQuart" },
           plugins: {
             legend: {
               position: "bottom",
               labels: {
-                color: isLight ? "#0f172a" : "#94a3b8",
-                boxWidth: 8,
-                padding: 10,
-                font: { size: 10, weight: "600" }
+                color: isLight ? "#475569" : "rgba(245, 245, 247, 0.62)",
+                usePointStyle: true,
+                pointStyle: "circle",
+                boxWidth: 6,
+                boxHeight: 6,
+                padding: 14,
+                font: { size: 10.5, weight: "500" }
               }
             },
             tooltip: {
-              backgroundColor: isLight ? "#ffffff" : "#1d222e",
-              titleColor: isLight ? "#0f172a" : "#f8fafc",
-              bodyColor: isLight ? "#334155" : "#94a3b8",
-              borderColor: isLight ? "rgba(15,23,42,0.12)" : "rgba(255,255,255,0.1)",
+              backgroundColor: isLight ? "rgba(255,255,255,0.92)" : "rgba(20,24,34,0.92)",
+              titleColor: isLight ? "#0f172a" : "#f5f5f7",
+              bodyColor: isLight ? "#475569" : "#94a3b8",
+              borderColor: isLight ? "rgba(15,23,42,0.1)" : "rgba(255,255,255,0.12)",
               borderWidth: 1,
               padding: 8,
-              displayColors: true,
+              cornerRadius: 10,
               callbacks: { label: (c) => ` ${c.label}: ${c.raw}명` }
             }
-          },
-          cutout: "68%"
+          }
         }
       });
     }
   }
 
-  renderComparisonView() {
+  renderComparisonView(triggerAnimation = false) {
     let clans = this.compareClansData;
     if (!Array.isArray(clans) || clans.length === 0) {
       clans = window.crApi?.getGalleryClansPreset() || [];
@@ -1007,12 +1291,9 @@ class ClanManagerApp {
 
     const enriched = clans.map((c) => {
       const isHome = (c.tag || "").toUpperCase() === "#G890J9JC" || c.isHome === true;
-      const membersCount = typeof c.members === "number" ? c.members : (c.memberList?.length ?? null);
-      const donationsWeekly = typeof c.donationsPerWeek === "number" ? c.donationsPerWeek : null;
-      const donationsAvg = (donationsWeekly !== null && membersCount)
-        ? Math.round(donationsWeekly / membersCount)
-        : null;
-
+      const membersCount = typeof c.members === "number" ? c.members : (c.memberList?.length || 0);
+      const donationsWeekly = typeof c.donationsPerWeek === "number" ? c.donationsPerWeek : 0;
+      const donationsAvg = Math.round(donationsWeekly / (membersCount || 1));
       return {
         ...c,
         isHome,
@@ -1022,138 +1303,122 @@ class ClanManagerApp {
       };
     });
 
-    const sortedClans = [...enriched].sort((a, b) => (b[metricKey] ?? -1) - (a[metricKey] ?? -1));
+    const sortedClans = [...enriched].sort((a, b) => (b[metricKey] || 0) - (a[metricKey] || 0));
     sortedClans.forEach((c, idx) => { c.metricRank = idx + 1; });
 
-    this.renderCompareCharts(sortedClans, metricKey);
-    this.renderCompareSummaryList(sortedClans, metricKey);
+    this.renderCompareCharts(sortedClans, metricKey, triggerAnimation);
+    this.renderCompareSummaryList(sortedClans, metricKey, triggerAnimation);
   }
 
-  renderCompareCharts(clans, metricKey = "donationsWeekly") {
+  renderCompareCharts(clans, metricKey = "donationsWeekly", triggerAnimation = false) {
     const stage = this.elements?.compareBarsStage || document.getElementById("compare-bars-stage");
     if (!stage) return;
 
     const meta = COMPARE_METRICS_META[metricKey] || COMPARE_METRICS_META.donationsWeekly;
     const isDonation = metricKey === "donationsWeekly";
-    const values = clans.map((c) => c[metricKey] ?? 0);
+    const values = clans.map((c) => c[metricKey] || 0);
     const maxVal = Math.max(...values, 1);
 
     let tickMax = Math.ceil(maxVal * 1.15);
-    if (isDonation) {
-      tickMax = Math.max(5000, Math.ceil(tickMax / 5000) * 5000);
-    } else {
-      tickMax = Math.max(50, Math.ceil(tickMax / 50) * 50);
-    }
+    tickMax = isDonation
+      ? Math.max(5000, Math.ceil(tickMax / 5000) * 5000)
+      : Math.max(50, Math.ceil(tickMax / 50) * 50);
 
-    const tickSteps = [
-      { val: tickMax, percent: 100 },
-      { val: Math.round(tickMax * 0.75), percent: 75 },
-      { val: Math.round(tickMax * 0.5), percent: 50 },
-      { val: Math.round(tickMax * 0.25), percent: 25 },
-      { val: 0, percent: 0 }
-    ];
+    const tickSteps = [100, 75, 50, 25, 0].map((percent) => ({
+      val: Math.round((tickMax * percent) / 100),
+      percent
+    }));
 
     let html = `
-      <div class="absolute left-11 sm:left-12 right-2.5 sm:right-3.5 top-6 sm:top-7 bottom-7 sm:bottom-7">
+      <div class="absolute left-11 sm:left-12 right-2.5 sm:right-3.5 top-6 sm:top-7 bottom-7">
         <div class="absolute inset-0 pointer-events-none z-0">
           ${tickSteps.map((t) => `
             <div class="absolute left-0 right-0 border-b ${t.percent === 0 ? 'border-white/[0.14] compare-baseline' : 'border-white/[0.05]'} compare-grid-line" style="bottom: ${t.percent}%;">
-              <span class="absolute right-full mr-2 sm:mr-2.5 text-[10px] sm:text-[11px] font-mono text-slate-400 compare-tick-text select-none text-right whitespace-nowrap" style="top: 0; transform: translateY(-50%);">${t.val.toLocaleString()}</span>
+              <span class="absolute right-full mr-2 text-[10px] font-mono text-slate-500 compare-tick-text select-none text-right whitespace-nowrap" style="top: 0; transform: translateY(-50%);">${t.val.toLocaleString()}</span>
             </div>
           `).join("")}
         </div>
-        <div class="absolute inset-0 flex items-end justify-between px-1.5 sm:px-5 pointer-events-none z-10">
+        <div id="compare-bars-wrapper" class="absolute inset-0 flex items-end justify-between px-2 sm:px-5 pointer-events-none z-10 ${triggerAnimation ? 'compare-animate' : ''}">
     `;
 
-    clans.forEach((c) => {
-      const rawVal = c[metricKey];
-      const hasVal = typeof rawVal === "number";
-      const val = hasVal ? rawVal : 0;
-      const barHeightPercent = hasVal ? Math.max(3.5, Math.min(100, (val / tickMax) * 100)) : 3.5;
-
-      // 내 클랜은 단일 브랜드 블루, 비교 클랜은 뉴트럴 슬레이트 톤
-      const barClasses = c.isHome
-        ? "bg-blue-500"
-        : "bg-slate-600/80";
+    clans.forEach((c, idx) => {
+      const val = c[metricKey] || 0;
+      const barHeightPercent = Math.max(4, Math.min(100, (val / tickMax) * 100));
+      const barStyleClass = c.isHome ? "compare-bar-home" : "compare-bar-other";
 
       html += `
-        <div class="flex-1 max-w-[95px] sm:max-w-[130px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
-          <div class="w-[72%] sm:w-[68%] max-w-[68px] sm:max-w-[90px] relative flex justify-center transition-all duration-300" style="height: ${barHeightPercent.toFixed(2)}%;">
-            <div class="compare-bar-header absolute bottom-full mb-1 sm:mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
-              <span class="text-xs sm:text-[13px] font-bold tracking-tight ${c.isHome ? 'text-blue-400' : 'text-white'} compare-header-num">${hasVal ? `${val.toLocaleString()}${meta.suffix}` : "-"}</span>
+        <div class="flex-1 max-w-[95px] sm:max-w-[125px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
+          <div class="w-[72%] max-w-[68px] relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
+            <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
+              <span class="text-xs font-semibold tracking-tight ${c.isHome ? 'text-white' : 'text-slate-400'} compare-header-num">${val.toLocaleString()}${meta.suffix}</span>
             </div>
-            <div class="w-full h-full rounded-t-lg ${barClasses}"></div>
+            <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-2xl ${barStyleClass}"></div>
           </div>
-          <div class="compare-clan-name absolute top-full pt-1.5 sm:pt-2 w-full text-center text-xs sm:text-[13px] font-semibold text-white tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
+          <div class="compare-clan-name absolute top-full pt-2 w-full text-center text-xs ${c.isHome ? 'font-bold text-white' : 'font-medium text-slate-400'} tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
             ${this.escapeHtml(c.name)}
           </div>
         </div>
       `;
     });
 
-    html += `
-        </div>
-      </div>
-    `;
-
+    html += `</div></div>`;
     stage.innerHTML = html;
+
+    if (triggerAnimation) {
+      setTimeout(() => document.getElementById("compare-bars-wrapper")?.classList.remove("compare-animate"), 850);
+    }
   }
 
-  renderCompareSummaryList(clans, metricKey = "donationsWeekly") {
+  renderCompareSummaryList(clans, metricKey = "donationsWeekly", triggerAnimation = false) {
     const container = this.elements.compareSummaryList;
     if (!container) return;
 
     const meta = COMPARE_METRICS_META[metricKey] || COMPARE_METRICS_META.donationsWeekly;
     const homeClan = clans.find((c) => c.isHome) || clans[0];
-    const homeValue = homeClan?.[metricKey];
+    const homeValue = homeClan?.[metricKey] || 0;
 
-    let html = "";
-    clans.forEach((c, idx) => {
+    container.innerHTML = clans.map((c, idx) => {
       const isHome = c.isHome;
-      const currentVal = c[metricKey];
-      const hasVal = typeof currentVal === "number" && typeof homeValue === "number";
-      const diffVal = hasVal ? currentVal - homeValue : null;
+      const currentVal = c[metricKey] || 0;
+      const diffVal = currentVal - homeValue;
+      const popClass = triggerAnimation ? "badge-pop" : "";
+      const animStyle = triggerAnimation ? `style="animation-delay: ${0.08 + idx * 0.06}s"` : "";
 
-      let diffBadge = `<span class="text-slate-400 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block">기준</span>`;
+      let diffBadge = `<span class="${popClass} diff-badge-neutral font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-full inline-block" ${animStyle}>기준</span>`;
       if (!isHome) {
-        if (diffVal === null) {
-          diffBadge = `<span class="text-slate-500 font-mono text-[11px]">-</span>`;
-        } else if (diffVal > 0) {
-          diffBadge = `<span class="text-emerald-400 font-mono text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded inline-block">+${diffVal.toLocaleString()}${meta.suffix}</span>`;
+        if (diffVal > 0) {
+          diffBadge = `<span class="${popClass} diff-badge-pos font-mono text-[10.5px] font-semibold px-2 py-0.5 rounded-full inline-block" ${animStyle}>+${diffVal.toLocaleString()}${meta.suffix}</span>`;
         } else if (diffVal < 0) {
-          diffBadge = `<span class="text-rose-400 font-mono text-[11px] font-bold bg-rose-500/10 px-1.5 py-0.5 rounded inline-block">${diffVal.toLocaleString()}${meta.suffix}</span>`;
+          diffBadge = `<span class="${popClass} diff-badge-neg font-mono text-[10.5px] font-semibold px-2 py-0.5 rounded-full inline-block" ${animStyle}>${diffVal.toLocaleString()}${meta.suffix}</span>`;
         } else {
-          diffBadge = `<span class="text-slate-400 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block">0${meta.suffix}</span>`;
+          diffBadge = `<span class="${popClass} diff-badge-neutral font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-full inline-block" ${animStyle}>0${meta.suffix}</span>`;
         }
       }
 
-      const memberLabel = typeof c.membersCount === "number" ? `${c.membersCount}/50명` : "집계 중";
-
-      html += `
-        <div class="p-3.5 sm:p-4 flex items-center justify-between gap-3 ${isHome ? 'bg-blue-950/20' : ''}">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <span class="text-xs font-mono font-bold w-5 text-center shrink-0 ${idx === 0 ? 'text-blue-400' : 'text-slate-500'}">${idx + 1}</span>
+      return `
+        <div class="p-4 flex items-center justify-between gap-3 transition ${isHome ? 'bg-white/[0.03]' : ''}">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="text-xs font-mono font-semibold w-5 text-center shrink-0 ${idx === 0 ? 'text-white' : 'text-slate-500'}">${idx + 1}</span>
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-bold text-white text-sm tracking-tight truncate">${this.escapeHtml(c.name)}</span>
-                ${isHome ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 shrink-0">내 클랜</span>' : ''}
+                ${isHome ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/[0.12] text-white shrink-0">내 클랜</span>' : ''}
               </div>
               <div class="text-[11px] font-mono text-slate-500 mt-0.5 flex items-center gap-1.5">
                 <span>${this.escapeHtml(c.tag)}</span>
                 <span>·</span>
-                <span class="text-slate-400 font-sans">${memberLabel}</span>
+                <span class="text-slate-400 font-sans">${c.membersCount}/50명</span>
               </div>
             </div>
           </div>
           <div class="text-right shrink-0">
             <div class="text-[10px] text-slate-500">${meta.label}</div>
-            <div class="text-xs sm:text-sm font-bold text-white font-mono mt-0.5 tabular-nums">${typeof currentVal === "number" ? `${currentVal.toLocaleString()}${meta.suffix}` : "-"}</div>
+            <div class="text-sm font-bold text-white tabular-nums mt-0.5">${currentVal.toLocaleString()}${meta.suffix}</div>
             <div class="mt-1">${diffBadge}</div>
           </div>
         </div>
       `;
-    });
-    container.innerHTML = html;
+    }).join("");
   }
 
   setFilterTab(filterType, element) {
@@ -1161,7 +1426,7 @@ class ClanManagerApp {
     this.activeFilter = filterType;
     document.querySelectorAll(".filter-chip").forEach((btn) => btn.classList.remove("active"));
     if (element) element.classList.add("active");
-    this.applyFilterAndRender();
+    this.applyFilterAndRender(true);
   }
 
   openDormantModal() {
@@ -1205,7 +1470,7 @@ class ClanManagerApp {
         const donations = member.donations || 0;
 
         return `
-          <a href="${this.getRoyaleApiUrl(member.tag)}" target="_blank" rel="noopener noreferrer" class="p-3.5 hover:bg-white/[0.04] transition-colors flex items-center justify-between gap-2 group">
+          <div class="p-3.5 hover:bg-white/[0.04] active:bg-white/[0.06] transition cursor-pointer flex items-center justify-between gap-2" data-dormant-tag="${this.escapeHtml(member.tag)}">
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${idx + 1}</span>
@@ -1222,11 +1487,10 @@ class ClanManagerApp {
               <div class="inline-flex items-center gap-1 text-xs ${status.textColor}">
                 <span class="status-dot ${status.dotColor}"></span>
                 <span>${status.text}</span>
-                ${EXTERNAL_LINK_SVG}
               </div>
               <div class="text-[10px] text-slate-500 font-mono mt-0.5">배틀: ${relativeBattle}</div>
             </div>
-          </a>
+          </div>
         `;
       }).join("");
     }
@@ -1237,6 +1501,25 @@ class ClanManagerApp {
   closeDormantModal() {
     const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
     this.closeModalSmooth(modal);
+  }
+
+  switchFromDormantToMember(memberTag) {
+    this.closeDormantModal();
+    setTimeout(() => {
+      this.openMemberModal(memberTag);
+    }, 140);
+  }
+
+  toggleSort(key) {
+    if (this.sorting.key === key) {
+      this.sorting.order = this.sorting.order === "desc" ? "asc" : "desc";
+    } else {
+      this.sorting.key = key;
+      this.sorting.order = "desc";
+    }
+    if (this.elements.sortKeySelect) this.elements.sortKeySelect.value = this.sorting.key;
+    this.updateSortOrderUI();
+    this.applyFilterAndRender(true);
   }
 
   parseDateSafe(dateStr) {
@@ -1269,54 +1552,22 @@ class ClanManagerApp {
     const diffMinutes = Math.floor(diffSeconds / 60);
 
     if (diffSeconds <= 180) {
-      return {
-        isOnline: true,
-        text: "접속 중",
-        dotColor: "green",
-        isPulse: true,
-        textColor: "text-emerald-400 font-bold"
-      };
+      return { isOnline: true, text: "접속 중", dotColor: "green", isPulse: true, textColor: "text-white font-semibold" };
     }
-
     if (diffMinutes < 60) {
-      return {
-        isOnline: false,
-        text: `${diffMinutes}분 전`,
-        dotColor: "green",
-        isPulse: false,
-        textColor: "text-slate-300 font-medium"
-      };
+      return { isOnline: false, text: `${diffMinutes}분 전`, dotColor: "green", isPulse: false, textColor: "text-slate-200 font-medium" };
     }
 
     const diffHours = Math.floor(diffMinutes / 60);
     if (diffHours < 24) {
-      return {
-        isOnline: false,
-        text: `${diffHours}시간 전`,
-        dotColor: "amber",
-        isPulse: false,
-        textColor: "text-slate-300 font-medium"
-      };
+      return { isOnline: false, text: `${diffHours}시간 전`, dotColor: "amber", isPulse: false, textColor: "text-slate-300 font-medium" };
     }
 
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays >= 3) {
-      return {
-        isOnline: false,
-        text: `${diffDays}일 전`,
-        dotColor: "rose",
-        isPulse: false,
-        textColor: "text-rose-400 font-bold"
-      };
+      return { isOnline: false, text: `${diffDays}일 전`, dotColor: "rose", isPulse: false, textColor: "text-rose-300 font-semibold" };
     }
-
-    return {
-      isOnline: false,
-      text: `${diffDays}일 전`,
-      dotColor: "amber",
-      isPulse: false,
-      textColor: "text-slate-300 font-medium"
-    };
+    return { isOnline: false, text: `${diffDays}일 전`, dotColor: "amber", isPulse: false, textColor: "text-slate-300 font-medium" };
   }
 
   formatRelativeTime(dateStr) {
@@ -1337,7 +1588,32 @@ class ClanManagerApp {
     return `${diffDays}일 전`;
   }
 
-  applyFilterAndRender() {
+  openMemberModal(memberTag) {
+    if (!this.currentData?.memberList) return;
+    const member = this.currentData.memberList.find((m) => m.tag === memberTag);
+    if (!member) return;
+
+    const modal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
+    if (!modal) return;
+
+    const nameEl = document.getElementById("modal-member-name");
+    if (nameEl) nameEl.textContent = member.name || "클랜원";
+
+    const royaleLink = document.getElementById("btn-royaleapi-link");
+    if (royaleLink) {
+      const cleanTag = String(member.tag || "").replace("#", "");
+      royaleLink.href = `https://royaleapi.com/player/${encodeURIComponent(cleanTag)}`;
+    }
+
+    this.openModalSmooth(modal);
+  }
+
+  closeMemberModal() {
+    const modal = this.elements.memberDetailModal || document.getElementById("member-detail-modal");
+    this.closeModalSmooth(modal);
+  }
+
+  applyFilterAndRender(shouldStagger = false) {
     if (!this.currentData || !this.currentData.memberList) return;
 
     let list = [...this.currentData.memberList];
@@ -1378,7 +1654,8 @@ class ClanManagerApp {
     }
 
     this.filteredMembers = list;
-    this.renderMobileList();
+    this.renderDesktopTable();
+    this.renderMobileList(shouldStagger);
   }
 
   getRoleBadge(role) {
@@ -1390,23 +1667,72 @@ class ClanManagerApp {
     }
   }
 
-  renderMobileList() {
+  renderDesktopTable() {
+    const tbody = this.elements.memberTableBody;
+    const emptyState = this.elements.emptyState;
+    if (!tbody) return;
+    if (tbody.closest(".hidden") && window.innerWidth < 1024) return;
+
+    if (this.filteredMembers.length === 0) {
+      tbody.innerHTML = "";
+      if (emptyState) emptyState.classList.remove("hidden");
+      return;
+    }
+    if (emptyState) emptyState.classList.add("hidden");
+
+    tbody.innerHTML = this.filteredMembers.map((member, idx) => {
+      const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
+      const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
+      const effectiveDate = this.getEffectiveActiveDate(member.lastSeen, member.lastBattleTime);
+      const exactSeen = effectiveDate ? effectiveDate.toLocaleString("ko-KR") : "기록 없음";
+      const donations = member.donations || 0;
+      const received = member.donationsReceived || 0;
+
+      return `
+        <tr data-member-tag="${this.escapeHtml(member.tag)}" class="cursor-pointer">
+          <td class="text-center font-mono text-xs text-slate-500">${member.clanRank || idx + 1}</td>
+          <td>
+            <div class="flex items-center gap-1.5">
+              <span class="font-semibold text-white tracking-tight">${this.escapeHtml(member.name)}</span>
+              ${this.getRoleBadge(member.role)}
+            </div>
+            <div class="flex items-center gap-2 text-[11px] text-slate-500 font-mono mt-0.5">
+              <span>${this.escapeHtml(member.tag)}</span>
+              <span class="text-slate-400 font-sans tabular-nums">${(member.trophies || 0).toLocaleString()}</span>
+            </div>
+          </td>
+          <td class="text-center">
+            <div class="inline-flex items-center gap-1.5" title="${exactSeen}">
+              <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
+              <span class="${status.textColor} text-xs">${status.text}</span>
+            </div>
+            <div class="text-[10px] text-slate-500 font-mono mt-0.5">배틀: ${relativeBattle}</div>
+          </td>
+          <td class="text-right">
+            <div class="font-semibold text-sm tabular-nums ${donations === 0 ? 'text-rose-300' : 'text-white'}">${donations.toLocaleString()}</div>
+            <div class="text-[10px] text-slate-500 font-mono">받음: ${received.toLocaleString()}</div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  renderMobileList(shouldStagger = false) {
     const container = this.elements.memberMobileList;
     const emptyState = this.elements.emptyState;
     if (!container) return;
+
+    if (window.innerWidth >= 1024 && this.elements.memberTableBody && !this.elements.memberTableBody.closest(".hidden")) return;
 
     if (this.filteredMembers.length === 0) {
       container.innerHTML = "";
       if (emptyState) emptyState.classList.remove("hidden");
       return;
     }
-
     if (emptyState) emptyState.classList.add("hidden");
 
     const now = Date.now();
-    let cardsHtml = "";
-
-    this.filteredMembers.forEach((member, idx) => {
+    container.innerHTML = this.filteredMembers.map((member, idx) => {
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
@@ -1414,40 +1740,36 @@ class ClanManagerApp {
       const battleDate = this.parseDateSafe(member.lastBattleTime);
       if (battleDate) {
         const battleSecsAgo = Math.floor((now - battleDate.getTime()) / 1000);
-        if (battleSecsAgo <= 180) battleTextColor = "text-emerald-400 font-bold";
-        else if (battleSecsAgo < 86400) battleTextColor = "text-blue-400 font-semibold";
-        else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400 font-semibold";
+        if (battleSecsAgo >= 259200) battleTextColor = "text-rose-300/90";
       }
 
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
+      const animateCard = shouldStagger && idx < 14;
 
-      cardsHtml += `
-        <a href="${this.getRoyaleApiUrl(member.tag)}" target="_blank" rel="noopener noreferrer" class="mobile-member-card group">
+      return `
+        <div class="mobile-member-card ${animateCard ? 'card-stagger-in' : ''}" ${animateCard ? `style="animation-delay: ${(idx * 0.024).toFixed(3)}s"` : ''} data-member-tag="${this.escapeHtml(member.tag)}">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
-              <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
-              <span class="font-bold text-white text-[13px] truncate">${this.escapeHtml(member.name)}</span>
+              <span class="font-mono text-[11px] text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
+              <span class="font-semibold text-white text-[13.5px] truncate">${this.escapeHtml(member.name)}</span>
               ${this.getRoleBadge(member.role)}
               <span class="text-[10px] font-mono text-slate-500 truncate hidden sm:inline">${this.escapeHtml(member.tag)}</span>
             </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <span class="text-xs font-mono font-semibold text-slate-300 tabular-nums">${(member.trophies || 0).toLocaleString()}</span>
-              ${EXTERNAL_LINK_SVG}
-            </div>
+            <span class="text-xs font-semibold text-slate-300 tabular-nums shrink-0">${(member.trophies || 0).toLocaleString()}</span>
           </div>
 
-          <div class="grid grid-cols-3 gap-1 pt-2 mt-2 border-t border-white/[0.05] items-center">
+          <div class="grid grid-cols-3 gap-1 pt-2.5 mt-2 border-t border-white/[0.05] items-center">
             <div class="text-left">
-              <div class="text-[10px] text-slate-500 font-medium">접속 상태</div>
-              <div class="text-xs ${status.textColor} mt-0.5 font-medium flex items-center gap-1 truncate">
+              <div class="text-[10px] text-slate-500">접속 상태</div>
+              <div class="text-xs ${status.textColor} mt-0.5 flex items-center gap-1.5 truncate">
                 <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
                 <span class="truncate">${status.text}</span>
               </div>
             </div>
 
             <div class="text-center">
-              <div class="text-[10px] text-slate-500 font-medium">최근 배틀</div>
+              <div class="text-[10px] text-slate-500">최근 배틀</div>
               <div class="text-xs ${battleTextColor} mt-0.5 font-medium flex items-center justify-center gap-1 truncate">
                 ${SWORDS_INLINE_SVG}
                 <span class="truncate">${relativeBattle}</span>
@@ -1455,16 +1777,15 @@ class ClanManagerApp {
             </div>
 
             <div class="text-right">
-              <div class="text-[10px] text-slate-500 font-medium">주간 지원량</div>
-              <div class="text-xs font-bold ${donations >= 300 ? 'text-blue-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5 font-mono truncate tabular-nums">
+              <div class="text-[10px] text-slate-500">주간 지원량</div>
+              <div class="text-xs font-semibold ${donations === 0 ? 'text-rose-300' : 'text-white'} mt-0.5 tabular-nums truncate">
                 ${donations.toLocaleString()}<span class="text-[10px] font-normal text-slate-500 ml-0.5">/ ${received}</span>
               </div>
             </div>
           </div>
-        </a>
+        </div>
       `;
-    });
-    container.innerHTML = cardsHtml;
+    }).join("");
   }
 
   escapeHtml(str) {
