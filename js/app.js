@@ -837,9 +837,9 @@ class ClanManagerApp {
       }
     }
 
-    if (hasNewData && this.currentData) {
+    if (hasNewData) {
       this.saveBattleLogCache();
-      if (!this.isAnyModalOpen()) {
+      if (this.currentData && !this.isAnyModalOpen()) {
         this.applyFilterAndRender(false);
         this.updateStats(this.currentData);
         this.renderActivityDonut(this.currentData.memberList || [], false);
@@ -847,7 +847,7 @@ class ClanManagerApp {
     }
   }
 
-  processIncomingClanData(liveData, shouldAnimate = false) {
+  async processIncomingClanData(liveData, shouldAnimate = false, waitForBattleLogs = false) {
     if (!liveData || !liveData.memberList) return;
 
     // 모달 팝업이 활성화되어 있는 동안 백그라운드 DOM 전면 재렌더링을 보류하여 팝업 레이아웃 요동 방지
@@ -876,6 +876,11 @@ class ClanManagerApp {
     }
 
     this.bindCachedBattleLogs(liveData.memberList);
+
+    if (waitForBattleLogs && missingBattleMembers.length > 0) {
+      await this.fetchAllMembersBattleLogs(missingBattleMembers);
+    }
+
     this.renderClan(liveData, shouldAnimate, shouldAnimate);
 
     if (shouldAnimate) {
@@ -885,7 +890,7 @@ class ClanManagerApp {
       }, 850);
     }
 
-    if (missingBattleMembers.length > 0) {
+    if (!waitForBattleLogs && missingBattleMembers.length > 0) {
       this.fetchAllMembersBattleLogs(missingBattleMembers);
     }
   }
@@ -901,36 +906,17 @@ class ClanManagerApp {
     const tag = window.crApi?.settings?.clanTag || "#G890J9JC";
 
     try {
-      let resolvedAfterTimeout = false;
-
-      const dataFetchPromise = window.crApi.fetchClanFullData(tag, null, isManual).then((liveData) => {
-        if (resolvedAfterTimeout && liveData && liveData.memberList) {
-          this.processIncomingClanData(liveData, false);
-        }
-        return liveData;
-      });
+      const dataFetchPromise = window.crApi.fetchClanFullData(tag, null, isManual);
 
       if (isInitial && this.emotesReadyPromise) {
         await this.emotesReadyPromise;
       }
 
-      const timeoutFallback = new Promise((resolve) => setTimeout(() => resolve("TIMEOUT"), 2500));
-      const raceResult = isInitial
-        ? await Promise.race([dataFetchPromise, timeoutFallback])
-        : await dataFetchPromise;
+      const liveData = await dataFetchPromise;
 
-      if (raceResult === "TIMEOUT") {
-        resolvedAfterTimeout = true;
-        if (!this.currentData) {
-          const presets = window.crApi?.getGalleryClansPreset() || [];
-          const homeClan = presets.find((p) => p.isHome) || presets[0];
-          if (homeClan) {
-            this.renderClan({ ...homeClan, memberList: [] }, false, false);
-          }
-        }
-      } else if (raceResult && raceResult.memberList) {
+      if (liveData && liveData.memberList) {
         const shouldAnimateManual = isManual && !isInitial;
-        this.processIncomingClanData(raceResult, shouldAnimateManual);
+        await this.processIncomingClanData(liveData, shouldAnimateManual, isInitial);
       }
 
       if (isInitial) {

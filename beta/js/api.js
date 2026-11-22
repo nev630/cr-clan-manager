@@ -150,7 +150,7 @@ class ClashRoyaleAPI {
   async fetchClanSummary(clanTag, force = false) {
     try {
       const q = force ? "?force=1" : "";
-      return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}/summary${q}`, 3500);
+      return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}/summary${q}`, 10000);
     } catch (e) {
       console.warn("단일 통합 요약 엔드포인트 미지원 또는 응답 지연 -> 일반 조회로 폴백:", e.message);
       return null;

@@ -1,8 +1,7 @@
 @charset "UTF-8";
 
-/* Pretendard & Black Han Sans / Jua for Clash Royale Game Typography */
+/* Pretendard Web Font */
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
-@import url("https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap");
 
 :root {
   --bg-base: #0b0d13;
@@ -43,20 +42,7 @@ body {
   overflow-x: hidden;
 }
 
-/* 클래시 로얄 스타일 굵은 외곽선 + 하단 드롭섀도우 텍스트 */
-.cr-outline-text {
-  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  text-shadow:
-    -1px -1px 0 #141926,
-     1px -1px 0 #141926,
-    -1px  1px 0 #141926,
-     1px  1px 0 #141926,
-     0px  2px 0 #0d1018;
-}
-
-/* 정교한 서피스 카드 */
+/* 정교한 서피스 카드 (소프트 옵시디언 & 14px 블러 뎁스) */
 .surface-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
@@ -70,7 +56,7 @@ body {
   border-color: var(--border-hover);
 }
 
-/* 고정폭 수치 타이포그래피 */
+/* 고정폭 수치 타이포그래피 (자릿수 흔들림 방지) */
 .tabular-nums,
 #stat-total-members,
 #stat-total-donations,
@@ -90,13 +76,12 @@ button:active,
 .filter-chip:active,
 .main-nav-btn:active,
 .compare-metric-chip:active,
-.hof-rank-card:active,
-.hof-podium-col:active {
+.mobile-member-card:active {
   transform: scale3d(0.975, 0.975, 1) !important;
   transition: transform 0.1s var(--ease-spring) !important;
 }
 
-/* 미니멀 상태 점 */
+/* 미니멀 상태 점 (Status Dot) */
 .status-dot {
   width: 6px;
   height: 6px;
@@ -105,20 +90,21 @@ button:active,
   flex-shrink: 0;
 }
 .status-dot.green {
-  background-color: #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+  background-color: var(--accent-green);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
 }
 .status-dot.amber {
-  background-color: #f59e0b;
+  background-color: var(--accent-amber);
 }
 .status-dot.rose, .status-dot.red {
-  background-color: #f43f5e;
-  box-shadow: 0 0 6px rgba(244, 63, 94, 0.5);
+  background-color: var(--accent-rose);
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.4);
 }
 .status-dot.slate {
   background-color: #64748b;
 }
 
+/* 펄스 애니메이션 (라이브 동기화용) */
 @keyframes pulseDot {
   0%, 100% { opacity: 1; transform: scale3d(1, 1, 1); }
   50% { opacity: 0.4; transform: scale3d(0.85, 0.85, 1); }
@@ -127,492 +113,387 @@ button:active,
   animation: pulseDot 2.4s infinite ease-in-out;
 }
 
-/* ============================================================
-   클래시 로얄 명예의 전당 (Hall of Fame) 시상대 & 랭킹 카드 디자인
-   ============================================================ */
-.hof-showcase-shell {
-  position: relative;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 2px solid #2a184a;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  background: linear-gradient(180deg, #5d21a8 0%, #441580 55%, #340f66 100%);
-}
-
-/* 상단 하늘 배경 + 빛줄기 */
-.hof-sky-stage {
-  position: relative;
-  padding: 14px 8px 0 8px;
-  background: linear-gradient(180deg, #499be8 0%, #86c9f8 52%, #dff2fe 88%, #fef9e7 100%);
-  overflow: hidden;
-}
-
-.hof-sunburst {
-  position: absolute;
-  top: -30px;
-  left: 50%;
-  width: 440px;
-  height: 320px;
-  transform: translateX(-50%);
-  background: repeating-conic-gradient(
-    from 0deg,
-    rgba(255, 252, 224, 0.42) 0deg 10deg,
-    rgba(255, 255, 255, 0.04) 10deg 20deg
-  );
-  mask-image: radial-gradient(circle at 50% 48%, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 52%, transparent 76%);
-  -webkit-mask-image: radial-gradient(circle at 50% 48%, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 52%, transparent 76%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.hof-cloud {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 9999px;
-  filter: blur(6px);
-  pointer-events: none;
-  z-index: 0;
-}
-.hof-cloud-1 {
-  width: 110px;
-  height: 22px;
-  top: 22px;
-  left: -18px;
-  transform: rotate(-12deg);
-}
-.hof-cloud-2 {
-  width: 130px;
-  height: 26px;
-  top: 16px;
-  right: -24px;
-  transform: rotate(14deg);
-}
-
-/* 3인 석상 & 성벽 단상 컨테이너 */
-.hof-podium-stage {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 0;
-  padding-top: 4px;
-  min-height: 215px;
-}
-
-.hof-podium-col {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* 필터 칩 버튼 */
+.filter-chip {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: color 0.24s var(--ease-silky), background-color 0.24s var(--ease-silky), border-color 0.24s var(--ease-silky), transform 0.16s var(--ease-spring);
   cursor: pointer;
-  user-select: none;
-  transition: transform 0.2s var(--ease-spring), filter 0.2s ease;
-}
-.hof-podium-col:hover {
-  filter: brightness(1.05);
-  transform: translateY(-2px);
-}
-
-.hof-podium-col.rank-2 {
-  flex: 1;
-  z-index: 2;
-  margin-right: -6px;
-}
-.hof-podium-col.rank-1 {
-  flex: 1.16;
-  z-index: 4;
-}
-.hof-podium-col.rank-3 {
-  flex: 1;
-  z-index: 2;
-  margin-left: -6px;
-}
-
-/* 킹 석상 래퍼 (assets/podium/king-gold.png 등 PNG 우선 + SVG 폴백) */
-.hof-bust-wrap {
-  position: relative;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  margin-bottom: -10px;
-  z-index: 1;
-}
-.hof-podium-col.rank-1 .hof-bust-wrap {
-  height: 112px;
-}
-.hof-podium-col.rank-2 .hof-bust-wrap,
-.hof-podium-col.rank-3 .hof-bust-wrap {
-  height: 94px;
-}
-
-.hof-bust-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: bottom center;
-  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.28));
-  pointer-events: none;
-}
-.hof-podium-col.rank-1 .hof-bust-img {
-  filter: drop-shadow(0 0 14px rgba(255, 223, 89, 0.75)) drop-shadow(0 4px 10px rgba(15, 23, 42, 0.3));
-}
-
-/* 성벽 단상 (플라크 + 성가퀴 + 파란 기둥 배너) */
-.hof-pedestal {
-  position: relative;
-  width: 100%;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* 단상 상단 석조 명판 */
-.hof-plaque {
-  position: relative;
-  width: 100%;
-  background: linear-gradient(180deg, #f3f7fb 0%, #dce4ee 75%, #c5d1df 100%);
-  border: 2px solid #9aa9bc;
-  border-radius: 8px 8px 3px 3px;
-  box-shadow: inset 0 2px 0 #ffffff, 0 3px 6px rgba(15, 23, 42, 0.25);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 4px 5px 4px;
-}
-.hof-podium-col.rank-1 .hof-plaque {
-  min-height: 54px;
-  border-color: #aebcd0;
-  box-shadow: inset 0 2px 0 #ffffff, 0 5px 12px rgba(15, 23, 42, 0.32);
-}
-.hof-podium-col.rank-2 .hof-plaque,
-.hof-podium-col.rank-3 .hof-plaque {
-  min-height: 46px;
-}
-
-/* 명판 상단 중앙 보석/왕관 장식 */
-.hof-crest-gem {
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 14px;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
-}
-.hof-crest-gem.gold {
-  width: 22px;
-  height: 16px;
-  top: -9px;
-  background: linear-gradient(180deg, #ffe97d 0%, #f59e0b 100%);
-  border: 1.5px solid #92400e;
-}
-.hof-crest-gem.silver {
-  background: linear-gradient(180deg, #f8fafc 0%, #94a3b8 100%);
-  border: 1.5px solid #475569;
-}
-.hof-crest-gem.bronze {
-  background: linear-gradient(180deg, #fdba74 0%, #c2410c 100%);
-  border: 1.5px solid #7c2d12;
-}
-
-/* 명판 내부 닉네임 (노란 클래시 로얄 폰트 스타일) */
-.hof-plaque-name {
-  font-weight: 900;
-  color: #ffe869;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow:
-    -1.2px -1.2px 0 #1e1b18,
-     1.2px -1.2px 0 #1e1b18,
-    -1.2px  1.2px 0 #1e1b18,
-     1.2px  1.2px 0 #1e1b18,
-     0px    2px   0 #0f0d0b;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.hof-podium-col.rank-1 .hof-plaque-name {
-  font-size: 13px;
+.filter-chip:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
 }
-.hof-podium-col.rank-2 .hof-plaque-name,
-.hof-podium-col.rank-3 .hof-plaque-name {
-  font-size: 11.5px;
-}
-
-.hof-plaque-score {
-  font-size: 10px;
-  font-weight: 800;
+.filter-chip.active {
   color: #ffffff;
-  margin-top: 1px;
-  text-shadow:
-    -1px -1px 0 #1e293b,
-     1px -1px 0 #1e293b,
-    -1px  1px 0 #1e293b,
-     1px  1px 0 #1e293b;
-}
-
-/* 성벽 요철 띠 (금/은/동 포인트) */
-.hof-battlement {
-  width: 104%;
-  height: 11px;
-  border-top: 3px solid;
-  border-bottom: 2px solid #94a3b8;
-  background-color: #d6e0ec;
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.25);
-}
-.hof-battlement.gold {
-  border-top-color: #fbbf24;
-  background-image: repeating-linear-gradient(
-    90deg,
-    #fbbf24 0px,
-    #fbbf24 10px,
-    #e2e8f0 10px,
-    #e2e8f0 18px
-  );
-}
-.hof-battlement.silver {
-  border-top-color: #94a3b8;
-  background-image: repeating-linear-gradient(
-    90deg,
-    #94a3b8 0px,
-    #94a3b8 9px,
-    #e2e8f0 9px,
-    #e2e8f0 16px
-  );
-}
-.hof-battlement.bronze {
-  border-top-color: #ea580c;
-  background-image: repeating-linear-gradient(
-    90deg,
-    #ea580c 0px,
-    #ea580c 9px,
-    #e2e8f0 9px,
-    #e2e8f0 16px
-  );
-}
-
-/* 성벽 하단 기둥 & 로열 블루+골드 태피스트리 */
-.hof-pillar {
-  width: 92%;
-  background: linear-gradient(90deg, #b8c6d8 0%, #e4ecf5 24%, #e4ecf5 76%, #aebed2 100%);
-  border-left: 1.5px solid #8a9bb0;
-  border-right: 1.5px solid #8a9bb0;
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  overflow: hidden;
-}
-.hof-podium-col.rank-1 .hof-pillar {
-  height: 36px;
-}
-.hof-podium-col.rank-2 .hof-pillar {
-  height: 26px;
-}
-.hof-podium-col.rank-3 .hof-pillar {
-  height: 22px;
-}
-
-.hof-tapestry {
-  width: 44%;
-  height: 100%;
-  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
-  border-left: 2.5px solid #f59e0b;
-  border-right: 2.5px solid #f59e0b;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
-}
-
-/* 보라색 리본 배너 ("주간 지원 기여도 Top 7") */
-.hof-ribbon-wrap {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: -8px;
-  margin-bottom: -12px;
-  padding: 0 12px;
-}
-
-.hof-ribbon-banner {
-  position: relative;
-  z-index: 2;
-  width: 86%;
-  padding: 7px 14px;
-  text-align: center;
-  background: linear-gradient(180deg, #b54cff 0%, #8f28e2 55%, #7318c2 100%);
-  border: 2px solid #3c106b;
-  border-radius: 10px;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.42),
-    inset 0 -3px 0 rgba(48, 10, 92, 0.55),
-    0 5px 12px rgba(0, 0, 0, 0.45);
-}
-
-.hof-ribbon-tail {
-  width: 22px;
-  height: 28px;
-  background: linear-gradient(180deg, #7e1fd1 0%, #58109c 100%);
-  border: 2px solid #320b5c;
-  margin-top: 8px;
-  z-index: 1;
-}
-.hof-ribbon-tail.left {
-  margin-right: -8px;
-  border-radius: 4px 0 0 4px;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 28% 50%);
-}
-.hof-ribbon-tail.right {
-  margin-left: -8px;
-  border-radius: 0 4px 4px 0;
-  clip-path: polygon(0 0, 100% 0, 72% 50%, 100% 100%, 0 100%);
-}
-
-/* 하단 보라색 보드 영역 */
-.hof-board-body {
-  padding: 20px 10px 12px 10px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.28) 0%, transparent 65%),
-    linear-gradient(180deg, #571d9c 0%, #44137e 55%, #350d66 100%);
-}
-
-/* 상위 3위 황금 프레임 컨테이너 */
-.hof-top3-gold-box {
-  background: linear-gradient(180deg, #ffe159 0%, #f5b014 55%, #d98207 100%);
-  border: 2px solid #592c03;
-  border-radius: 14px;
-  padding: 8px 8px 9px 8px;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.65),
-    inset 0 -3px 0 rgba(146, 64, 14, 0.55),
-    0 6px 14px rgba(0, 0, 0, 0.38);
-}
-
-/* 멤버 목록 전체 컨테이너 (명예의 전당 보라 보드와 100% 동일한 비주얼 테마) */
-.hof-member-list-shell {
-  padding: 10px;
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.22) 0%, transparent 60%),
-    linear-gradient(180deg, #521a94 0%, #3d1173 50%, #2f0b5c 100%);
-  border: 2px solid #260a4a;
-  box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.2),
-    0 10px 26px rgba(0, 0, 0, 0.38);
+  background: var(--bg-elevated);
+  border-color: rgba(255, 255, 255, 0.12);
+  font-weight: 600;
 }
 
 /* ============================================================
-   공통 명예의 전당(Hall of Fame) 카드 스타일 (시상대 Top 7 & 멤버 목록 100% 동일)
+   v1.8.2 120fps 하드웨어 가속 슬라이딩 세그먼트 탭 & 뷰 전환
    ============================================================ */
-.hof-rank-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 7px 9px;
-  border-radius: 11px;
-  background: linear-gradient(180deg, #eef4fb 0%, #d5e1ef 72%, #c3d2e4 100%);
-  border: 2px solid #293246;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -2px 0 rgba(132, 152, 178, 0.65),
-    0 3px 0 #1f2536;
-  cursor: pointer;
-  user-select: none;
-  transition: transform 0.14s var(--ease-spring), filter 0.16s ease;
+.segmented-control {
+  position: relative;
+  isolation: isolate;
 }
 
-.hof-rank-card:hover {
-  filter: brightness(1.03);
+.segmented-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 9px;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translate3d(0%, 0, 0);
+  transition: transform 0.38s var(--ease-spring), background-color 0.25s ease, border-color 0.25s ease;
+  will-change: transform;
+  pointer-events: none;
+  z-index: 1;
 }
 
-/* 카드 좌측 순위 사각 뱃지 (1위 금, 2위 은, 3위 동, 4위+ 석재) */
-.hof-rank-num-box {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-weight: 900;
+.segmented-pill.compare-pill {
+  border-radius: 8px;
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.28);
+}
+
+.segmented-pill.slide-right {
+  transform: translate3d(100%, 0, 0);
+}
+
+/* 메인 네비게이션 탭 버튼 (배경은 슬라이딩 필이 담당) */
+.main-nav-btn {
+  padding: 8px 16px;
+  border-radius: 9px;
   font-size: 13px;
-  border: 1.5px solid #2c241d;
-  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.65), 0 1.5px 0 rgba(0, 0, 0, 0.35);
-}
-
-.hof-rank-num-box.rank-1 {
-  background: linear-gradient(180deg, #ffe666 0%, #eab308 100%);
-  color: #ffffff;
-}
-.hof-rank-num-box.rank-2 {
-  background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
-  color: #ffffff;
-}
-.hof-rank-num-box.rank-3 {
-  background: linear-gradient(180deg, #fdba74 0%, #d97706 100%);
-  color: #ffffff;
-}
-.hof-rank-num-box.rank-default {
-  background: linear-gradient(180deg, #f1f5f9 0%, #cbd5e1 100%);
-  border-color: #475569;
-  color: #ffffff;
-}
-
-/* 카드 중앙 방패 엠블럼 배지 */
-.hof-shield-emblem {
-  width: 28px;
-  height: 31px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  filter: drop-shadow(0 1.5px 1px rgba(15, 23, 42, 0.3));
-}
-
-/* 카드 우측 점수 메달 알약 (보라 리본 + 금메달 + 흰색 외곽선 수치) */
-.hof-score-pill {
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  transition: color 0.26s var(--ease-silky), transform 0.15s var(--ease-spring);
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 9px 3px 4px;
-  border-radius: 9999px;
-  background: rgba(148, 168, 194, 0.32);
-  border: 1px solid rgba(100, 116, 139, 0.35);
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.14);
-  flex-shrink: 0;
+  gap: 6px;
+  white-space: nowrap;
+  touch-action: manipulation;
+  user-select: none;
+}
+.main-nav-btn:hover {
+  color: var(--text-primary);
+}
+.main-nav-btn.active {
+  color: #ffffff;
+  font-weight: 600;
 }
 
-.hof-medal-icon {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  border-radius: 9999px;
-  background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
-  border: 1.5px solid #78350f;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(0, 0, 0, 0.3);
+/* 타 갤클 비교 지표 전환 칩 (배경은 슬라이딩 필이 담당) */
+.compare-metric-chip {
+  padding: 6px 6px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  transition: color 0.26s var(--ease-silky), transform 0.15s var(--ease-spring);
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: center;
+  touch-action: manipulation;
+  user-select: none;
+}
+.compare-metric-chip:hover {
+  color: var(--text-primary);
+}
+.compare-metric-chip.active {
+  color: #ffffff;
+  font-weight: 600;
 }
 
-.hof-card-subtext {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #5b6e87;
+/* 탭 뷰 전환 시 부드러운 GPU 글라이드 인 애니메이션 */
+@keyframes tabViewGlideIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.994);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+.tab-view-enter {
+  animation: tabViewGlideIn 0.38s var(--ease-spring) forwards;
+  will-change: transform, opacity;
+}
+
+/* 테이블 미니멀 스타일 (PC용) */
+.data-table th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+.data-table tbody tr {
+  cursor: pointer;
+}
+.data-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* 모바일 전용 멤버 아이템 카드 - 클릭 시 색상 변화 배제, 눌림(scale) 애니메이션 유지 */
+.mobile-member-card {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface);
+  transition: transform 0.14s var(--ease-spring);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-member-card:last-child {
+  border-bottom: none;
+}
+.mobile-member-card:hover,
+.mobile-member-card:active {
+  background: var(--bg-surface) !important;
+}
+
+/* 직책 뱃지 미니멀 */
+.badge-role {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
   line-height: 1.2;
+}
+.badge-leader {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.badge-coleader {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+.badge-elder {
+  background: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.badge-member {
+  background: rgba(148, 163, 184, 0.08);
+  color: #94a3b8;
 }
 
 /* ============================================================
-   라이트 모드에서도 명예의 전당 고유의 게임 비주얼 유지 및 주변 조화
+   올림픽 시상대 단상 (Podium) - Layout Reflow 없는 100% GPU scaleY 애니메이션
+   ============================================================ */
+.podium-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  border-radius: 8px 8px 0 0;
+  border-top-width: 2px;
+  border-left-width: 1px;
+  border-right-width: 1px;
+  border-bottom-width: 0;
+  transform-origin: bottom center;
+  transition: transform 0.22s var(--ease-spring), filter 0.22s ease;
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  backface-visibility: hidden;
+}
+.podium-step:hover {
+  filter: brightness(1.1);
+  transform: translate3d(0, -2px, 0);
+}
+.podium-step:active {
+  transform: scale3d(0.96, 0.96, 1) !important;
+  transition: transform 0.1s ease;
+}
+
+.podium-1st {
+  border-color: #fbbf24 rgba(251, 191, 36, 0.2) transparent rgba(251, 191, 36, 0.2);
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.15) 0%, rgba(15, 18, 26, 0.95) 100%);
+  box-shadow: 0 -4px 20px rgba(245, 158, 11, 0.15);
+}
+.podium-2nd {
+  border-color: #cbd5e1 rgba(203, 213, 225, 0.15) transparent rgba(203, 213, 225, 0.15);
+  background: linear-gradient(180deg, rgba(203, 213, 225, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+}
+.podium-3rd {
+  border-color: #d97706 rgba(217, 119, 6, 0.15) transparent rgba(217, 119, 6, 0.15);
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.1) 0%, rgba(15, 18, 26, 0.95) 100%);
+}
+
+@keyframes podiumScaleRise {
+  0% {
+    opacity: 0;
+    transform: scale3d(1, 0.08, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes podiumHeaderRise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes runnerSlideUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.podium-animate .podium-1st {
+  animation: podiumScaleRise 0.62s var(--ease-spring) both;
+  will-change: transform, opacity;
+}
+
+/* 비교 차트 - 주간 지원 기여도 시상대(Podium)와 100% 동일한 GPU Scale Rise 애니메이션 */
+@keyframes chartScaleRise {
+  0% {
+    opacity: 0;
+    transform: scale3d(1, 0.08, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+
+
+.chart-container-compare {
+  transform-origin: bottom center;
+}
+
+.podium-animate .podium-2nd {
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.06s both;
+  will-change: transform, opacity;
+}
+.podium-animate .podium-3rd {
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.12s both;
+  will-change: transform, opacity;
+}
+.podium-animate .podium-header {
+  animation: podiumHeaderRise 0.56s var(--ease-spring) both;
+  will-change: transform, opacity;
+}
+.podium-animate .podium-runner-item {
+  animation: runnerSlideUp 0.44s var(--ease-spring) both;
+  will-change: transform, opacity;
+}
+
+/* 차트 래퍼 높이 */
+.chart-container-donut {
+  position: relative;
+  height: 200px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 미니멀 스크롤바 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 640px) {
+  .chart-container-donut {
+    height: 170px;
+  }
+}
+
+/* 비교 차트 컨테이너 - flex 레이아웃 붕괴 방지 및 고정 높이 절대 보장 */
+.chart-container-compare {
+  position: relative;
+  height: 230px;
+  min-height: 230px;
+  width: 100%;
+  flex: none;
+}
+@media (max-width: 640px) {
+  .chart-container-compare {
+    height: 185px;
+    min-height: 185px;
+  }
+}
+
+/* 모바일 텍스트 줄바꿈 방지 */
+#clan-name, #clan-tag, .main-nav-btn, #btn-quick-compare {
+  white-space: nowrap !important;
+  word-break: keep-all;
+}
+
+@media (max-width: 640px) {
+  .main-nav-btn {
+    padding: 7px 8px !important;
+    font-size: 11.5px !important;
+  }
+}
+
+/* ============================================================
+   다크 / 라이트 모드 고대비 테마 변수 및 라이트 오버라이드
    ============================================================ */
 html.light {
   --bg-base: #f8fafc;
@@ -634,38 +515,56 @@ html.light body {
   color: #0f172a !important;
 }
 
-/* 명예의 전당 내부 텍스트는 라이트 모드 글로벌 .text-white 오버라이드로부터 보호 */
-html.light .hof-showcase-shell .text-white,
-html.light .hof-member-list-shell .text-white,
-html.light .hof-rank-card .text-white,
-html.light .hof-ribbon-banner .text-white {
-  color: #ffffff !important;
-}
-html.light .hof-showcase-shell .text-\[\#ffe66d\] {
-  color: #ffe66d !important;
-}
-
-/* 기존 일반 서피스 카드 라이트 모드 지원 */
 html.light .surface-card {
   background: #ffffff !important;
   border-color: rgba(15, 23, 42, 0.08) !important;
   box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
 }
-html.light .surface-card .text-white,
-html.light .surface-card .text-slate-100,
-html.light header .text-white {
+html.light .surface-card:hover {
+  border-color: rgba(15, 23, 42, 0.16) !important;
+  box-shadow: 0 8px 24px -2px rgba(15, 23, 42, 0.1), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* 텍스트 시인성 확보 */
+html.light .text-white,
+html.light .text-slate-100 {
   color: #0f172a !important;
 }
-html.light .text-slate-200 { color: #1e293b !important; }
-html.light .text-slate-300 { color: #334155 !important; }
-html.light .text-slate-400 { color: #475569 !important; }
-html.light .text-slate-500 { color: #64748b !important; }
-html.light .text-amber-300, html.light .text-amber-400 { color: #b45309 !important; }
-html.light .text-emerald-400 { color: #059669 !important; }
-html.light .text-indigo-300 { color: #4f46e5 !important; }
-html.light .text-indigo-400 { color: #4338ca !important; }
-html.light .text-rose-400 { color: #e11d48 !important; }
+html.light .text-slate-200 {
+  color: #1e293b !important;
+}
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+html.light .text-slate-400 {
+  color: #475569 !important;
+}
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
 
+/* 포인트 색상 고대비 보정 (WCAG AA 통과) */
+html.light .text-amber-300,
+html.light .text-amber-400 {
+  color: #b45309 !important;
+}
+html.light .status-dot.amber {
+  background-color: #d97706 !important;
+}
+html.light .text-emerald-400 {
+  color: #059669 !important;
+}
+html.light .text-indigo-300 {
+  color: #4f46e5 !important;
+}
+html.light .text-indigo-400 {
+  color: #4338ca !important;
+}
+html.light .text-rose-400 {
+  color: #e11d48 !important;
+}
+
+/* 배경 및 분할선 */
 html.light .bg-white\/\[0\.04\],
 html.light .bg-white\/\[0\.03\],
 html.light .bg-white\/\[0\.02\] {
@@ -676,11 +575,17 @@ html.light .bg-white\/\[0\.08\] {
   background-color: rgba(0, 0, 0, 0.07) !important;
 }
 html.light .border-white\/\[0\.04\],
+html.light .border-white\/\[0\.05\],
 html.light .border-white\/\[0\.06\],
+html.light .border-white\/\[0\.08\],
 html.light .border-white\/\[0\.1\] {
   border-color: rgba(0, 0, 0, 0.08) !important;
 }
+html.light .divide-white\/\[0\.04\] > * + * {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
 
+/* 컨트롤 바 & 검색 */
 html.light #search-input,
 html.light #sort-key-select,
 html.light #btn-sort-order {
@@ -688,32 +593,74 @@ html.light #btn-sort-order {
   border-color: rgba(0, 0, 0, 0.12) !important;
   color: #0f172a !important;
 }
+html.light #search-input::placeholder {
+  color: #94a3b8 !important;
+}
 
-/* 필터 칩 */
-.filter-chip {
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid transparent;
-  transition: color 0.24s var(--ease-silky), background-color 0.24s var(--ease-silky), border-color 0.24s var(--ease-silky), transform 0.16s var(--ease-spring);
-  cursor: pointer;
-  white-space: nowrap;
-  user-select: none;
+/* 올림픽 시상대 단상 (라이트 모드) */
+html.light .podium-1st {
+  border-color: #f59e0b rgba(245, 158, 11, 0.3) transparent rgba(245, 158, 11, 0.3) !important;
+  background: linear-gradient(180deg, #fef3c7 0%, #ffffff 100%) !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15) !important;
 }
-.filter-chip:hover {
-  color: var(--text-primary);
-  background: var(--bg-surface-hover);
+html.light .podium-1st span {
+  color: #b45309 !important;
 }
-.filter-chip.active {
-  color: #ffffff;
-  background: var(--bg-elevated);
-  border-color: rgba(255, 255, 255, 0.12);
-  font-weight: 600;
+html.light .podium-2nd {
+  border-color: #94a3b8 rgba(148, 163, 184, 0.3) transparent rgba(148, 163, 184, 0.3) !important;
+  background: linear-gradient(180deg, #f1f5f9 0%, #ffffff 100%) !important;
 }
-html.light .filter-chip { color: #475569; }
+html.light .podium-2nd span {
+  color: #475569 !important;
+}
+html.light .podium-3rd {
+  border-color: #d97706 rgba(217, 119, 6, 0.3) transparent rgba(217, 119, 6, 0.3) !important;
+  background: linear-gradient(180deg, #ffedd5 0%, #ffffff 100%) !important;
+}
+html.light .podium-3rd span {
+  color: #9a3412 !important;
+}
+
+/* 직책 뱃지 (라이트 모드) */
+html.light .badge-leader {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+html.light .badge-coleader {
+  background: #f3e8ff !important;
+  color: #7e22ce !important;
+  border-color: #e9d5ff !important;
+}
+html.light .badge-elder {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+html.light .badge-member {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* 모바일 멤버 카드 (라이트 모드) - 클릭 시 색상 변화 배제 */
+html.light .mobile-member-card {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+html.light .mobile-member-card:hover,
+html.light .mobile-member-card:active {
+  background: #ffffff !important;
+}
+
+/* 필터 칩 (라이트 모드) */
+html.light .filter-chip {
+  color: #475569;
+}
+html.light .filter-chip:hover {
+  color: #0f172a;
+  background: #e2e8f0;
+}
 html.light .filter-chip.active {
   color: #4338ca !important;
   background: #ffffff !important;
@@ -721,252 +668,212 @@ html.light .filter-chip.active {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* 세그먼트 탭 & 슬라이딩 필 */
-.segmented-control {
-  position: relative;
-  isolation: isolate;
-}
-.segmented-pill {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
-  border-radius: 9px;
-  background: var(--bg-elevated);
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transform: translate3d(0%, 0, 0);
-  transition: transform 0.38s var(--ease-spring), background-color 0.25s ease, border-color 0.25s ease;
-  will-change: transform;
-  pointer-events: none;
-  z-index: 1;
-}
-.segmented-pill.compare-pill {
-  border-radius: 8px;
-  border-color: rgba(99, 102, 241, 0.35);
-}
-.segmented-pill.slide-right {
-  transform: translate3d(100%, 0, 0);
-}
+/* 슬라이딩 세그먼트 탭 (라이트 모드) */
 html.light .segmented-pill {
   background: #ffffff !important;
   border-color: rgba(99, 102, 241, 0.3) !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
 }
+html.light .main-nav-btn,
+html.light .compare-metric-chip {
+  color: #475569 !important;
+}
+html.light .main-nav-btn.active,
+html.light .compare-metric-chip.active {
+  color: #4338ca !important;
+}
 
-.main-nav-btn,
-.compare-metric-chip {
-  padding: 8px 12px;
-  border-radius: 9px;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent !important;
-  border: 1px solid transparent !important;
-  transition: color 0.26s var(--ease-silky), transform 0.15s var(--ease-spring);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  white-space: nowrap;
+html.light .bg-indigo-950\/20 {
+  background-color: #e0e7ff !important;
+}
+
+html.light #initial-sync-modal {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+/* ============================================================
+   해 ↔ 달 아이콘 모핑 & 실키 스핀 인터랙션
+   ============================================================ */
+#btn-theme-toggle, #btn-sort-order {
+  touch-action: manipulation;
   user-select: none;
 }
-.main-nav-btn.active,
-.compare-metric-chip.active {
-  color: #ffffff;
-  font-weight: 600;
+#btn-sort-order:active, .filter-chip:active, .compare-metric-chip:active, .main-nav-btn:active {
+  transform: scale3d(0.95, 0.95, 1);
 }
-html.light .main-nav-btn,
-html.light .compare-metric-chip { color: #475569 !important; }
-html.light .main-nav-btn.active,
-html.light .compare-metric-chip.active { color: #4338ca !important; }
-
-@keyframes tabViewGlideIn {
-  0% { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.994); }
-  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-.tab-view-enter {
-  animation: tabViewGlideIn 0.38s var(--ease-spring) forwards;
+#btn-theme-toggle:active {
+  transform: scale3d(0.90, 0.90, 1);
+  transition: transform 0.08s ease;
 }
 
-/* 직책 뱃지 (밝은 명예의 전당 카드 위에서도 선명하게 보이도록 고대비 보정) */
-.badge-role {
-  font-size: 9.5px;
-  font-weight: 800;
-  padding: 1.5px 5px;
-  border-radius: 5px;
-  line-height: 1.2;
-  flex-shrink: 0;
+#theme-toggle-icon {
+  transition: transform 0.44s var(--ease-spring);
+  transform-origin: center;
 }
-.badge-leader {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #f59e0b;
+html.light #theme-toggle-icon {
+  transform: rotate(360deg);
 }
-.badge-coleader {
-  background: #f3e8ff;
-  color: #6b21a8;
-  border: 1px solid #a855f7;
+html.dark #theme-toggle-icon {
+  transform: rotate(0deg);
 }
-.badge-elder {
-  background: #dbeafe;
-  color: #1e40af;
-  border: 1px solid #3b82f6;
+#icon-sun, #icon-moon {
+  transition: opacity 0.3s ease, transform 0.44s var(--ease-spring);
+  transform-origin: center;
 }
-.badge-member {
-  background: rgba(100, 116, 139, 0.16);
-  color: #334155;
-  border: 1px solid rgba(100, 116, 139, 0.3);
+html.light #icon-sun {
+  opacity: 1 !important;
+  transform: rotate(0deg) scale(1) !important;
+}
+html.light #icon-moon {
+  opacity: 0 !important;
+  transform: rotate(-90deg) scale(0.2) !important;
+}
+html.dark #icon-sun {
+  opacity: 0 !important;
+  transform: rotate(90deg) scale(0.2) !important;
+}
+html.dark #icon-moon {
+  opacity: 1 !important;
+  transform: rotate(0deg) scale(1) !important;
 }
 
-/* 애니메이션 */
-@keyframes podiumBustRise {
-  0% { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.94); }
-  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+/* ============================================================
+   다크/라이트 모드 네이티브 원형 리플 확장 애니메이션
+   ============================================================ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
-.podium-animate .hof-podium-col.rank-1 { animation: podiumBustRise 0.56s var(--ease-spring) both; }
-.podium-animate .hof-podium-col.rank-2 { animation: podiumBustRise 0.56s var(--ease-spring) 0.07s both; }
-.podium-animate .hof-podium-col.rank-3 { animation: podiumBustRise 0.56s var(--ease-spring) 0.14s both; }
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 999999;
+}
+
+/* ============================================================
+   1위 시상대 금빛 왕관 럭셔리 네온 오라 & 카드/뱃지 모션
+   ============================================================ */
+@keyframes goldAuraPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7)) drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
+    transform: scale3d(1, 1, 1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.65));
+    transform: scale3d(1.05, 1.05, 1);
+  }
+}
+.crown-aura-glow {
+  display: inline-block;
+  transform-origin: center;
+  animation: goldAuraPulse 2.8s ease-in-out infinite;
+}
 
 @keyframes cardStaggerIn {
-  0% { opacity: 0; transform: translate3d(0, 10px, 0); }
-  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 .card-stagger-in {
   animation: cardStaggerIn 0.34s var(--ease-spring) both;
 }
 
 @keyframes badgePop {
-  0% { opacity: 0; transform: scale3d(0.7, 0.7, 1); }
-  65% { transform: scale3d(1.12, 1.12, 1); }
-  100% { opacity: 1; transform: scale3d(1, 1, 1); }
+  0% {
+    opacity: 0;
+    transform: scale3d(0.7, 0.7, 1);
+  }
+  65% {
+    transform: scale3d(1.12, 1.12, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
 }
 .badge-pop {
   display: inline-block;
+  transform-origin: center;
   animation: badgePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
-/* 차트 래퍼 높이 */
-.chart-container-donut {
-  position: relative;
-  height: 185px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chart-container-compare {
-  position: relative;
-  height: 205px;
-  min-height: 205px;
-  width: 100%;
-  flex: none;
-  transform-origin: bottom center;
-}
-
-@keyframes podiumScaleRise {
-  0% { opacity: 0; transform: scale3d(1, 0.08, 1); }
-  100% { opacity: 1; transform: scale3d(1, 1, 1); }
-}
-.compare-animate .compare-bar-0 { animation: podiumScaleRise 0.62s var(--ease-spring) both !important; transform-origin: bottom center !important; }
-.compare-animate .compare-bar-1 { animation: podiumScaleRise 0.62s var(--ease-spring) 0.06s both !important; transform-origin: bottom center !important; }
-.compare-animate .compare-bar-2 { animation: podiumScaleRise 0.62s var(--ease-spring) 0.12s both !important; transform-origin: bottom center !important; }
-
-.compare-bar-header {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translate3d(-50%, 0, 0);
-  pointer-events: none;
-  white-space: nowrap;
-  text-align: center;
-}
-@keyframes compareHeaderRise {
-  0% { opacity: 0; transform: translate3d(-50%, 12px, 0); }
-  100% { opacity: 1; transform: translate3d(-50%, 0, 0); }
-}
-.compare-animate .compare-bar-header-0 { animation: compareHeaderRise 0.56s var(--ease-spring) both !important; }
-.compare-animate .compare-bar-header-1 { animation: compareHeaderRise 0.56s var(--ease-spring) 0.06s both !important; }
-.compare-animate .compare-bar-header-2 { animation: compareHeaderRise 0.56s var(--ease-spring) 0.12s both !important; }
-
-/* 테마 토글 아이콘 */
-#theme-toggle-icon { transition: transform 0.44s var(--ease-spring); transform-origin: center; }
-html.light #theme-toggle-icon { transform: rotate(360deg); }
-html.dark #theme-toggle-icon { transform: rotate(0deg); }
-#icon-sun, #icon-moon { transition: opacity 0.3s ease, transform 0.44s var(--ease-spring); transform-origin: center; }
-html.light #icon-sun { opacity: 1 !important; transform: rotate(0deg) scale(1) !important; }
-html.light #icon-moon { opacity: 0 !important; transform: rotate(-90deg) scale(0.2) !important; }
-html.dark #icon-sun { opacity: 0 !important; transform: rotate(90deg) scale(0.2) !important; }
-html.dark #icon-moon { opacity: 1 !important; transform: rotate(0deg) scale(1) !important; }
-
-::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
-::view-transition-old(root) { z-index: 1; }
-::view-transition-new(root) { z-index: 999999; }
-
-/* 모달 & 토스트 & 슬롯머신 */
+/* ============================================================
+   v1.8.2 상시 마운트(Pre-composited) 양방향 120fps 팝업 모달 트랜지션
+   - display: none 토글로 인한 첫 프레임 드랍 제거 & 닫힘 애니메이션 완벽 지원
+   ============================================================ */
 .modal-overlay {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition: opacity 0.28s var(--ease-silky), visibility 0.28s var(--ease-silky);
+  will-change: opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
+
 .modal-overlay.is-open {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
+
 .modal-panel {
   opacity: 0;
-  transform: translate3d(0, 20px, 0) scale3d(0.95, 0.95, 1);
+  transform: translate3d(0, 26px, 0) scale3d(0.95, 0.95, 1);
+  transform-origin: bottom center;
   transition: transform 0.38s var(--ease-spring), opacity 0.24s var(--ease-silky);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
+
+@media (min-width: 640px) {
+  .modal-panel {
+    transform: translate3d(0, 14px, 0) scale3d(0.95, 0.95, 1);
+    transform-origin: center center;
+  }
+}
+
 .modal-overlay.is-open .modal-panel {
   opacity: 1;
   transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
 }
 
-#member-detail-modal {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.18s ease-out, visibility 0.18s ease-out !important;
-}
-#member-detail-modal.is-open {
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-  background-color: rgba(0, 0, 0, 0.65) !important;
-  backdrop-filter: blur(14px) !important;
-}
-#member-detail-modal .royaleapi-confirm-card {
-  width: 340px !important;
-  max-width: calc(100vw - 32px) !important;
-  opacity: 0;
-  transform: none !important;
-  background: rgba(15, 18, 26, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  transition: opacity 0.18s ease-out !important;
-}
-#member-detail-modal.is-open .royaleapi-confirm-card {
-  opacity: 1 !important;
-  transform: none !important;
-}
-
+/* 플로팅 토스트 애니메이션 */
 @keyframes toastSlideIn {
-  0% { opacity: 0; transform: translate3d(0, 14px, 0) scale3d(0.94, 0.94, 1); }
-  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale3d(0.94, 0.94, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
 }
 @keyframes toastSlideOut {
-  0% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
-  100% { opacity: 0; transform: translate3d(0, 8px, 0) scale3d(0.95, 0.95, 1); }
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale3d(0.95, 0.95, 1);
+  }
 }
 .toast-pill {
   background: rgba(23, 27, 38, 0.92);
   color: #f8fafc;
   border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 8px 14px;
   border-radius: 9999px;
   font-size: 12px;
@@ -976,31 +883,336 @@ html.dark #icon-moon { opacity: 1 !important; transform: rotate(0deg) scale(1) !
   gap: 6px;
   animation: toastSlideIn 0.26s var(--ease-spring) forwards;
 }
-.toast-pill.toast-leaving { animation: toastSlideOut 0.2s ease-in forwards; }
+.toast-pill.toast-leaving {
+  animation: toastSlideOut 0.2s ease-in forwards;
+}
+html.light .toast-pill {
+  background: rgba(15, 23, 42, 0.92);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+}
 
+/* ============================================================
+   GPU 합성 최적화 슬롯머신 룰렛 애니메이션
+   ============================================================ */
 .slot-window {
-  background-color: #141824 !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
   box-shadow: inset 0 3px 12px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.4);
   transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s var(--ease-spring);
 }
+
 .slot-window.slot-locked {
   border-color: rgba(251, 191, 36, 0.7) !important;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 20px rgba(251, 191, 36, 0.4) !important;
   transform: scale3d(1.03, 1.03, 1);
 }
+
+.slot-reel-strip {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
 @keyframes slotSpinLoop {
-  0% { transform: translate3d(0, 0%, 0); }
-  100% { transform: translate3d(0, -50%, 0); }
+  0% {
+    transform: translate3d(0, 0%, 0);
+  }
+  100% {
+    transform: translate3d(0, -50%, 0);
+  }
 }
-.slot-spin-infinite-0 { animation: slotSpinLoop 0.24s linear infinite !important; }
-.slot-spin-infinite-1 { animation: slotSpinLoop 0.21s linear infinite !important; }
-.slot-spin-infinite-2 { animation: slotSpinLoop 0.26s linear infinite !important; }
+
+.slot-spin-infinite-0 {
+  filter: blur(0.4px);
+  animation: slotSpinLoop 0.24s linear infinite !important;
+}
+
+.slot-spin-infinite-1 {
+  filter: blur(0.4px);
+  animation: slotSpinLoop 0.21s linear infinite !important;
+}
+
+.slot-spin-infinite-2 {
+  filter: blur(0.4px);
+  animation: slotSpinLoop 0.26s linear infinite !important;
+}
+
 @keyframes slotStopDecel {
-  0% { transform: translate3d(0, 0%, 0); }
-  82% { transform: translate3d(0, -82.6%, 0); }
-  100% { transform: translate3d(0, -80%, 0); }
+  0% {
+    transform: translate3d(0, 0%, 0);
+    filter: blur(0.4px);
+  }
+  50% {
+    filter: blur(0.2px);
+  }
+  82% {
+    transform: translate3d(0, -82.6%, 0);
+    filter: blur(0);
+  }
+  100% {
+    transform: translate3d(0, -80%, 0);
+    filter: blur(0);
+  }
 }
-.slot-stopping { animation: slotStopDecel 0.42s cubic-bezier(0.12, 0.8, 0.25, 1) forwards !important; }
-html.light #initial-sync-modal { background-color: rgba(255, 255, 255, 0.96) !important; }
-html.light .slot-window, html.light .slot-reel-strip, html.light .slot-item { background-color: #ffffff !important; }
+
+.slot-stopping {
+  animation: slotStopDecel 0.42s cubic-bezier(0.12, 0.8, 0.25, 1) forwards !important;
+}
+
+/* v1.8.24: 라이트 모드 룰렛 이모지 배경 흰색(#ffffff) 지원 및 틈새 제거 */
+.slot-window {
+  background-color: #141824 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.slot-reel-strip {
+  background-color: #141824 !important;
+}
+.slot-item {
+  background-color: #141824;
+}
+
+html.light .slot-window {
+  background-color: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.8) !important;
+}
+
+html.light .slot-window.slot-locked {
+  border-color: rgba(245, 158, 11, 0.9) !important;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.45), 0 6px 16px rgba(15, 23, 42, 0.08) !important;
+  transform: scale3d(1.03, 1.03, 1);
+}
+
+html.light .slot-reel-strip {
+  background-color: #ffffff !important;
+}
+
+html.light .slot-item {
+  background-color: #ffffff !important;
+}
+
+.slot-spin-infinite-0, .slot-spin-infinite-1, .slot-spin-infinite-2 {
+  filter: blur(0.2px) !important;
+}
+
+/* ============================================================
+   RoyaleAPI 확인 모달 패널 - 크기 요동/스케일 변형 원천 차단 (Zero-Scale Lock)
+   - transform을 완전히 배제(transform: none)하여 어떠한 환경에서도 크기가 변형되지 않음
+   ============================================================ */
+#member-detail-modal {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background-color: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  transition: opacity 0.18s ease-out, visibility 0.18s ease-out !important;
+  will-change: opacity;
+}
+
+#member-detail-modal.is-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background-color: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+#member-detail-modal .modal-panel,
+#member-detail-modal .royaleapi-confirm-card {
+  width: 340px !important;
+  max-width: calc(100vw - 32px) !important;
+  box-sizing: border-box !important;
+  opacity: 0;
+  transform: none !important;
+  background: rgba(15, 18, 26, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55),
+              0 0 0 1px rgba(255, 255, 255, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  transition: opacity 0.18s ease-out !important;
+  will-change: opacity;
+}
+
+#member-detail-modal.is-open .modal-panel,
+#member-detail-modal.is-open .royaleapi-confirm-card {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* ============================================================
+   타 갤클 비교 막대 - 주간 지원 기여도 시상대(Podium)와 100% 동일한 GPU Scale Rise 엔진
+   - 가로 눈금선은 배경에 절대 고정되어 전혀 흔들리지 않음
+   - 3대 클랜의 컬러 막대와 상단 수치만 바닥(0)에서부터 부드럽게 솟아오름
+   ============================================================ */
+.compare-animate .compare-bar-0 {
+  animation: podiumScaleRise 0.62s var(--ease-spring) both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-1 {
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.06s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-2 {
+  animation: podiumScaleRise 0.62s var(--ease-spring) 0.12s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+
+/* 비교 차트 상단 수치 라벨 전용 키프레임 (X축 -50% 센터링 유지하며 Y축만 12px -> 0 상승) */
+.compare-bar-header {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate3d(-50%, 0, 0);
+  pointer-events: none;
+  white-space: nowrap;
+  text-align: center;
+}
+
+@keyframes compareHeaderRise {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 12px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.compare-animate .compare-bar-header-0 {
+  animation: compareHeaderRise 0.56s var(--ease-spring) both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-header-1 {
+  animation: compareHeaderRise 0.56s var(--ease-spring) 0.06s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+.compare-animate .compare-bar-header-2 {
+  animation: compareHeaderRise 0.56s var(--ease-spring) 0.12s both !important;
+  transform-origin: bottom center !important;
+  will-change: transform, opacity !important;
+}
+
+html.light .compare-grid-line {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+html.light .compare-grid-line.compare-baseline {
+  border-color: rgba(0, 0, 0, 0.18) !important;
+}
+html.light .compare-tick-text {
+  color: #64748b !important;
+}
+html.light .compare-header-num {
+  color: #0f172a !important;
+}
+html.light .compare-clan-name {
+  color: #0f172a !important;
+}
+
+
+/* ============================================================
+   RoyaleAPI 이동 모달 & 공통 모달 - 라이트 모드 테마 완벽 지원 (v1.8.20-beta)
+   ============================================================ */
+html.light #member-detail-modal {
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+html.light #member-detail-modal.is-open {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+html.light #member-detail-modal .modal-panel,
+html.light #member-detail-modal .royaleapi-confirm-card {
+  width: 340px !important;
+  max-width: calc(100vw - 32px) !important;
+  background: #ffffff !important;
+  transform: none !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15),
+              0 0 0 1px rgba(0, 0, 0, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.light #member-detail-modal .modal-panel > div:first-child {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: #4f46e5 !important;
+}
+
+html.light #member-detail-modal h3 {
+  color: #0f172a !important;
+}
+
+html.light #member-detail-modal #modal-member-name {
+  color: #4f46e5 !important;
+}
+
+html.light #member-detail-modal p {
+  color: #475569 !important;
+}
+
+html.light #member-detail-modal button {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light #member-detail-modal button:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.light #member-detail-modal #btn-royaleapi-link {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+  border: 1px solid #4338ca !important;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3) !important;
+}
+
+html.light #member-detail-modal #btn-royaleapi-link:hover {
+  background-color: #4338ca !important;
+}
+
+/* 3일+ 미접속 모달 및 에러 모달 라이트 모드 보정 */
+html.light #dormant-members-modal.is-open,
+html.light #sync-error-modal.is-open {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+html.light #dormant-members-modal .modal-panel,
+html.light #sync-error-modal .modal-panel {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15) !important;
+}
+
+html.light #dormant-members-modal h3,
+html.light #sync-error-modal h3 {
+  color: #0f172a !important;
+}
+
+html.light #dormant-members-modal button,
+html.light #sync-error-modal #btn-error-close {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light #sync-error-modal #error-modal-message {
+  background-color: #f8fafc !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: #475569 !important;
+}
