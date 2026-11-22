@@ -1,5 +1,10 @@
 /**
- * Good Fellas Clan Manager - Core Application Logic (v1.9.0 Liquid Glass)
+ * Good Fellas Clan Manager - Core Application Logic (v1.8.26-beta)
+ * Refactored Architecture:
+ * 1. API & 날짜 유틸리티 단일화 (window.crApi 위임 및 timestamp 숫자 비교)
+ * 2. 배틀로그 일괄 조회 후 단일 배치 렌더링으로 DOM Reflow 최소화
+ * 3. 모달 상태 관리 및 pendingClanData 플러시 로직 closeModalSmooth 단일 통합
+ * 4. 이벤트 위임(Event Delegation) 기반 카드/테이블/시상대 클릭 처리
  */
 
 const CR_EMOTES_POOL = [
@@ -36,7 +41,7 @@ class ClanManagerApp {
   constructor() {
     this.currentData = null;
     this.filteredMembers = [];
-    this.activeFilter = "all";
+    this.activeFilter = "all"; // 'all' | 'low-donations'
     this.searchQuery = "";
     this.sorting = { key: "lastSeen", order: "desc" };
     this.activeMainTab = "dashboard";
@@ -222,6 +227,7 @@ class ClanManagerApp {
     return modals.some((m) => m && m.classList.contains("is-open"));
   }
 
+  // 상시 마운트된 모달을 레이아웃 스래싱 없이 120fps로 부드럽게 오픈
   openModalSmooth(modalEl) {
     if (!modalEl) return;
     if (this.pendingFlushTimer) {
@@ -232,6 +238,7 @@ class ClanManagerApp {
     modalEl.classList.add("is-open");
   }
 
+  // 모달 닫힘 단일 진입점: 열린 모달이 없을 때만 스크롤 복원 및 대기 데이터(pendingClanData) 안전 반영
   closeModalSmooth(modalEl) {
     if (!modalEl) return;
     modalEl.setAttribute("aria-hidden", "true");
@@ -427,6 +434,7 @@ class ClanManagerApp {
       this.elements.btnThemeToggle.addEventListener("click", (e) => this.toggleTheme(e));
     }
 
+    // 이벤트 위임(Event Delegation): 카드 · 테이블 · 시상대 · 미접속 모달 목록 단일 리스너 등록
     const delegateMemberOpen = (container) => {
       if (!container) return;
       container.addEventListener("click", (e) => {
@@ -491,7 +499,7 @@ class ClanManagerApp {
 
     const toast = document.createElement("div");
     toast.className = "toast-pill";
-    const dotColor = type === "error" ? "bg-rose-400" : type === "success" ? "bg-emerald-400" : "bg-white/70";
+    const dotColor = type === "error" ? "bg-rose-400" : type === "success" ? "bg-emerald-400" : "bg-indigo-400";
     toast.innerHTML = `
       <span class="w-1.5 h-1.5 rounded-full ${dotColor} shrink-0"></span>
       <span>${this.escapeHtml(message)}</span>
@@ -568,7 +576,10 @@ class ClanManagerApp {
     ring.style.height = "10px";
     ring.style.borderRadius = "50%";
     ring.style.transform = "translate(-50%, -50%) scale(1)";
-    ring.style.border = theme === "light" ? "2px solid rgba(15, 23, 42, 0.25)" : "2px solid rgba(255, 255, 255, 0.3)";
+    ring.style.border = theme === "light" ? "3px solid rgba(245, 158, 11, 0.6)" : "3px solid rgba(99, 102, 241, 0.6)";
+    ring.style.boxShadow = theme === "light"
+      ? "0 0 35px 15px rgba(245, 158, 11, 0.25)"
+      : "0 0 35px 15px rgba(99, 102, 241, 0.25)";
     ring.style.pointerEvents = "none";
     ring.style.zIndex = "999999";
     ring.style.transition = "transform 0.44s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.44s ease-out";
@@ -587,31 +598,42 @@ class ClanManagerApp {
 
   applyTheme(theme, shouldStagger = false) {
     const isDark = theme === "dark";
-    document.documentElement.classList.toggle("dark", isDark);
-    document.documentElement.classList.toggle("light", !isDark);
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
+    }
 
-    try { localStorage.setItem("cr_theme", theme); } catch (e) {}
+    try {
+      localStorage.setItem("cr_theme", theme);
+    } catch (e) {}
 
     const isLight = !isDark;
+
     if (this.charts.activity) {
       const donutChart = this.charts.activity;
-      donutChart.data.datasets[0].backgroundColor = isLight
-        ? ["rgba(16, 185, 129, 0.82)", "rgba(15, 23, 42, 0.18)", "rgba(225, 29, 72, 0.78)"]
-        : ["rgba(52, 211, 153, 0.85)", "rgba(255, 255, 255, 0.22)", "rgba(255, 107, 107, 0.82)"];
+      donutChart.data.datasets[0].borderColor = isLight ? "#ffffff" : "#0f121a";
       if (donutChart.options.plugins?.legend?.labels) {
-        donutChart.options.plugins.legend.labels.color = isLight ? "#475569" : "rgba(245, 245, 247, 0.62)";
+        donutChart.options.plugins.legend.labels.color = isLight ? "#0f172a" : "#94a3b8";
       }
       if (donutChart.options.plugins?.tooltip) {
-        donutChart.options.plugins.tooltip.backgroundColor = isLight ? "rgba(255,255,255,0.92)" : "rgba(20,24,34,0.92)";
-        donutChart.options.plugins.tooltip.titleColor = isLight ? "#0f172a" : "#f5f5f7";
-        donutChart.options.plugins.tooltip.bodyColor = isLight ? "#475569" : "#94a3b8";
-        donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(15,23,42,0.1)" : "rgba(255,255,255,0.12)";
+        donutChart.options.plugins.tooltip.backgroundColor = isLight ? "#ffffff" : "#171b26";
+        donutChart.options.plugins.tooltip.titleColor = isLight ? "#0f172a" : "#f8fafc";
+        donutChart.options.plugins.tooltip.bodyColor = isLight ? "#334155" : "#94a3b8";
+        donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)";
       }
       donutChart.update("none");
     }
 
-    if (this.activeMainTab === "compare") this.renderComparisonView(false);
-    if (this.currentData) this.applyFilterAndRender(shouldStagger);
+    if (this.activeMainTab === "compare") {
+      this.renderComparisonView(false);
+    }
+
+    if (this.currentData) {
+      this.applyFilterAndRender(shouldStagger);
+    }
   }
 
   toggleSortOrder() {
@@ -634,6 +656,7 @@ class ClanManagerApp {
     }
   }
 
+  // 120fps 슬라이딩 필 & 뷰 글라이드 기반 메인 탭 전환
   switchMainTab(tabName) {
     if (this.activeMainTab === tabName) return;
     this.activeMainTab = tabName;
@@ -666,7 +689,7 @@ class ClanManagerApp {
 
       if (quickCompareBtn) quickCompareBtn.classList.add("opacity-50", "pointer-events-none");
       if (tabHint) {
-        tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-white/60"></span><span>디시 갤러리 클랜 3자 비교 뷰</span>`;
+        tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span><span>디시 갤러리 클랜 3자 비교 뷰</span>`;
       }
 
       requestAnimationFrame(() => {
@@ -692,7 +715,7 @@ class ClanManagerApp {
 
       if (quickCompareBtn) quickCompareBtn.classList.remove("opacity-50", "pointer-events-none");
       if (tabHint) {
-        tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-white/60"></span><span>Good Fellas 단독 뷰</span>`;
+        tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Good Fellas 단독 뷰</span>`;
       }
 
       requestAnimationFrame(() => {
@@ -708,6 +731,7 @@ class ClanManagerApp {
     }
   }
 
+  // 120fps 슬라이딩 필 기반 비교 지표 전환 (총 지원량 ↔ 1인 평균)
   switchCompareMetric(metricKey, btnElement) {
     if (!COMPARE_METRICS_META[metricKey] || this.activeCompareMetric === metricKey) return;
     this.activeCompareMetric = metricKey;
@@ -755,6 +779,7 @@ class ClanManagerApp {
     });
   }
 
+  // 전 클랜원 배틀로그 병렬 수집 후 최종 1회 배치 렌더링으로 리플로우 최소화
   async fetchAllMembersBattleLogs(members) {
     if (!Array.isArray(members) || members.length === 0) return;
     if (!window.crApi || typeof window.crApi.fetchPlayerBattleLog !== "function") return;
@@ -825,6 +850,7 @@ class ClanManagerApp {
   processIncomingClanData(liveData, shouldAnimate = false) {
     if (!liveData || !liveData.memberList) return;
 
+    // 모달 팝업이 활성화되어 있는 동안 백그라운드 DOM 전면 재렌더링을 보류하여 팝업 레이아웃 요동 방지
     if (this.isAnyModalOpen()) {
       this.pendingClanData = { liveData, shouldAnimate };
       return;
@@ -1012,14 +1038,14 @@ class ClanManagerApp {
 
     const emptyHtml = `
       <div class="py-12 px-4 text-center">
-        <div class="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-400/20 flex items-center justify-center mx-auto mb-2 text-rose-300">
+        <div class="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-2 text-red-400">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <p class="text-xs font-semibold text-slate-300">클랜 데이터를 불러올 수 없습니다</p>
         <p class="text-[11px] text-slate-500 mt-1 max-w-xs mx-auto">${this.escapeHtml(reason || "API 서버 응답 실패")}</p>
-        <button onclick="window.app.autoSyncLive(true)" class="mt-3 px-3.5 py-1.5 glass-control text-xs text-slate-200 rounded-full transition inline-flex items-center gap-1.5">
+        <button onclick="window.app.autoSyncLive(true)" class="mt-3 px-3 py-1.5 bg-white/[0.06] hover:bg-white/[0.1] text-xs text-slate-200 rounded-lg border border-white/[0.08] transition inline-flex items-center gap-1.5">
           <span>다시 시도</span>
         </button>
       </div>
@@ -1091,9 +1117,16 @@ class ClanManagerApp {
     const now = Date.now();
 
     members.forEach((m) => {
-      if ((m.donations || 0) < 50) lowDonationCount++;
+      const don = m.donations || 0;
+      if (don < 50) lowDonationCount++;
+
       const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
-      if (!effectiveDate || (now - effectiveDate.getTime()) / 86400000 >= 3) dormantCount++;
+      if (effectiveDate) {
+        const daysAgo = (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysAgo >= 3) dormantCount++;
+      } else {
+        dormantCount++;
+      }
     });
 
     const officialWeeklyDonations = (clanData && typeof clanData.donationsPerWeek === "number")
@@ -1101,17 +1134,14 @@ class ClanManagerApp {
       : members.reduce((sum, m) => sum + (m.donations || 0), 0);
 
     const avgDonations = Math.round(officialWeeklyDonations / (totalMembers || 1));
+
     const { statTotalMembers, statMemberVacant, statTotalDonations, statAvgDonations, statDormantCount, chipCountAll, chipCountLow } = this.elements;
 
     if (statTotalMembers) this.animateNumber(statTotalMembers, totalMembers, 600, " / 50");
-    if (statMemberVacant) statMemberVacant.textContent = `여유 자리 ${50 - totalMembers}석`;
+    if (statMemberVacant) statMemberVacant.textContent = `여유 자리: ${50 - totalMembers}석`;
     if (statTotalDonations) this.animateNumber(statTotalDonations, officialWeeklyDonations, 700);
-    if (statAvgDonations) statAvgDonations.textContent = `평균 ${avgDonations.toLocaleString()}개`;
-    if (statDormantCount) {
-      this.animateNumber(statDormantCount, dormantCount, 500, "명");
-      statDormantCount.classList.toggle("text-rose-400", dormantCount > 0);
-      statDormantCount.classList.toggle("text-white", dormantCount === 0);
-    }
+    if (statAvgDonations) statAvgDonations.textContent = `1인 평균 ${avgDonations.toLocaleString()}개`;
+    if (statDormantCount) this.animateNumber(statDormantCount, dormantCount, 500, "명");
 
     if (chipCountAll) this.animateNumber(chipCountAll, totalMembers, 400);
     if (chipCountLow) this.animateNumber(chipCountLow, lowDonationCount, 400);
@@ -1134,61 +1164,73 @@ class ClanManagerApp {
       return;
     }
 
-    const [first, second, third] = sorted;
+    const first = sorted[0];
+    const second = sorted[1];
+    const third = sorted[2];
     const runners = sorted.slice(3);
 
-    const basePodiumClasses = "flex items-end justify-center gap-2.5 pt-3 pb-0 px-1 min-h-[144px]";
+    const basePodiumClasses = "flex items-end justify-center gap-2 pt-4 pb-0 px-1 min-h-[140px]";
     podiumContainer.className = triggerAnimation ? `${basePodiumClasses} podium-animate` : basePodiumClasses;
 
     podiumContainer.innerHTML = `
-      <!-- 2위 -->
+      <!-- 2등 은메달 -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(second.tag)}">
-        <div class="podium-header text-center mb-2 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
-          <div class="text-xs text-white font-semibold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
-          <div class="text-[11px] font-medium text-slate-400 tabular-nums mt-0.5">${(second.donations || 0).toLocaleString()}</div>
+        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
+          <div class="flex items-center justify-center mb-1">
+            <svg class="w-4 h-4 text-slate-300 drop-shadow-[0_0_6px_rgba(203,213,225,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+            </svg>
+          </div>
+          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
+          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-2nd w-full h-20 sm:h-24">
-          <span class="text-xl font-bold text-slate-300/70 tabular-nums mb-2.5">2</span>
+          <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
         </div>
       </div>
-      <!-- 1위 -->
+      <!-- 1등 금메달 -->
       <div class="flex-1 max-w-[145px] flex flex-col items-center" data-member-tag="${this.escapeHtml(first.tag)}">
-        <div class="podium-header text-center mb-2 w-full px-1 cursor-pointer">
+        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-[#e6c989]" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="crown-aura-glow w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
           <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs font-semibold text-slate-300 tabular-nums mt-0.5">${(first.donations || 0).toLocaleString()}</div>
+          <div class="text-xs font-bold text-slate-300 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-1st w-full h-28 sm:h-32">
-          <span class="text-2xl font-bold text-[#e6c989] tabular-nums mb-2.5">1</span>
+          <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
         </div>
       </div>
-      <!-- 3위 -->
+      <!-- 3등 동메달 -->
       <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(third.tag)}">
-        <div class="podium-header text-center mb-2 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
-          <div class="text-xs text-white font-semibold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-[11px] font-medium text-slate-400 tabular-nums mt-0.5">${(third.donations || 0).toLocaleString()}</div>
+        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
+          <div class="flex items-center justify-center mb-1">
+            <svg class="w-4 h-4 text-amber-600 drop-shadow-[0_0_6px_rgba(217,119,6,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+            </svg>
+          </div>
+          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
+          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
         </div>
         <div class="podium-step podium-3rd w-full h-14 sm:h-16">
-          <span class="text-lg font-bold text-slate-400/70 tabular-nums mb-1.5">3</span>
+          <span class="text-lg sm:text-xl font-black text-amber-600/80 font-mono mb-1">3</span>
         </div>
       </div>
     `;
 
     if (runnersContainer) {
-      const baseRunnerClasses = "grid grid-cols-2 gap-1.5 pt-3.5 mt-3.5 border-t border-white/[0.06]";
+      const baseRunnerClasses = "grid grid-cols-2 gap-1.5 pt-3 mt-3 border-t border-white/[0.04]";
       runnersContainer.className = triggerAnimation ? `${baseRunnerClasses} podium-animate` : baseRunnerClasses;
 
       runnersContainer.innerHTML = runners.map((m, idx) => `
-        <div data-member-tag="${this.escapeHtml(m.tag)}" class="podium-runner-item cursor-pointer hover:bg-white/[0.06] active:scale-[0.98] transition flex items-center justify-between px-2.5 py-2 rounded-2xl bg-white/[0.03] border border-white/[0.06]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
-          <div class="flex items-center gap-1.5 min-w-0">
+        <div data-member-tag="${this.escapeHtml(m.tag)}" class="podium-runner-item cursor-pointer hover:bg-white/[0.05] active:scale-[0.98] transition flex items-center justify-between p-1.5 rounded bg-white/[0.02] border border-white/[0.04]" style="${triggerAnimation ? `animation-delay: ${0.16 + idx * 0.045}s` : ''}">
+          <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] font-mono text-slate-500 w-3">${idx + 4}</span>
-            <span class="text-[11px] text-slate-200 font-medium truncate">${this.escapeHtml(m.name)}</span>
+            <span class="text-[11px] text-slate-300 font-medium truncate">${this.escapeHtml(m.name)}</span>
           </div>
-          <span class="text-[11px] font-semibold text-slate-400 tabular-nums shrink-0 ml-1">${(m.donations || 0).toLocaleString()}</span>
+          <span class="text-[11px] font-bold text-slate-400 shrink-0 ml-1">${(m.donations || 0).toLocaleString()}</span>
         </div>
       `).join("");
     }
@@ -1197,23 +1239,22 @@ class ClanManagerApp {
   renderActivityDonut(members, triggerAnimation = false) {
     if (!window.Chart) return;
 
-    let seenToday = 0, seen1to2d = 0, seenDormant = 0;
+    let seenToday = 0;
+    let seen1to2d = 0;
+    let seenDormant = 0;
     const now = Date.now();
 
     members.forEach((m) => {
       const activeDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
-      if (!activeDate) { seenDormant++; return; }
-      const daysAgo = (now - activeDate.getTime()) / 86400000;
+      if (!activeDate) {
+        seenDormant++;
+        return;
+      }
+      const daysAgo = (now - activeDate.getTime()) / (1000 * 60 * 60 * 24);
       if (daysAgo < 1) seenToday++;
       else if (daysAgo < 3) seen1to2d++;
       else seenDormant++;
     });
-
-    const centerValEl = document.getElementById("donut-center-value");
-    if (centerValEl) {
-      const pct = members.length ? Math.round((seenToday / members.length) * 100) : 0;
-      centerValEl.textContent = `${pct}%`;
-    }
 
     const activityCanvas = this.elements.chartActivity;
     if (!activityCanvas) return;
@@ -1237,44 +1278,43 @@ class ClanManagerApp {
           labels: ["오늘 접속", "1~2일 전", "3일+ 미접속"],
           datasets: [{
             data: chartData,
-            backgroundColor: isLight
-              ? ["rgba(16, 185, 129, 0.82)", "rgba(15, 23, 42, 0.18)", "rgba(225, 29, 72, 0.78)"]
-              : ["rgba(52, 211, 153, 0.85)", "rgba(255, 255, 255, 0.22)", "rgba(255, 107, 107, 0.82)"],
-            borderWidth: 0,
-            borderRadius: 6,
-            spacing: 3,
-            hoverOffset: 3
+            backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(59, 130, 246, 0.85)", "rgba(244, 63, 94, 0.85)"],
+            borderColor: isLight ? "#ffffff" : "#0f121a",
+            borderWidth: 2,
+            hoverOffset: 4
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          cutout: "78%",
-          animation: { animateRotate: true, animateScale: true, duration: 680, easing: "easeOutQuart" },
+          animation: {
+            animateRotate: true,
+            animateScale: true,
+            duration: 680,
+            easing: "easeOutQuart"
+          },
           plugins: {
             legend: {
               position: "bottom",
               labels: {
-                color: isLight ? "#475569" : "rgba(245, 245, 247, 0.62)",
-                usePointStyle: true,
-                pointStyle: "circle",
-                boxWidth: 6,
-                boxHeight: 6,
-                padding: 14,
-                font: { size: 10.5, weight: "500" }
+                color: isLight ? "#0f172a" : "#94a3b8",
+                boxWidth: 8,
+                padding: 10,
+                font: { size: 10, weight: "bold" }
               }
             },
             tooltip: {
-              backgroundColor: isLight ? "rgba(255,255,255,0.92)" : "rgba(20,24,34,0.92)",
-              titleColor: isLight ? "#0f172a" : "#f5f5f7",
-              bodyColor: isLight ? "#475569" : "#94a3b8",
-              borderColor: isLight ? "rgba(15,23,42,0.1)" : "rgba(255,255,255,0.12)",
+              backgroundColor: isLight ? "#ffffff" : "#171b26",
+              titleColor: isLight ? "#0f172a" : "#f8fafc",
+              bodyColor: isLight ? "#334155" : "#94a3b8",
+              borderColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)",
               borderWidth: 1,
               padding: 8,
-              cornerRadius: 10,
+              displayColors: true,
               callbacks: { label: (c) => ` ${c.label}: ${c.raw}명` }
             }
-          }
+          },
+          cutout: "68%"
         }
       });
     }
@@ -1311,7 +1351,7 @@ class ClanManagerApp {
   }
 
   renderCompareCharts(clans, metricKey = "donationsWeekly", triggerAnimation = false) {
-    const stage = this.elements?.compareBarsStage || document.getElementById("compare-bars-stage");
+    const stage = this.elements?.compareBarsStage || document.getElementById("compare-bars-stage") || this.elements?.compareChartContainer || document.getElementById("compare-chart-container");
     if (!stage) return;
 
     const meta = COMPARE_METRICS_META[metricKey] || COMPARE_METRICS_META.donationsWeekly;
@@ -1320,52 +1360,70 @@ class ClanManagerApp {
     const maxVal = Math.max(...values, 1);
 
     let tickMax = Math.ceil(maxVal * 1.15);
-    tickMax = isDonation
-      ? Math.max(5000, Math.ceil(tickMax / 5000) * 5000)
-      : Math.max(50, Math.ceil(tickMax / 50) * 50);
+    if (isDonation) {
+      tickMax = Math.max(5000, Math.ceil(tickMax / 5000) * 5000);
+    } else {
+      tickMax = Math.max(50, Math.ceil(tickMax / 50) * 50);
+    }
 
-    const tickSteps = [100, 75, 50, 25, 0].map((percent) => ({
-      val: Math.round((tickMax * percent) / 100),
-      percent
-    }));
+    const tickSteps = [
+      { val: tickMax, percent: 100 },
+      { val: Math.round(tickMax * 0.75), percent: 75 },
+      { val: Math.round(tickMax * 0.5), percent: 50 },
+      { val: Math.round(tickMax * 0.25), percent: 25 },
+      { val: 0, percent: 0 }
+    ];
 
     let html = `
-      <div class="absolute left-11 sm:left-12 right-2.5 sm:right-3.5 top-6 sm:top-7 bottom-7">
+      <div class="absolute left-11 sm:left-12 right-2.5 sm:right-3.5 top-6 sm:top-7 bottom-7 sm:bottom-7">
         <div class="absolute inset-0 pointer-events-none z-0">
           ${tickSteps.map((t) => `
             <div class="absolute left-0 right-0 border-b ${t.percent === 0 ? 'border-white/[0.14] compare-baseline' : 'border-white/[0.05]'} compare-grid-line" style="bottom: ${t.percent}%;">
-              <span class="absolute right-full mr-2 text-[10px] font-mono text-slate-500 compare-tick-text select-none text-right whitespace-nowrap" style="top: 0; transform: translateY(-50%);">${t.val.toLocaleString()}</span>
+              <span class="absolute right-full mr-2 sm:mr-2.5 text-[10px] sm:text-[11px] font-mono text-slate-400 compare-tick-text select-none text-right whitespace-nowrap" style="top: 0; transform: translateY(-50%);">${t.val.toLocaleString()}</span>
             </div>
           `).join("")}
         </div>
-        <div id="compare-bars-wrapper" class="absolute inset-0 flex items-end justify-between px-2 sm:px-5 pointer-events-none z-10 ${triggerAnimation ? 'compare-animate' : ''}">
+        <div id="compare-bars-wrapper" class="absolute inset-0 flex items-end justify-between px-1.5 sm:px-5 pointer-events-none z-10 ${triggerAnimation ? 'compare-animate' : ''}">
     `;
 
     clans.forEach((c, idx) => {
       const val = c[metricKey] || 0;
-      const barHeightPercent = Math.max(4, Math.min(100, (val / tickMax) * 100));
-      const barStyleClass = c.isHome ? "compare-bar-home" : "compare-bar-other";
+      const barHeightPercent = Math.max(3.5, Math.min(100, (val / tickMax) * 100));
+
+      let barClasses = "bg-gradient-to-t from-[#d41f45] to-[#eb3a60] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
+      if (c.isHome) {
+        barClasses = "bg-gradient-to-t from-[#3d4ac6] to-[#4f5ddb] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
+      } else if ((c.name || "").includes("Vandros")) {
+        barClasses = "bg-gradient-to-t from-[#059669] to-[#10b981] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
+      }
 
       html += `
-        <div class="flex-1 max-w-[95px] sm:max-w-[125px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
-          <div class="w-[72%] max-w-[68px] relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
-            <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
-              <span class="text-xs font-semibold tracking-tight ${c.isHome ? 'text-white' : 'text-slate-400'} compare-header-num">${val.toLocaleString()}${meta.suffix}</span>
+        <div class="flex-1 max-w-[95px] sm:max-w-[130px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
+          <div class="w-[76%] sm:w-[72%] max-w-[72px] sm:max-w-[96px] relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
+            <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1 sm:mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
+              <span class="text-xs sm:text-[13px] font-bold tracking-tight text-white compare-header-num">${val.toLocaleString()}${meta.suffix}</span>
             </div>
-            <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-2xl ${barStyleClass}"></div>
+            <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-xl ${barClasses}"></div>
           </div>
-          <div class="compare-clan-name absolute top-full pt-2 w-full text-center text-xs ${c.isHome ? 'font-bold text-white' : 'font-medium text-slate-400'} tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
+          <div class="compare-clan-name absolute top-full pt-1.5 sm:pt-2 w-full text-center text-xs sm:text-[13px] font-bold text-white tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
             ${this.escapeHtml(c.name)}
           </div>
         </div>
       `;
     });
 
-    html += `</div></div>`;
+    html += `
+        </div>
+      </div>
+    `;
+
     stage.innerHTML = html;
 
     if (triggerAnimation) {
-      setTimeout(() => document.getElementById("compare-bars-wrapper")?.classList.remove("compare-animate"), 850);
+      setTimeout(() => {
+        const barsWrapper = document.getElementById("compare-bars-wrapper");
+        if (barsWrapper) barsWrapper.classList.remove("compare-animate");
+      }, 850);
     }
   }
 
@@ -1377,48 +1435,53 @@ class ClanManagerApp {
     const homeClan = clans.find((c) => c.isHome) || clans[0];
     const homeValue = homeClan?.[metricKey] || 0;
 
-    container.innerHTML = clans.map((c, idx) => {
+    let html = "";
+    clans.forEach((c, idx) => {
       const isHome = c.isHome;
       const currentVal = c[metricKey] || 0;
       const diffVal = currentVal - homeValue;
+
       const popClass = triggerAnimation ? "badge-pop" : "";
       const animStyle = triggerAnimation ? `style="animation-delay: ${0.08 + idx * 0.06}s"` : "";
 
-      let diffBadge = `<span class="${popClass} diff-badge-neutral font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-full inline-block" ${animStyle}>기준</span>`;
+      let diffBadge = `<span class="${popClass} text-slate-500 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block" ${animStyle}>기준</span>`;
       if (!isHome) {
         if (diffVal > 0) {
-          diffBadge = `<span class="${popClass} diff-badge-pos font-mono text-[10.5px] font-semibold px-2 py-0.5 rounded-full inline-block" ${animStyle}>+${diffVal.toLocaleString()}${meta.suffix}</span>`;
+          diffBadge = `<span class="${popClass} text-emerald-400 font-mono text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-block" ${animStyle}>+${diffVal.toLocaleString()}${meta.suffix}</span>`;
         } else if (diffVal < 0) {
-          diffBadge = `<span class="${popClass} diff-badge-neg font-mono text-[10.5px] font-semibold px-2 py-0.5 rounded-full inline-block" ${animStyle}>${diffVal.toLocaleString()}${meta.suffix}</span>`;
+          diffBadge = `<span class="${popClass} text-rose-400 font-mono text-[11px] font-bold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20 inline-block" ${animStyle}>${diffVal.toLocaleString()}${meta.suffix}</span>`;
         } else {
-          diffBadge = `<span class="${popClass} diff-badge-neutral font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-full inline-block" ${animStyle}>0${meta.suffix}</span>`;
+          diffBadge = `<span class="${popClass} text-slate-400 font-mono text-[11px] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded inline-block" ${animStyle}>0${meta.suffix}</span>`;
         }
       }
 
-      return `
-        <div class="p-4 flex items-center justify-between gap-3 transition ${isHome ? 'bg-white/[0.03]' : ''}">
-          <div class="flex items-center gap-3 min-w-0">
-            <span class="text-xs font-mono font-semibold w-5 text-center shrink-0 ${idx === 0 ? 'text-white' : 'text-slate-500'}">${idx + 1}</span>
+      const rankEmoji = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}`;
+
+      html += `
+        <div class="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition ${isHome ? 'bg-indigo-950/20' : ''}">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-sm font-bold w-6 text-center shrink-0 ${idx === 0 ? 'text-amber-400' : 'text-slate-400'}">${rankEmoji}</span>
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-white text-sm tracking-tight truncate">${this.escapeHtml(c.name)}</span>
-                ${isHome ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/[0.12] text-white shrink-0">내 클랜</span>' : ''}
+                <span class="font-bold text-white text-sm sm:text-base tracking-tight truncate">${this.escapeHtml(c.name)}</span>
+                ${isHome ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">내 클랜</span>' : ''}
               </div>
               <div class="text-[11px] font-mono text-slate-500 mt-0.5 flex items-center gap-1.5">
                 <span>${this.escapeHtml(c.tag)}</span>
-                <span>·</span>
-                <span class="text-slate-400 font-sans">${c.membersCount}/50명</span>
+                <span class="text-slate-600">·</span>
+                <span class="text-slate-400 font-sans">${c.membersCount}<span class="text-slate-500 font-normal">/50명</span></span>
               </div>
             </div>
           </div>
           <div class="text-right shrink-0">
             <div class="text-[10px] text-slate-500">${meta.label}</div>
-            <div class="text-sm font-bold text-white tabular-nums mt-0.5">${currentVal.toLocaleString()}${meta.suffix}</div>
+            <div class="text-xs sm:text-sm font-black text-amber-400 font-mono mt-0.5">${currentVal.toLocaleString()}${meta.suffix}</div>
             <div class="mt-1">${diffBadge}</div>
           </div>
         </div>
       `;
-    }).join("");
+    });
+    container.innerHTML = html;
   }
 
   setFilterTab(filterType, element) {
@@ -1429,6 +1492,7 @@ class ClanManagerApp {
     this.applyFilterAndRender(true);
   }
 
+  // 3일+ 미접속 대상자 전용 팝업 모달 (상시 마운트 + 120fps 스프링 오픈)
   openDormantModal() {
     const modal = this.elements.dormantMembersModal || document.getElementById("dormant-members-modal");
     const listContainer = this.elements.dormantModalList || document.getElementById("dormant-modal-list");
@@ -1470,7 +1534,7 @@ class ClanManagerApp {
         const donations = member.donations || 0;
 
         return `
-          <div class="p-3.5 hover:bg-white/[0.04] active:bg-white/[0.06] transition cursor-pointer flex items-center justify-between gap-2" data-dormant-tag="${this.escapeHtml(member.tag)}">
+          <div class="p-3.5 hover:bg-white/[0.03] active:bg-white/[0.06] transition cursor-pointer flex items-center justify-between gap-2" data-dormant-tag="${this.escapeHtml(member.tag)}">
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${idx + 1}</span>
@@ -1503,6 +1567,7 @@ class ClanManagerApp {
     this.closeModalSmooth(modal);
   }
 
+  // 미접속 대상자 팝업에서 클랜원 클릭 시 끊김 없이 상세 팝업으로 부드럽게 교차 전환
   switchFromDormantToMember(memberTag) {
     this.closeDormantModal();
     setTimeout(() => {
@@ -1522,6 +1587,7 @@ class ClanManagerApp {
     this.applyFilterAndRender(true);
   }
 
+  // 날짜 파싱 단일 진입점 (window.crApi.parseApiDate 위임)
   parseDateSafe(dateStr) {
     if (!dateStr) return null;
     if (window.crApi && typeof window.crApi.parseApiDate === "function") {
@@ -1552,22 +1618,54 @@ class ClanManagerApp {
     const diffMinutes = Math.floor(diffSeconds / 60);
 
     if (diffSeconds <= 180) {
-      return { isOnline: true, text: "접속 중", dotColor: "green", isPulse: true, textColor: "text-white font-semibold" };
+      return {
+        isOnline: true,
+        text: "접속 중",
+        dotColor: "green",
+        isPulse: true,
+        textColor: "text-emerald-400 font-bold"
+      };
     }
+
     if (diffMinutes < 60) {
-      return { isOnline: false, text: `${diffMinutes}분 전`, dotColor: "green", isPulse: false, textColor: "text-slate-200 font-medium" };
+      return {
+        isOnline: false,
+        text: `${diffMinutes}분 전`,
+        dotColor: "green",
+        isPulse: false,
+        textColor: "text-slate-300 font-medium"
+      };
     }
 
     const diffHours = Math.floor(diffMinutes / 60);
     if (diffHours < 24) {
-      return { isOnline: false, text: `${diffHours}시간 전`, dotColor: "amber", isPulse: false, textColor: "text-slate-300 font-medium" };
+      return {
+        isOnline: false,
+        text: `${diffHours}시간 전`,
+        dotColor: "amber",
+        isPulse: false,
+        textColor: "text-amber-300 font-semibold"
+      };
     }
 
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays >= 3) {
-      return { isOnline: false, text: `${diffDays}일 전`, dotColor: "rose", isPulse: false, textColor: "text-rose-300 font-semibold" };
+      return {
+        isOnline: false,
+        text: `${diffDays}일 전`,
+        dotColor: "rose",
+        isPulse: false,
+        textColor: "text-rose-400 font-bold"
+      };
     }
-    return { isOnline: false, text: `${diffDays}일 전`, dotColor: "amber", isPulse: false, textColor: "text-slate-300 font-medium" };
+
+    return {
+      isOnline: false,
+      text: `${diffDays}일 전`,
+      dotColor: "amber",
+      isPulse: false,
+      textColor: "text-amber-300 font-semibold"
+    };
   }
 
   formatRelativeTime(dateStr) {
@@ -1588,6 +1686,7 @@ class ClanManagerApp {
     return `${diffDays}일 전`;
   }
 
+  // 클랜원 상세 팝업 모달 (120fps 스프링 오픈)
   openMemberModal(memberTag) {
     if (!this.currentData?.memberList) return;
     const member = this.currentData.memberList.find((m) => m.tag === memberTag);
@@ -1671,24 +1770,31 @@ class ClanManagerApp {
     const tbody = this.elements.memberTableBody;
     const emptyState = this.elements.emptyState;
     if (!tbody) return;
-    if (tbody.closest(".hidden") && window.innerWidth < 1024) return;
+
+    const tableWrapper = tbody.closest(".hidden");
+    if (tableWrapper && window.innerWidth < 1024) return;
 
     if (this.filteredMembers.length === 0) {
       tbody.innerHTML = "";
       if (emptyState) emptyState.classList.remove("hidden");
       return;
     }
+
     if (emptyState) emptyState.classList.add("hidden");
 
-    tbody.innerHTML = this.filteredMembers.map((member, idx) => {
+    let rowsHtml = "";
+
+    this.filteredMembers.forEach((member, idx) => {
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
+
       const effectiveDate = this.getEffectiveActiveDate(member.lastSeen, member.lastBattleTime);
       const exactSeen = effectiveDate ? effectiveDate.toLocaleString("ko-KR") : "기록 없음";
+
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
 
-      return `
+      rowsHtml += `
         <tr data-member-tag="${this.escapeHtml(member.tag)}" class="cursor-pointer">
           <td class="text-center font-mono text-xs text-slate-500">${member.clanRank || idx + 1}</td>
           <td>
@@ -1696,9 +1802,9 @@ class ClanManagerApp {
               <span class="font-semibold text-white tracking-tight">${this.escapeHtml(member.name)}</span>
               ${this.getRoleBadge(member.role)}
             </div>
-            <div class="flex items-center gap-2 text-[11px] text-slate-500 font-mono mt-0.5">
+            <div class="flex items-center gap-2 text-[11px] text-slate-400 font-mono mt-0.5">
               <span>${this.escapeHtml(member.tag)}</span>
-              <span class="text-slate-400 font-sans tabular-nums">${(member.trophies || 0).toLocaleString()}</span>
+              <span class="text-amber-400/90 font-sans">🏆 ${(member.trophies || 0).toLocaleString()}</span>
             </div>
           </td>
           <td class="text-center">
@@ -1706,15 +1812,18 @@ class ClanManagerApp {
               <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
               <span class="${status.textColor} text-xs">${status.text}</span>
             </div>
-            <div class="text-[10px] text-slate-500 font-mono mt-0.5">배틀: ${relativeBattle}</div>
+            <div class="text-[10px] text-indigo-300/80 font-mono mt-0.5">
+              배틀: ${relativeBattle}
+            </div>
           </td>
           <td class="text-right">
-            <div class="font-semibold text-sm tabular-nums ${donations === 0 ? 'text-rose-300' : 'text-white'}">${donations.toLocaleString()}</div>
-            <div class="text-[10px] text-slate-500 font-mono">받음: ${received.toLocaleString()}</div>
+            <div class="font-bold text-sm ${donations >= 300 ? "text-amber-400" : donations === 0 ? "text-rose-400" : "text-slate-100"}">${donations.toLocaleString()}</div>
+            <div class="text-[10px] text-slate-400 font-mono">받음: ${received.toLocaleString()}</div>
           </td>
         </tr>
       `;
-    }).join("");
+    });
+    tbody.innerHTML = rowsHtml;
   }
 
   renderMobileList(shouldStagger = false) {
@@ -1722,17 +1831,22 @@ class ClanManagerApp {
     const emptyState = this.elements.emptyState;
     if (!container) return;
 
-    if (window.innerWidth >= 1024 && this.elements.memberTableBody && !this.elements.memberTableBody.closest(".hidden")) return;
+    if (window.innerWidth >= 1024 && this.elements.memberTableBody && !this.elements.memberTableBody.closest(".hidden")) {
+      return;
+    }
 
     if (this.filteredMembers.length === 0) {
       container.innerHTML = "";
       if (emptyState) emptyState.classList.remove("hidden");
       return;
     }
+
     if (emptyState) emptyState.classList.add("hidden");
 
     const now = Date.now();
-    container.innerHTML = this.filteredMembers.map((member, idx) => {
+    let cardsHtml = "";
+
+    this.filteredMembers.forEach((member, idx) => {
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
@@ -1740,36 +1854,42 @@ class ClanManagerApp {
       const battleDate = this.parseDateSafe(member.lastBattleTime);
       if (battleDate) {
         const battleSecsAgo = Math.floor((now - battleDate.getTime()) / 1000);
-        if (battleSecsAgo >= 259200) battleTextColor = "text-rose-300/90";
+        if (battleSecsAgo <= 180) battleTextColor = "text-emerald-400 font-bold";
+        else if (battleSecsAgo < 86400) battleTextColor = "text-indigo-300 font-semibold";
+        else if (battleSecsAgo >= 604800) battleTextColor = "text-rose-400 font-bold";
+        else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/80 font-medium";
       }
 
       const donations = member.donations || 0;
       const received = member.donationsReceived || 0;
-      const animateCard = shouldStagger && idx < 14;
 
-      return `
-        <div class="mobile-member-card ${animateCard ? 'card-stagger-in' : ''}" ${animateCard ? `style="animation-delay: ${(idx * 0.024).toFixed(3)}s"` : ''} data-member-tag="${this.escapeHtml(member.tag)}">
+      const animateCard = shouldStagger && idx < 14;
+      const staggerClass = animateCard ? "card-stagger-in" : "";
+      const staggerStyle = animateCard ? `style="animation-delay: ${(idx * 0.024).toFixed(3)}s"` : "";
+
+      cardsHtml += `
+        <div class="mobile-member-card ${staggerClass}" ${staggerStyle} data-member-tag="${this.escapeHtml(member.tag)}">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
-              <span class="font-mono text-[11px] text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
-              <span class="font-semibold text-white text-[13.5px] truncate">${this.escapeHtml(member.name)}</span>
+              <span class="font-mono text-xs text-slate-500 w-4 shrink-0">${member.clanRank || idx + 1}</span>
+              <span class="font-bold text-white text-[13px] truncate">${this.escapeHtml(member.name)}</span>
               ${this.getRoleBadge(member.role)}
               <span class="text-[10px] font-mono text-slate-500 truncate hidden sm:inline">${this.escapeHtml(member.tag)}</span>
             </div>
-            <span class="text-xs font-semibold text-slate-300 tabular-nums shrink-0">${(member.trophies || 0).toLocaleString()}</span>
+            <span class="text-xs font-semibold text-amber-400 shrink-0">🏆 ${(member.trophies || 0).toLocaleString()}</span>
           </div>
 
-          <div class="grid grid-cols-3 gap-1 pt-2.5 mt-2 border-t border-white/[0.05] items-center">
+          <div class="grid grid-cols-3 gap-1 pt-2.5 mt-2 border-t border-white/[0.03] items-center">
             <div class="text-left">
-              <div class="text-[10px] text-slate-500">접속 상태</div>
-              <div class="text-xs ${status.textColor} mt-0.5 flex items-center gap-1.5 truncate">
+              <div class="text-[10px] text-slate-500 font-medium">접속 상태</div>
+              <div class="text-xs ${status.textColor} mt-0.5 font-medium flex items-center gap-1 truncate">
                 <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
                 <span class="truncate">${status.text}</span>
               </div>
             </div>
 
             <div class="text-center">
-              <div class="text-[10px] text-slate-500">최근 배틀</div>
+              <div class="text-[10px] text-slate-500 font-medium">최근 배틀</div>
               <div class="text-xs ${battleTextColor} mt-0.5 font-medium flex items-center justify-center gap-1 truncate">
                 ${SWORDS_INLINE_SVG}
                 <span class="truncate">${relativeBattle}</span>
@@ -1777,15 +1897,16 @@ class ClanManagerApp {
             </div>
 
             <div class="text-right">
-              <div class="text-[10px] text-slate-500">주간 지원량</div>
-              <div class="text-xs font-semibold ${donations === 0 ? 'text-rose-300' : 'text-white'} mt-0.5 tabular-nums truncate">
+              <div class="text-[10px] text-slate-500 font-medium">주간 지원량</div>
+              <div class="text-xs font-bold ${donations >= 300 ? 'text-amber-400' : donations === 0 ? 'text-rose-400' : 'text-slate-100'} mt-0.5 font-mono truncate">
                 ${donations.toLocaleString()}<span class="text-[10px] font-normal text-slate-500 ml-0.5">/ ${received}</span>
               </div>
             </div>
           </div>
         </div>
       `;
-    }).join("");
+    });
+    container.innerHTML = cardsHtml;
   }
 
   escapeHtml(str) {
