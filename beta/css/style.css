@@ -678,3 +678,45 @@ html.light .slot-window.slot-locked { border-color: rgba(15, 23, 42, 0.35) !impo
 .compare-animate .compare-bar-header-0 { animation: compareHeaderRise 0.56s var(--ease-spring) both !important; }
 .compare-animate .compare-bar-header-1 { animation: compareHeaderRise 0.56s var(--ease-spring) 0.06s both !important; }
 .compare-animate .compare-bar-header-2 { animation: compareHeaderRise 0.56s var(--ease-spring) 0.12s both !important; }
+
+/* ============================================================
+   v1.9.0 벤토 그리드(Bento Grid) 태블릿·데스크톱 반응형 확장
+   ============================================================ */
+@media (min-width: 768px) {
+  /* 클랜원 리스트 아이템 -> 독립형 벤토 미니 카드로 전환 */
+  .mobile-member-card {
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02) !important;
+    transition: transform 0.16s var(--ease-spring), border-color 0.2s ease, background-color 0.2s ease !important;
+  }
+
+  .mobile-member-card:hover {
+    background: rgba(255, 255, 255, 0.045) !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    transform: translate3d(0, -2px, 0);
+  }
+
+  /* 라이트 모드 벤토 미니 카드 보정 */
+  html.light .mobile-member-card {
+    background: #f8fafc !important;
+    border-color: rgba(15, 23, 42, 0.08) !important;
+  }
+
+  html.light .mobile-member-card:hover {
+    background: #ffffff !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  }
+}
+
+@media (min-width: 1024px) {
+  .chart-container-donut {
+    height: 235px;
+  }
+
+  .chart-container-compare {
+    height: 265px;
+    min-height: 265px;
+  }
+}
