@@ -1221,7 +1221,7 @@ class ClanManagerApp {
     `;
 
     if (runnersContainer) {
-      const baseRunnerClasses = "grid grid-cols-2 gap-1.5 pt-3 mt-3 border-t border-white/[0.04]";
+      const baseRunnerClasses = "grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 pt-3.5 mt-3.5 border-t border-white/[0.06]";
       runnersContainer.className = triggerAnimation ? `${baseRunnerClasses} podium-animate` : baseRunnerClasses;
 
       runnersContainer.innerHTML = runners.map((m, idx) => `
@@ -1618,54 +1618,22 @@ class ClanManagerApp {
     const diffMinutes = Math.floor(diffSeconds / 60);
 
     if (diffSeconds <= 180) {
-      return {
-        isOnline: true,
-        text: "접속 중",
-        dotColor: "green",
-        isPulse: true,
-        textColor: "text-emerald-400 font-bold"
-      };
+      return { isOnline: true, text: "접속 중", dotColor: "green", isPulse: true, textColor: "text-white font-semibold" };
     }
-
     if (diffMinutes < 60) {
-      return {
-        isOnline: false,
-        text: `${diffMinutes}분 전`,
-        dotColor: "green",
-        isPulse: false,
-        textColor: "text-slate-300 font-medium"
-      };
+      return { isOnline: false, text: `${diffMinutes}분 전`, dotColor: "green", isPulse: false, textColor: "text-slate-200 font-medium" };
     }
 
     const diffHours = Math.floor(diffMinutes / 60);
     if (diffHours < 24) {
-      return {
-        isOnline: false,
-        text: `${diffHours}시간 전`,
-        dotColor: "amber",
-        isPulse: false,
-        textColor: "text-amber-300 font-semibold"
-      };
+      return { isOnline: false, text: `${diffHours}시간 전`, dotColor: "slate", isPulse: false, textColor: "text-slate-300 font-medium" };
     }
 
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays >= 3) {
-      return {
-        isOnline: false,
-        text: `${diffDays}일 전`,
-        dotColor: "rose",
-        isPulse: false,
-        textColor: "text-rose-400 font-bold"
-      };
+      return { isOnline: false, text: `${diffDays}일 전`, dotColor: "rose", isPulse: false, textColor: "text-rose-300 font-semibold" };
     }
-
-    return {
-      isOnline: false,
-      text: `${diffDays}일 전`,
-      dotColor: "amber",
-      isPulse: false,
-      textColor: "text-amber-300 font-semibold"
-    };
+    return { isOnline: false, text: `${diffDays}일 전`, dotColor: "slate", isPulse: false, textColor: "text-slate-400 font-medium" };
   }
 
   formatRelativeTime(dateStr) {
