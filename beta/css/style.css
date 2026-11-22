@@ -265,7 +265,7 @@ button:active,
   user-select: none;
 }
 
-/* 직책 배지 (저채도 반투명 필) */
+/* 직책 배지 (대표만 샴페인 골드, 나머지는 투명도 차등 무채색) */
 .badge-role {
   font-size: 10px;
   font-weight: 600;
@@ -278,16 +278,16 @@ button:active,
   color: #e6c989;
 }
 .badge-coleader {
-  background: rgba(192, 162, 245, 0.13);
-  color: #cbb5f6;
+  background: rgba(255, 255, 255, 0.14);
+  color: #f5f5f7;
 }
 .badge-elder {
-  background: rgba(147, 197, 253, 0.12);
-  color: #a8ccf8;
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(245, 245, 247, 0.78);
 }
 .badge-member {
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(245, 245, 247, 0.55);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(245, 245, 247, 0.5);
 }
 
 /* 올림픽 시상대 (Liquid Glass 유리 기둥) */
@@ -514,9 +514,9 @@ html.light .diff-badge-neg { background: rgba(225, 29, 72, 0.1); color: #be123c;
 html.light .diff-badge-neutral { background: rgba(15, 23, 42, 0.06); color: #475569; }
 
 html.light .badge-leader { background: rgba(217, 155, 38, 0.14); color: #92600a; }
-html.light .badge-coleader { background: rgba(126, 34, 206, 0.1); color: #6b21a8; }
-html.light .badge-elder { background: rgba(37, 99, 235, 0.1); color: #1d4ed8; }
-html.light .badge-member { background: rgba(15, 23, 42, 0.06); color: #475569; }
+html.light .badge-coleader { background: rgba(15, 23, 42, 0.12); color: #0f172a; }
+html.light .badge-elder { background: rgba(15, 23, 42, 0.08); color: #334155; }
+html.light .badge-member { background: rgba(15, 23, 42, 0.05); color: #64748b; }
 
 html.light #initial-sync-modal { background-color: rgba(238, 242, 247, 0.92) !important; }
 html.light .compare-grid-line { border-color: rgba(15, 23, 42, 0.06) !important; }
@@ -718,5 +718,47 @@ html.light .slot-window.slot-locked { border-color: rgba(15, 23, 42, 0.35) !impo
   .chart-container-compare {
     height: 265px;
     min-height: 265px;
+  }
+}
+
+/* ============================================================
+   v1.9.1 Liquid Glass 벤토 그리드 태블릿·PC 반응형 확장
+   ============================================================ */
+@media (min-width: 768px) {
+  .mobile-member-card {
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.18s var(--ease-spring), border-color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .mobile-member-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.16);
+    transform: translate3d(0, -2px, 0);
+  }
+
+  html.light .mobile-member-card {
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(15, 23, 42, 0.07);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  html.light .mobile-member-card:hover {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(15, 23, 42, 0.15);
+    box-shadow: 0 6px 16px -4px rgba(15, 23, 42, 0.08);
+  }
+}
+
+@media (min-width: 1024px) {
+  .chart-container-donut {
+    height: 235px;
+  }
+
+  .chart-container-compare {
+    height: 270px;
+    min-height: 270px;
   }
 }
