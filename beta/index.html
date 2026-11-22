@@ -11,7 +11,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: https://api-assets.clashroyale.com https://static.wikia.nocookie.net; connect-src 'self' https://green-disk-88a6.marble593812345.workers.dev https://api.clashroyale.com https://proxy.royaleapi.dev https://corsproxy.io https://api.allorigins.win;" />
   <title>Good Fellas | 클랜 관리 및 타 갤클 비교 대시보드</title>
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23e2e8f0%22/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%2310b981%22/></svg>">
 
   <!-- Theme Initialization (Zero FOUC) -->
   <script>
@@ -39,9 +39,9 @@
         extend: {
           colors: {
             brand: {
-              base: '#090b10',
-              surface: 'rgba(255, 255, 255, 0.05)',
-              elevated: 'rgba(255, 255, 255, 0.12)'
+              base: '#0b0d13',
+              surface: '#11141e',
+              elevated: '#1a202c'
             }
           }
         }
@@ -58,273 +58,294 @@
   <!-- Custom Stylesheet (Cache Busted v1.9.0) -->
   <link rel="stylesheet" href="css/style.css?v=1.9.0" />
 </head>
-<body class="text-slate-100 min-h-screen antialiased selection:bg-white/20 selection:text-white">
+<body class="bg-[#0b0d13] text-slate-100 min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
 
-  <div class="max-w-md mx-auto px-3.5 py-5">
+  <!-- 반응형 벤토 컨테이너: 모바일(max-w-md) -> 태블릿(max-w-3xl) -> PC(max-w-6xl) -->
+  <div class="w-full max-w-md md:max-w-3xl lg:max-w-6xl mx-auto px-3.5 sm:px-6 py-5 lg:py-7 transition-all duration-300">
 
-    <!-- 1. 헤더 -->
-    <header class="flex items-center justify-between pb-3.5 gap-2">
-      <div class="min-w-0">
-        <div class="flex items-center gap-2 flex-nowrap">
-          <h1 class="text-[17px] font-bold tracking-tight text-white whitespace-nowrap" id="clan-name">Good Fellas</h1>
-          <span class="text-[10px] font-mono text-slate-400 bg-white/[0.06] px-2 py-0.5 rounded-full border border-white/[0.08] whitespace-nowrap" id="clan-tag">#G890J9JC</span>
-        </div>
-        <p class="text-[11px] text-slate-400 mt-0.5 truncate max-w-[310px]" id="clan-desc">
-          클랜원 주간 지원량 · 마지막 접속 및 배틀 모니터링
-        </p>
-      </div>
-
-      <div class="flex items-center gap-1.5 shrink-0">
-        <button id="btn-quick-compare" class="hidden px-3 py-1.5 rounded-full glass-control text-slate-200 hover:text-white text-[11px] font-semibold items-center gap-1.5 transition whitespace-nowrap" onclick="window.app.switchMainTab('compare')">
-          <i data-lucide="scale" class="w-3.5 h-3.5"></i>
-          <span>타 갤클과 비교</span>
-        </button>
-
-        <button id="btn-theme-toggle" class="p-2.5 rounded-full glass-control text-slate-200 hover:text-white transition flex items-center justify-center relative overflow-hidden select-none" title="다크 / 라이트 모드 전환" aria-label="테마 전환">
-          <div id="theme-toggle-icon" class="relative w-4 h-4 flex items-center justify-center pointer-events-none">
-            <svg id="icon-sun" class="w-4 h-4 text-slate-700 absolute pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="4"/>
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-            </svg>
-            <svg id="icon-moon" class="w-4 h-4 text-slate-200 absolute pointer-events-none" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-            </svg>
+    <!-- 1. 통합 반응형 헤더: 모바일은 2단 적층, PC(lg 이상)는 타이틀 + 메인 탭 + 테마 버튼 1줄 정렬 -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between pb-3 lg:pb-4 border-b border-white/[0.06] gap-3">
+      <!-- 좌측: 클랜명 & 설명 -->
+      <header class="flex items-center justify-between gap-2 min-w-0">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-nowrap">
+            <h1 class="text-base sm:text-lg lg:text-xl font-bold tracking-tight text-white whitespace-nowrap" id="clan-name">Good Fellas</h1>
+            <span class="text-[10px] sm:text-xs font-mono text-slate-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06] whitespace-nowrap" id="clan-tag">#G890J9JC</span>
           </div>
-        </button>
-      </div>
-    </header>
-
-    <!-- 1-B. 상단 메인 탭 네비게이션 (Liquid Glass Capsule) -->
-    <nav class="flex flex-col gap-2 mt-1 pb-1">
-      <div class="segmented-control relative grid grid-cols-2 p-1 rounded-full w-full overflow-hidden">
-        <div id="main-tab-pill" class="segmented-pill main-pill"></div>
-
-        <button id="tab-btn-dashboard" class="main-nav-btn active relative z-10 justify-center whitespace-nowrap py-2 text-center text-xs" onclick="window.app.switchMainTab('dashboard')">
-          <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
-          <span>내 클랜 대시보드</span>
-        </button>
-        <button id="tab-btn-compare" class="main-nav-btn relative z-10 justify-center whitespace-nowrap py-2 text-center text-xs" onclick="window.app.switchMainTab('compare')">
-          <i data-lucide="scale" class="w-3.5 h-3.5"></i>
-          <span>타 갤클과 비교</span>
-        </button>
-      </div>
-
-      <div class="text-[11px] text-slate-400 hidden items-center gap-1.5" id="tab-context-hint">
-        <span class="inline-block w-1.5 h-1.5 rounded-full bg-white/60"></span>
-        <span>Good Fellas 단독 뷰</span>
-      </div>
-    </nav>
-
-    <!-- ========================================== -->
-    <!-- VIEW A: 내 클랜 대시보드 -->
-    <!-- ========================================== -->
-    <div id="view-dashboard" class="tab-view block space-y-3.5">
-
-      <!-- 2. 핵심 3대 지표 스트립 (무채색 위계 통일) -->
-      <section class="grid grid-cols-3 gap-2.5 mt-3.5">
-        <div class="surface-card p-3.5">
-          <div class="text-[10px] font-medium text-slate-400 tracking-wide">전체 클랜원</div>
-          <div class="text-lg font-bold text-white mt-1 tracking-tight" id="stat-total-members">- / 50</div>
-          <div class="text-[10px] text-slate-400 mt-0.5 truncate" id="stat-member-vacant">집계 중...</div>
+          <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate max-w-[310px] sm:max-w-md" id="clan-desc">
+            클랜원 주간 지원량 · 마지막 접속 및 배틀 모니터링
+          </p>
         </div>
 
-        <div class="surface-card p-3.5">
-          <div class="text-[10px] font-medium text-slate-400 tracking-wide">주간 총 지원량</div>
-          <div class="text-lg font-bold text-white mt-1 tracking-tight" id="stat-total-donations">-</div>
-          <div class="text-[10px] text-slate-400 mt-0.5 truncate" id="stat-avg-donations">계산 중...</div>
-        </div>
+        <!-- 모바일 전용 테마 전환 버튼 (lg 미만에서 표시) -->
+        <div class="flex lg:hidden items-center gap-1.5 shrink-0">
+          <button id="btn-quick-compare" class="hidden px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold items-center gap-1.5 transition shadow-sm whitespace-nowrap" onclick="window.app.switchMainTab('compare')">
+            <i data-lucide="scale" class="w-3.5 h-3.5"></i>
+            <span>타 갤클과 비교</span>
+          </button>
 
-        <div class="surface-card p-3.5 cursor-pointer active:scale-[0.97] transition-transform duration-150 group" onclick="window.app.openDormantModal()">
-          <div class="text-[10px] font-medium text-slate-400 group-hover:text-slate-200 tracking-wide">3일+ 미접속</div>
-          <div class="text-lg font-bold text-white mt-1 tracking-tight" id="stat-dormant-count">-</div>
-          <div class="text-[10px] text-slate-400 group-hover:text-slate-200 mt-0.5 truncate underline underline-offset-2 decoration-white/25">대상자 보기</div>
-        </div>
-      </section>
-
-      <!-- 3. 시각화 세션: 시상대 (Top 7) & 접속 분포 도넛 -->
-      <section class="grid grid-cols-1 gap-3.5">
-        <div class="surface-card p-4 flex flex-col justify-between">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-slate-200 tracking-tight">주간 지원 기여도 Top 7</span>
-          </div>
-
-          <div id="podium-container" class="flex items-end justify-center gap-2.5 pt-4 pb-0 px-1 min-h-[144px]">
-            <div class="text-center py-10 text-xs text-slate-500 animate-pulse">실시간 단상 랭킹 집계 중...</div>
-          </div>
-
-          <div id="podium-runners-container" class="grid grid-cols-2 gap-1.5 pt-3.5 mt-3.5 border-t border-white/[0.06]">
-          </div>
-        </div>
-
-        <div class="surface-card p-4">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-slate-200 tracking-tight">클랜원 접속 분포</span>
-          </div>
-          <div class="chart-container-donut relative">
-            <canvas id="chart-activity"></canvas>
-            <div id="donut-center-metric" class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-6">
-              <span class="text-[10px] text-slate-400 font-medium">오늘 접속</span>
-              <span class="text-xl font-bold text-white tabular-nums tracking-tight" id="donut-center-value">-</span>
+          <button id="btn-theme-toggle" class="p-2 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300 hover:text-white transition flex items-center justify-center relative overflow-hidden select-none" title="다크 / 라이트 모드 전환" aria-label="테마 전환">
+            <div id="theme-toggle-icon" class="relative w-4 h-4 flex items-center justify-center pointer-events-none">
+              <svg id="icon-sun" class="w-4 h-4 text-amber-500 absolute pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+              <svg id="icon-moon" class="w-4 h-4 text-amber-300 absolute pointer-events-none" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+              </svg>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 4. 컨트롤 바 (Pill 통일) -->
-      <section class="flex flex-col justify-between gap-2.5 pt-1">
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-          <button class="filter-chip active text-xs" data-filter="all" onclick="window.app.setFilterTab('all', this)">
-            전체 <span class="text-slate-400 ml-1 font-mono text-[11px]" id="chip-count-all">0</span>
-          </button>
-          <button class="filter-chip text-xs" data-filter="low-donations" onclick="window.app.setFilterTab('low-donations', this)">
-            지원 저조 (50 미만) <span class="text-slate-400 ml-1 font-mono text-[11px]" id="chip-count-low">0</span>
           </button>
         </div>
+      </header>
 
-        <div class="flex items-center gap-1.5">
-          <div class="relative flex-1">
-            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-            <input type="text" id="search-input" placeholder="닉네임 또는 #태그 검색..."
-              class="glass-control w-full pl-8.5 pr-7 py-2 rounded-full text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition" />
-            <button type="button" id="btn-search-clear" onclick="window.app.clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/[0.12] hover:bg-white/[0.2] text-slate-300 hover:text-white items-center justify-center text-[10px] leading-none transition" title="검색어 지우기" aria-label="검색어 지우기">✕</button>
-          </div>
+      <!-- 우측: 메인 탭 네비게이션 + PC 전용 테마 버튼 -->
+      <nav class="flex items-center gap-2.5 w-full lg:w-auto">
+        <div class="segmented-control relative grid grid-cols-2 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-full lg:w-[320px] overflow-hidden">
+          <div id="main-tab-pill" class="segmented-pill main-pill"></div>
 
-          <select id="sort-key-select" class="glass-control rounded-full px-3 py-2 text-xs text-slate-200 focus:outline-none cursor-pointer shrink-0">
-            <option value="lastSeen" selected>마지막 접속</option>
-            <option value="donations">지원량</option>
-            <option value="lastBattle">마지막 배틀</option>
-            <option value="trophies">트로피</option>
-          </select>
-
-          <button id="btn-sort-order" type="button" class="glass-control flex items-center gap-1.5 rounded-full px-3 py-2 text-xs text-slate-200 transition shrink-0 select-none active:scale-95" title="정렬 순서 변경">
-            <span id="sort-order-icon-wrapper" class="inline-flex items-center justify-center transition-transform duration-300 ease-out origin-center">
-              <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-slate-300" id="sort-order-icon"></i>
-            </span>
-            <span id="sort-order-text">내림차순</span>
+          <button id="tab-btn-dashboard" class="main-nav-btn active relative z-10 justify-center whitespace-nowrap py-2 text-center text-xs" onclick="window.app.switchMainTab('dashboard')">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+            <span>내 클랜 대시보드</span>
+          </button>
+          <button id="tab-btn-compare" class="main-nav-btn relative z-10 justify-center whitespace-nowrap py-2 text-center text-xs" onclick="window.app.switchMainTab('compare')">
+            <i data-lucide="scale" class="w-3.5 h-3.5"></i>
+            <span>타 갤클과 비교</span>
           </button>
         </div>
-      </section>
 
-      <!-- 5. 클랜원 목록 (상위 1개 컨테이너에만 유리 블러 적용) -->
-      <div class="surface-card mt-2 overflow-hidden">
-        <div class="hidden">
-          <table class="w-full text-left data-table">
-            <thead>
-              <tr>
-                <th class="w-12 text-center">#</th>
-                <th class="cursor-pointer hover:text-white" onclick="window.app.toggleSort('trophies')" title="클릭 시 트로피 순 정렬">클랜원 (트로피 ↕)</th>
-                <th class="text-center cursor-pointer hover:text-white" onclick="window.app.toggleSort('lastSeen')">마지막 접속 / 배틀</th>
-                <th class="text-right cursor-pointer hover:text-white" onclick="window.app.toggleSort('donations')">주간 지원량</th>
-              </tr>
-            </thead>
-            <tbody id="member-table-body"></tbody>
-          </table>
+        <!-- PC 전용 테마 버튼 (클릭 시 기존 btn-theme-toggle 이벤트 위임) -->
+        <button type="button" onclick="document.getElementById('btn-theme-toggle').click()" class="hidden lg:flex p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300 hover:text-white transition items-center justify-center shrink-0 select-none" title="다크 / 라이트 모드 전환" aria-label="테마 전환">
+          <i data-lucide="sun-moon" class="w-4 h-4 text-amber-400"></i>
+        </button>
+
+        <div class="text-[11px] text-slate-400 hidden items-center gap-1.5" id="tab-context-hint">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>Good Fellas 단독 뷰</span>
         </div>
-
-        <div class="block divide-y divide-white/[0.06]" id="member-mobile-list"></div>
-
-        <div id="empty-state" class="hidden py-12 px-4 text-center text-slate-500">
-          <p class="text-xs font-medium text-slate-300">일치하는 클랜원이 없습니다.</p>
-          <p class="text-[11px] text-slate-500 mt-1">검색어나 필터 조건을 변경해 보세요.</p>
-          <button type="button" onclick="window.app.resetFiltersAndSearch()" class="mt-3 px-3.5 py-1.5 rounded-full glass-control text-slate-200 text-xs font-semibold transition inline-flex items-center gap-1.5">
-            <span>필터 및 검색 초기화</span>
-          </button>
-        </div>
-      </div>
+      </nav>
     </div>
 
     <!-- ========================================== -->
-    <!-- VIEW B: 타 갤클과 비교 -->
+    <!-- VIEW A: 내 클랜 대시보드 (Bento Grid 적용)  -->
     <!-- ========================================== -->
-    <div id="view-compare" class="tab-view hidden space-y-3.5">
+    <div id="view-dashboard" class="tab-view block space-y-4 lg:space-y-5">
 
-      <div class="pt-2 flex flex-col gap-2.5">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-base font-bold text-white tracking-tight">갤러리 클랜 활동성 비교</h2>
-            <p class="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap">
-              <span class="text-white font-semibold">Good Fellas</span>
-              <span class="mx-1 text-slate-600">vs</span>
-              <span>Vandros</span>
-              <span class="mx-1 text-slate-600">vs</span>
-              <span>딜넣는 도둑</span>
-            </p>
+      <!-- 2. 상단 벤토 KPI 스트립 (3열 균등) -->
+      <section class="grid grid-cols-3 gap-2 sm:gap-3.5 mt-4">
+        <div class="surface-card p-3 sm:p-4 lg:p-5 flex flex-col justify-between">
+          <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">전체 클랜원</div>
+          <div class="text-lg sm:text-2xl font-bold text-white mt-1" id="stat-total-members">- / 50</div>
+          <div class="text-[10px] sm:text-xs text-emerald-400 mt-1 truncate" id="stat-member-vacant">실시간 집계 중...</div>
+        </div>
+
+        <div class="surface-card p-3 sm:p-4 lg:p-5 flex flex-col justify-between">
+          <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">주간 총 지원량</div>
+          <div class="text-lg sm:text-2xl font-bold text-amber-400 mt-1" id="stat-total-donations">-</div>
+          <div class="text-[10px] sm:text-xs text-slate-400 mt-1 truncate" id="stat-avg-donations">1인 평균 계산 중...</div>
+        </div>
+
+        <div class="surface-card p-3 sm:p-4 lg:p-5 flex flex-col justify-between cursor-pointer hover:border-rose-500/30 active:scale-[0.97] transition-transform duration-150 group" onclick="window.app.openDormantModal()">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] sm:text-xs font-medium text-slate-400 group-hover:text-rose-400 uppercase tracking-wider">3일+ 미접속</span>
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-rose-400 hidden sm:inline"></i>
+          </div>
+          <div class="text-lg sm:text-2xl font-bold text-rose-400 mt-1" id="stat-dormant-count">-</div>
+          <div class="text-[10px] sm:text-xs text-slate-500 group-hover:text-rose-400/80 mt-1 truncate underline">대상자 보기</div>
+        </div>
+      </section>
+
+      <!-- 3. 중간 비대칭 벤토 그리드: 시상대 Top 7 (7칸) + 접속 분포 도넛 (5칸) -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-stretch">
+        <!-- 좌측 7칸: 주간 지원 기여도 Top 7 -->
+        <div class="surface-card p-3.5 sm:p-5 lg:col-span-7 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs sm:text-sm font-semibold text-slate-200">주간 지원 기여도 Top 7</span>
+            <span class="text-[11px] text-slate-500 hidden sm:inline">클릭 시 RoyaleAPI 전적 확인</span>
+          </div>
+
+          <!-- 올림픽 3인 포디움 -->
+          <div id="podium-container" class="flex items-end justify-center gap-2 sm:gap-4 pt-4 pb-0 px-1 min-h-[140px] sm:min-h-[165px]">
+            <div class="text-center py-10 text-xs text-slate-500 animate-pulse">실시간 단상 랭킹 집계 중...</div>
+          </div>
+
+          <!-- 4위 ~ 7위 러너 리스트: 모바일 2x2 -> 태블릿/PC 4열 1줄 -->
+          <div id="podium-runners-container" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 pt-3 mt-3 border-t border-white/[0.04]">
           </div>
         </div>
 
-        <div id="compare-metric-tabs" class="segmented-control relative grid grid-cols-2 p-1 rounded-full overflow-hidden">
+        <!-- 우측 5칸: 접속 상태 분포 도넛 -->
+        <div class="surface-card p-3.5 sm:p-5 lg:col-span-5 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs sm:text-sm font-semibold text-slate-300">클랜원 접속 분포</span>
+            <span class="text-[11px] text-slate-500 hidden sm:inline">최근 배틀·접속 기준</span>
+          </div>
+          <div class="chart-container-donut my-auto">
+            <canvas id="chart-activity"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. 하단 벤토 섹션: 클랜원 디렉토리 (컨트롤 바 + 반응형 카드 그리드 통합) -->
+      <section class="space-y-3">
+        <!-- 컨트롤 바: 모바일 2단 -> 태블릿/PC 1줄 좌우 정렬 -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pt-1">
+          <!-- 좌측: 필터 칩 -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+            <button class="filter-chip active text-xs" data-filter="all" onclick="window.app.setFilterTab('all', this)">
+              전체 <span class="text-slate-400 ml-1 font-mono text-[11px]" id="chip-count-all">47</span>
+            </button>
+            <button class="filter-chip text-xs" data-filter="low-donations" onclick="window.app.setFilterTab('low-donations', this)">
+              지원 저조 (50 미만) <span class="text-amber-400 ml-1 font-mono text-[11px]" id="chip-count-low">0</span>
+            </button>
+          </div>
+
+          <!-- 우측: 검색창 & 정렬 기준 + 내림차순/오름차순 토글 -->
+          <div class="flex items-center gap-1.5 w-full md:w-auto">
+            <div class="relative flex-1 md:w-60 lg:w-64">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+              <input type="text" id="search-input" placeholder="닉네임 또는 #태그 검색..."
+                class="w-full pl-8 pr-7 py-1.5 bg-[#0f121a] border border-white/[0.06] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition" />
+              <button type="button" id="btn-search-clear" onclick="window.app.clearSearch()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/[0.08] hover:bg-white/[0.16] text-slate-400 hover:text-white items-center justify-center text-[10px] leading-none transition" title="검색어 지우기" aria-label="검색어 지우기">✕</button>
+            </div>
+
+            <select id="sort-key-select" class="bg-[#0f121a] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer shrink-0">
+              <option value="lastSeen" selected>마지막 접속</option>
+              <option value="donations">지원량</option>
+              <option value="lastBattle">마지막 배틀</option>
+              <option value="trophies">트로피</option>
+            </select>
+
+            <button id="btn-sort-order" type="button" class="flex items-center gap-1.5 bg-[#0f121a] hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0 select-none active:scale-95" title="정렬 순서 변경">
+              <span id="sort-order-icon-wrapper" class="inline-flex items-center justify-center transition-transform duration-300 ease-out origin-center">
+                <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-indigo-400" id="sort-order-icon"></i>
+              </span>
+              <span id="sort-order-text">내림차순</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. 클랜원 목록: 모바일 1열 리스트 -> 태블릿 2열 -> PC 3열 벤토 카드 그리드 -->
+        <div class="surface-card overflow-hidden">
+          <div class="hidden">
+            <table><tbody id="member-table-body"></tbody></table>
+          </div>
+
+          <div class="divide-y divide-white/[0.04] md:divide-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-2.5 md:p-3" id="member-mobile-list">
+            <!-- JavaScript 렌더링 -->
+          </div>
+
+          <!-- 빈 검색/필터 결과 안내 -->
+          <div id="empty-state" class="hidden py-12 px-4 text-center text-slate-500">
+            <p class="text-xs font-medium text-slate-400">일치하는 클랜원이 없습니다.</p>
+            <p class="text-[11px] text-slate-500 mt-1">검색어나 필터 조건을 변경해 보세요.</p>
+            <button type="button" onclick="window.app.resetFiltersAndSearch()" class="mt-3 px-3 py-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition inline-flex items-center gap-1.5">
+              <span>필터 및 검색 초기화</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW B: 타 갤클과 비교 (2단 벤토 그리드)     -->
+    <!-- ========================================== -->
+    <div id="view-compare" class="tab-view hidden space-y-4">
+
+      <!-- 1. 비교 상단 헤더 & 지표 전환 칩 (PC에서는 좌우 1줄 정렬) -->
+      <div class="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white tracking-tight">갤러리 클랜 활동성 및 규모 비교</h2>
+          <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5 whitespace-nowrap">
+            <span class="text-indigo-400 font-semibold">Good Fellas</span> vs <span class="text-emerald-400 font-semibold">Vandros</span> vs <span class="text-rose-400 font-semibold">딜넣는 도둑</span>
+          </p>
+        </div>
+
+        <div id="compare-metric-tabs" class="segmented-control relative grid grid-cols-2 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-full sm:w-[260px] overflow-hidden shrink-0">
           <div id="compare-tab-pill" class="segmented-pill compare-pill"></div>
           <button type="button" class="compare-metric-chip active relative z-10" data-metric="donationsWeekly" onclick="window.app.switchCompareMetric('donationsWeekly', this)">총 지원량</button>
           <button type="button" class="compare-metric-chip relative z-10" data-metric="donationsAvg" onclick="window.app.switchCompareMetric('donationsAvg', this)">1인 평균</button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-3.5 items-stretch">
-        <section class="surface-card p-4 flex flex-col justify-between">
+      <!-- 2. 모바일 1열 적층 -> PC 7:5 2단 벤토 그리드 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-stretch">
+
+        <!-- 좌측 7칸: 선택 지표 비교 차트 -->
+        <section class="surface-card p-3.5 sm:p-5 lg:col-span-7 flex flex-col justify-between">
           <div class="flex items-center justify-between mb-2 shrink-0">
-            <span class="text-xs font-semibold text-slate-200 tracking-tight" id="compare-chart-title">주간 총 지원량 비교</span>
+            <span class="text-xs sm:text-sm font-semibold text-slate-200" id="compare-chart-title">주간 총 지원량 비교</span>
+            <span class="text-[11px] text-slate-500" id="compare-chart-unit">단위: 개</span>
           </div>
-          <div class="chart-container-compare relative" id="compare-chart-container">
+          <div class="chart-container-compare relative my-auto" id="compare-chart-container">
             <div id="compare-bars-stage" class="w-full h-full relative"></div>
           </div>
         </section>
 
-        <section class="surface-card overflow-hidden flex flex-col justify-between">
-          <div class="p-4 border-b border-white/[0.06] flex items-center justify-between shrink-0">
-            <h3 class="text-xs font-semibold text-slate-200 tracking-tight" id="compare-list-title">클랜별 핵심 현황 및 지원량 격차</h3>
+        <!-- 우측 5칸: 클랜별 핵심 현황 및 격차 -->
+        <section class="surface-card overflow-hidden lg:col-span-5 flex flex-col justify-between">
+          <div class="p-3.5 sm:p-4 border-b border-white/[0.04] flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+              <h3 class="text-xs sm:text-sm font-semibold text-white" id="compare-list-title">클랜별 핵심 현황 및 지원량 격차</h3>
+            </div>
           </div>
 
-          <div class="divide-y divide-white/[0.06] flex-1 flex flex-col justify-around" id="compare-summary-list"></div>
+          <div class="divide-y divide-white/[0.04] flex-1 flex flex-col justify-around" id="compare-summary-list">
+            <!-- JavaScript 동적 렌더링 -->
+          </div>
         </section>
       </div>
+
     </div>
 
   </div>
 
-  <!-- 6-A. 3일+ 미접속 대상자 팝업 모달 -->
-  <div id="dormant-members-modal" class="modal-overlay fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-md px-3 pb-3 sm:p-4" aria-hidden="true" onclick="if(event.target === this) window.app.closeDormantModal()">
-    <div class="modal-panel glass-modal w-full max-w-sm rounded-[24px] overflow-hidden flex flex-col max-h-[80vh]">
-      <div class="p-4 border-b border-white/[0.08] flex items-center justify-between gap-2 shrink-0">
+  <!-- 6-A. 3일+ 미접속 대상자 전용 팝업 모달 -->
+  <div id="dormant-members-modal" class="modal-overlay fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/65 backdrop-blur-sm px-3 pb-3 sm:p-4" aria-hidden="true" onclick="if(event.target === this) window.app.closeDormantModal()">
+    <div class="modal-panel surface-card w-full max-w-sm sm:max-w-md rounded-2xl overflow-hidden border border-white/[0.1] shadow-2xl flex flex-col max-h-[80vh]">
+      <div class="p-4 border-b border-white/[0.06] flex items-center justify-between gap-2 shrink-0">
         <div class="flex items-center gap-2">
           <span class="status-dot rose"></span>
           <h3 class="text-sm font-bold text-white tracking-tight">3일+ 미접속 대상자</h3>
-          <span id="dormant-modal-count" class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300">0명</span>
+          <span id="dormant-modal-count" class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/25">0명</span>
         </div>
-        <button type="button" onclick="window.app.closeDormantModal()" class="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-white/[0.12] active:scale-90 text-slate-300 hover:text-white transition flex items-center justify-center text-xs" aria-label="닫기">✕</button>
+        <button type="button" onclick="window.app.closeDormantModal()" class="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] active:scale-90 text-slate-400 hover:text-white transition" aria-label="닫기">✕</button>
       </div>
 
-      <div id="dormant-modal-list" class="divide-y divide-white/[0.06] overflow-y-auto flex-1 overscroll-contain"></div>
+      <div id="dormant-modal-list" class="divide-y divide-white/[0.04] overflow-y-auto flex-1 overscroll-contain">
+        <!-- JavaScript 동적 렌더링 -->
+      </div>
 
-      <div class="p-3 border-t border-white/[0.08] shrink-0">
-        <button type="button" onclick="window.app.closeDormantModal()" class="w-full py-2.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] active:scale-[0.98] text-xs font-semibold text-slate-100 transition">
+      <div class="p-3 border-t border-white/[0.06] shrink-0">
+        <button type="button" onclick="window.app.closeDormantModal()" class="w-full py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] active:scale-[0.98] text-xs font-semibold text-slate-200 transition">
           닫기
         </button>
       </div>
     </div>
   </div>
 
-  <!-- 6-B. RoyaleAPI 이동 확인 모달 -->
+  <!-- 6-B. RoyaleAPI 이동 확인 심플 팝업 모달 -->
   <div id="member-detail-modal" class="modal-overlay fixed inset-0 z-40 flex items-center justify-center p-4" aria-hidden="true" onclick="if(event.target === this) window.app.closeMemberModal()">
-    <div class="modal-panel royaleapi-confirm-card w-[340px] max-w-[calc(100vw-32px)] rounded-[24px] p-5 text-center">
-      <div class="w-11 h-11 mx-auto mb-3 rounded-full bg-white/[0.08] border border-white/[0.12] flex items-center justify-center text-slate-200">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="modal-panel royaleapi-confirm-card w-[340px] max-w-[calc(100vw-32px)] rounded-2xl p-5 border border-white/[0.1] shadow-2xl text-center">
+      <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
           <polyline points="15 3 21 3 21 9"></polyline>
           <line x1="10" y1="14" x2="21" y2="3"></line>
         </svg>
       </div>
       <h3 class="text-base font-bold text-white">
-        <span id="modal-member-name">클랜원</span> 님의
+        <span id="modal-member-name" class="text-indigo-400">클랜원</span> 님의
       </h3>
-      <p class="text-xs text-slate-400 mt-1">
+      <p class="text-sm text-slate-300 mt-1">
         RoyaleAPI 전적으로 이동하시겠습니까?
       </p>
 
       <div class="flex items-center gap-2 mt-5">
-        <button type="button" onclick="window.app.closeMemberModal()" class="flex-1 py-2.5 px-3 rounded-full bg-white/[0.07] hover:bg-white/[0.12] active:scale-[0.98] text-xs font-semibold text-slate-300 hover:text-white transition">
+        <button type="button" onclick="window.app.closeMemberModal()" class="flex-1 py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] active:scale-[0.98] text-xs font-semibold text-slate-300 hover:text-white transition">
           취소
         </button>
-        <a id="btn-royaleapi-link" href="#" target="_blank" rel="noopener noreferrer" onclick="window.app.closeMemberModal()" class="flex-1 py-2.5 px-3 rounded-full bg-white text-slate-950 hover:bg-slate-200 active:scale-[0.98] text-xs font-semibold transition flex items-center justify-center gap-1">
+        <a id="btn-royaleapi-link" href="#" target="_blank" rel="noopener noreferrer" onclick="window.app.closeMemberModal()" class="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-xs font-semibold text-white transition flex items-center justify-center gap-1">
           <span>이동하기</span>
         </a>
       </div>
@@ -332,29 +353,30 @@
   </div>
 
   <!-- 7. 초기 실시간 동기화 오버레이 -->
-  <div id="initial-sync-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#090b10]/90 backdrop-blur-xl transition-opacity duration-300">
+  <div id="initial-sync-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#090b10]/95 backdrop-blur-md transition-opacity duration-300">
     <div class="flex flex-col items-center justify-center p-6 select-none pointer-events-none">
-      <div id="loading-emotes-container" class="flex items-center justify-center gap-3.5 sm:gap-5 py-2"></div>
+      <div id="loading-emotes-container" class="flex items-center justify-center gap-3.5 sm:gap-5 py-2">
+      </div>
     </div>
   </div>
 
-  <!-- 8. 동기화 실패 에러 모달 -->
-  <div id="sync-error-modal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4" aria-hidden="true">
-    <div class="modal-panel glass-modal p-6 rounded-[24px] max-w-xs w-full mx-4 text-center">
-      <div class="w-11 h-11 rounded-full bg-rose-500/12 border border-rose-400/20 flex items-center justify-center mx-auto mb-3.5">
-        <svg class="w-5 h-5 text-rose-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <!-- 8. 동기화 실패 에러 알림 팝업 모달 -->
+  <div id="sync-error-modal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4" aria-hidden="true">
+    <div class="modal-panel surface-card p-6 rounded-2xl max-w-xs w-full mx-4 text-center border border-red-500/30 shadow-2xl">
+      <div class="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-3.5">
+        <svg class="w-6 h-6 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
         </svg>
       </div>
       <h3 id="error-modal-title" class="text-sm font-bold text-white tracking-tight">데이터 동기화 실패</h3>
-      <p id="error-modal-message" class="text-xs text-slate-400 mt-1.5 leading-relaxed bg-white/[0.04] p-3 rounded-2xl border border-white/[0.06] text-left">
+      <p id="error-modal-message" class="text-xs text-slate-400 mt-1.5 leading-relaxed bg-white/[0.03] p-3 rounded-xl border border-white/[0.06] text-left">
         서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.
       </p>
       <div class="flex items-center justify-end gap-2 mt-4">
-        <button id="btn-error-close" type="button" class="flex-1 py-2.5 text-xs bg-white/[0.07] hover:bg-white/[0.12] active:scale-95 text-slate-300 rounded-full transition font-medium">
+        <button id="btn-error-close" type="button" class="flex-1 py-2 text-xs bg-white/[0.06] hover:bg-white/[0.1] active:scale-95 text-slate-300 rounded-xl transition font-medium">
           닫기
         </button>
-        <button id="btn-error-retry" type="button" class="flex-1 py-2.5 text-xs bg-white text-slate-950 hover:bg-slate-200 active:scale-95 rounded-full transition font-semibold flex items-center justify-center gap-1">
+        <button id="btn-error-retry" type="button" class="flex-1 py-2 text-xs bg-red-600 hover:bg-red-500 active:scale-95 text-white rounded-xl transition font-medium flex items-center justify-center gap-1">
           <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
           <span>다시 시도</span>
         </button>
@@ -362,10 +384,11 @@
     </div>
   </div>
 
-  <!-- 9. 플로팅 토스트 컨테이너 -->
+  <!-- 9. 플로팅 글래스모피즘 토스트 컨테이너 -->
   <div id="toast-container" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-max max-w-[90vw]"></div>
 
-  <script src="js/api.js?v=1.9.0"></script>
-  <script src="js/app.js?v=1.9.0"></script>
+  <!-- Scripts -->
+  <script src="js/api.js?v=1.8.26"></script>
+  <script src="js/app.js?v=1.8.26"></script>
 </body>
 </html>
