@@ -3,17 +3,6 @@
 /* Pretendard Web Font */
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 
-/* Clash Royale Web Font (Supercell-Magic) */
-@font-face {
-  font-family: "Supercell-Magic";
-  src: url("https://cdn.jsdelivr.net/gh/portapipe/unti@master/font/Supercell-magic-webfont.woff2") format("woff2"),
-       url("https://cdn.jsdelivr.net/gh/dlimars/supercell-fonts@master/supercell-magic-webfont.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-
 :root {
   --bg-base: #0b0d13;
   --bg-surface: #11141e;
@@ -43,7 +32,7 @@
 }
 
 body {
-  font-family: "Supercell-Magic", "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-base);
   color: var(--text-primary);
   min-height: 100vh;
