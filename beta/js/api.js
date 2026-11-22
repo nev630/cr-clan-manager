@@ -1,27 +1,25 @@
 /**
- * Clash Royale API Client (v2.0.0)
- * - Supercell Clash Royale Official API / Cloudflare Worker 프록시 통신
- * - 단일 통합 요약(/v1/clans/:tag/summary) 및 폴백 조회 지원
- * - 429 Rate Limit 쿨다운 가드 및 중복 호출 방지
+ * Clash Royale API Client (v1.8.26-beta Unified API & Date Precision)
+ * - Supercell Clash Royale Official API 지원
+ * - Cloudflare Worker / Oracle 프록시 실시간 통신
+ * - 단일 통합 요약(/v1/clans/:tag/summary) 엔드포인트 지원
+ * - 타 갤클 비교 시 내 클랜(#G890J9JC) 중복 네트워크 호출 제거 및 즉시 재사용
  */
 
 class ClashRoyaleAPI {
   constructor() {
     this.settings = this.loadSettings();
-    this.rateLimitedUntil = 0;
   }
 
   loadSettings() {
     return {
+      apiKey: "",
       clanTag: "#G890J9JC",
       workerUrl: "https://green-disk-88a6.marble593812345.workers.dev"
     };
   }
 
-  isRateLimited() {
-    return Date.now() < this.rateLimitedUntil;
-  }
-
+  // 태그 포맷팅 (# 처리 및 슈퍼셀 공식 태그 검증)
   normalizeTag(tag) {
     if (!tag) return "";
     let clean = String(tag).trim().toUpperCase();
@@ -37,6 +35,7 @@ class ClashRoyaleAPI {
     return encodeURIComponent(this.normalizeTag(tag));
   }
 
+  // Supercell API 날짜 형식 및 ISO 날짜 형식 통합 파싱
   parseApiDate(dateStr) {
     if (!dateStr) return null;
     if (dateStr instanceof Date) {
@@ -65,8 +64,29 @@ class ClashRoyaleAPI {
     }
   }
 
+  getRelativeTime(date) {
+    if (!date) return "기록 없음";
+    const d = typeof date === "string" ? this.parseApiDate(date) : date;
+    if (!d || isNaN(d.getTime())) return "기록 없음";
+
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs < 0) return "방금 전";
+
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMinutes < 1) return "방금 전";
+    if (diffMinutes < 60) return `${diffMinutes}분 전`;
+    if (diffHours < 24) return `${diffHours}시간 전`;
+    if (diffDays === 1) return "어제";
+    if (diffDays < 30) return `${diffDays}일 전`;
+    return `${Math.floor(diffDays / 30)}달 전`;
+  }
+
   buildUrl(endpoint) {
-    const workerUrl = this.settings.workerUrl.trim().replace(/\/$/, "");
+    const defaultWorkerUrl = "https://green-disk-88a6.marble593812345.workers.dev";
+    const workerUrl = (this.settings.workerUrl || defaultWorkerUrl).trim().replace(/\/$/, "");
     return `${workerUrl}${endpoint}`;
   }
 
@@ -79,6 +99,10 @@ class ClashRoyaleAPI {
       "Cache-Control": "no-cache, no-store, must-revalidate",
       "Pragma": "no-cache"
     };
+
+    if (this.settings.apiKey) {
+      headers["Authorization"] = `Bearer ${this.settings.apiKey.trim()}`;
+    }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -94,9 +118,6 @@ class ClashRoyaleAPI {
       const rawText = await response.text();
 
       if (!response.ok) {
-        if (response.status === 429) {
-          this.rateLimitedUntil = Date.now() + 60000;
-        }
         let errText = rawText;
         if (rawText) {
           try {
@@ -125,6 +146,7 @@ class ClashRoyaleAPI {
     }
   }
 
+  // 1. 신규 단일 통합 요약 조회 (클랜 + 50명 배틀로그 원샷 반환)
   async fetchClanSummary(clanTag, force = false) {
     try {
       const q = force ? "?force=1" : "";
@@ -139,24 +161,34 @@ class ClashRoyaleAPI {
     return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}`);
   }
 
-  // 429 발생 시 즉시 중단하여 연속 호출 방지
-  async fetchPlayerBattleLog(playerTag) {
-    if (!playerTag || this.isRateLimited()) return null;
+  async fetchPlayer(playerTag) {
+    return await this.fetchWithAuth(`/v1/players/${this.encodeTag(playerTag)}`);
+  }
+
+  // 재시도 및 타임아웃이 통합된 플레이어 배틀로그 조회
+  async fetchPlayerBattleLog(playerTag, retries = 1) {
+    if (!playerTag) return null;
     const encoded = this.encodeTag(playerTag);
     if (!encoded) return null;
 
-    try {
-      const data = await this.fetchWithAuth(`/v1/players/${encoded}/battlelog`, 5000);
-      return Array.isArray(data) ? data : null;
-    } catch (e) {
-      if (e.status === 429) {
-        this.rateLimitedUntil = Date.now() + 60000;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const data = await this.fetchWithAuth(`/v1/players/${encoded}/battlelog`, 5000);
+        return Array.isArray(data) ? data : null;
+      } catch (e) {
+        const isRetryable = e.status === 429 || e.status === 403 || e.status === 502 || e.status === 504 || !e.status;
+        if (isRetryable && attempt < retries) {
+          await new Promise((r) => setTimeout(r, e.status === 429 ? 180 : 120));
+          continue;
+        }
+        return null;
       }
-      return null;
     }
+    return null;
   }
 
   async fetchClanFullData(clanTag, onPartialData = null, force = false) {
+    // 1. 단일 통합 요약 엔드포인트 우선 시도 (수동 새로고침 시 force=true로 서버 캐시 즉시 우회)
     const summaryData = await this.fetchClanSummary(clanTag, force);
     if (summaryData && summaryData.memberList) {
       if (typeof onPartialData === "function") {
@@ -165,6 +197,7 @@ class ClashRoyaleAPI {
       return summaryData;
     }
 
+    // 2. 미지원 시 기존 개별 조회로 원활히 폴백
     const clanData = await this.fetchClan(clanTag);
     if (!clanData || !clanData.memberList) {
       throw new Error("클랜원 목록을 불러오지 못했습니다.");
@@ -177,7 +210,6 @@ class ClashRoyaleAPI {
     return clanData;
   }
 
-  // 하드코딩된 과거 수치 제거 (태그/이름 메타만 유지)
   getGalleryClansPreset() {
     if (Array.isArray(window.GALLERY_CLANS_DATA) && window.GALLERY_CLANS_DATA.length > 0) {
       return JSON.parse(JSON.stringify(window.GALLERY_CLANS_DATA));
@@ -186,22 +218,34 @@ class ClashRoyaleAPI {
       {
         tag: "#G890J9JC",
         name: "Good Fellas",
-        members: null,
-        donationsPerWeek: null,
+        members: 47,
+        donationsPerWeek: 7600,
+        clanScore: 81500,
+        clanWarTrophies: 3120,
+        requiredTrophies: 0,
+        description: "👑 좋은 친구들 갤러리 - Good Fellas 클랜 실시간 현황",
         isHome: true
       },
       {
         tag: "#JYQRP2C2",
         name: "Vandros",
-        members: null,
-        donationsPerWeek: null,
+        members: 50,
+        donationsPerWeek: 13785,
+        clanScore: 135336,
+        clanWarTrophies: 3500,
+        requiredTrophies: 10000,
+        description: "디시인사이드 Vandros 클랜",
         isHome: false
       },
       {
         tag: "#Q0U22YGQ",
         name: "딜넣는 도둑",
-        members: null,
-        donationsPerWeek: null,
+        members: 46,
+        donationsPerWeek: 10308,
+        clanScore: 137440,
+        clanWarTrophies: 3400,
+        requiredTrophies: 14000,
+        description: "디시인사이드 딜넣는 도둑 클랜",
         isHome: false
       }
     ];
@@ -222,16 +266,21 @@ class ClashRoyaleAPI {
       const fallback = presetMap.get(tag) || {
         tag,
         name: tag,
-        members: null,
-        donationsPerWeek: null,
+        members: 0,
+        donationsPerWeek: 0,
+        clanScore: 0,
+        clanWarTrophies: 0,
+        requiredTrophies: 0,
+        description: "",
         isHome
       };
 
+      // 내 클랜(#G890J9JC) 데이터가 이미 대시보드에서 최신 수신된 경우 중복 API 호출 생략
       if (isHome && cachedHomeClan && cachedHomeClan.name) {
         return {
           ...fallback,
           ...cachedHomeClan,
-          members: Array.isArray(cachedHomeClan.memberList) ? cachedHomeClan.memberList.length : (cachedHomeClan.members ?? fallback.members),
+          members: Array.isArray(cachedHomeClan.memberList) ? cachedHomeClan.memberList.length : (cachedHomeClan.members || fallback.members),
           tag: cachedHomeClan.tag || tag,
           isHome: true,
           _isLive: true
