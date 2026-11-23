@@ -374,30 +374,58 @@ class ClanManagerApp {
       tipBody.textContent = CR_LOADING_TIPS[Math.floor(Math.random() * CR_LOADING_TIPS.length)];
     }
 
-    const introCandidates = [
-      "assets/loading/intro-logo.png",
-      "assets/loading/intro-logo.jpg",
-      "assets/loading/intro-logo.webp",
-      "assets/loading/intro-logo.jpeg",
-      "assets/loading/intro-logo.svg"
-    ];
-
-    const introSrc = await this.probeFirstAvailableAsset(introCandidates, 900);
-
     const introImg = document.getElementById("cr-intro-logo-img");
     const introFallback = document.getElementById("cr-intro-logo-fallback");
-    if (introSrc && introImg) {
-      introImg.src = introSrc;
-      introImg.classList.remove("hidden");
-      if (introFallback) introFallback.classList.add("hidden");
+    if (introImg) {
       if (typeof introImg.decode === "function") {
         await introImg.decode().catch(() => {});
       }
-    } else if (introFallback) {
-      introFallback.classList.remove("hidden");
+      if (!introImg.complete || introImg.naturalWidth === 0) {
+        introImg.classList.add("hidden");
+        if (introFallback) introFallback.classList.remove("hidden");
+      }
     }
 
-    // 아트워크는 스플래시와 동시에 백그라운드에서 가볍게 탐색/프리로드
+    const splashWrap = document.getElementById("cr-splash-logo-wrap");
+    const splashHalo = document.getElementById("cr-splash-halo");
+
+    // 컴포지터 스레드 전용 연속 점등 애니메이션 (중간 멈춤 없음)
+    if (splashWrap && typeof splashWrap.animate === "function") {
+      splashWrap.animate(
+        [
+          { opacity: 0.22 },
+          { opacity: 1 }
+        ],
+        {
+          delay: 140,
+          duration: 520,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          fill: "forwards"
+        }
+      );
+    } else if (splashWrap) {
+      splashWrap.style.opacity = "1";
+    }
+
+    if (splashHalo && typeof splashHalo.animate === "function") {
+      splashHalo.animate(
+        [
+          { opacity: 0.18 },
+          { opacity: 0.9 }
+        ],
+        {
+          delay: 140,
+          duration: 560,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          fill: "forwards"
+        }
+      );
+    } else if (splashHalo) {
+      splashHalo.style.opacity = "0.9";
+    }
+
+    // 스플래시 점등이 끝난 뒤 아트워크 탐색/디코딩 시작 (애니메이션 프레임 보호)
+    await new Promise((r) => setTimeout(r, 700));
     const artworkPromise = this.pickRandomArtworkAsset().then(async (artworkSrc) => {
       const artworkImg = document.getElementById("cr-artwork-img");
       const artworkFallback = document.getElementById("cr-artwork-fallback");
@@ -411,22 +439,8 @@ class ClanManagerApp {
       }
     });
 
-    const splashWrap = document.getElementById("cr-splash-logo-wrap");
-    const splashHalo = document.getElementById("cr-splash-halo");
-
-    // 1) 부드럽게 어두운 실루엣으로 등장
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    if (splashWrap) splashWrap.classList.add("is-dim");
-    if (splashHalo) splashHalo.classList.add("is-dim");
-
-    // 2) 잠시 머문 뒤 순백색으로 부드럽게 점등
-    await new Promise((r) => setTimeout(r, 320));
-    if (splashWrap) splashWrap.classList.add("is-lit");
-    if (splashHalo) splashHalo.classList.add("is-lit");
-
-    // 3) 점등 상태 유지 후 아트워크 준비 완료와 함께 Phase 2로 전환
     await Promise.all([
-      new Promise((r) => setTimeout(r, 780)),
+      new Promise((r) => setTimeout(r, 320)),
       artworkPromise
     ]);
 

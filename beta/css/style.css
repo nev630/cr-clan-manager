@@ -863,38 +863,18 @@ html.light .toast-pill {
     rgba(255, 255, 255, 0.08) 40%,
     rgba(255, 255, 255, 0) 70%
   );
-  opacity: 0;
+  opacity: 0.18;
   transform: translate3d(0, 0, 0);
   will-change: opacity;
-  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
 }
 
-.cr-splash-halo.is-dim {
-  opacity: 0.25;
-}
-
-.cr-splash-halo.is-lit {
-  opacity: 0.9;
-  transition-duration: 0.45s;
-}
-
 .cr-splash-logo-wrap {
-  opacity: 0;
+  opacity: 0.22;
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   will-change: opacity;
-  transition: opacity 0.26s ease-out;
-}
-
-.cr-splash-logo-wrap.is-dim {
-  opacity: 0.28;
-}
-
-.cr-splash-logo-wrap.is-lit {
-  opacity: 1;
-  transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .cr-artwork-fallback-bg {
