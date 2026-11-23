@@ -859,62 +859,65 @@ html.light .toast-pill {
   border-radius: 9999px;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(255, 255, 255, 0.07) 40%,
+    rgba(255, 255, 255, 0.24) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
     rgba(255, 255, 255, 0) 70%
   );
   opacity: 0;
+  transform: translate3d(0, 0, 0);
+  will-change: opacity;
   pointer-events: none;
 }
 
 .cr-splash-halo.is-animating {
-  animation: crHaloBloom 0.9s ease-out forwards;
+  animation: crHaloBloom 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes crHaloBloom {
   0% {
-    opacity: 0.18;
+    opacity: 0;
   }
-  26% {
+  15% {
     opacity: 0.22;
   }
-  38% {
+  32% {
+    opacity: 0.24;
+  }
+  48% {
     opacity: 0.95;
   }
   100% {
-    opacity: 0.85;
+    opacity: 0.82;
   }
 }
 
 .cr-splash-logo-wrap {
   opacity: 0;
-  will-change: opacity, filter;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: opacity;
 }
 
 .cr-splash-logo-wrap.is-animating {
-  animation: crSupercellFlash 0.9s ease-out forwards;
+  animation: crSupercellFlash 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes crSupercellFlash {
   0% {
+    opacity: 0;
+  }
+  15% {
     opacity: 0.24;
-    filter: brightness(0.6);
   }
-  25% {
+  32% {
     opacity: 0.26;
-    filter: brightness(0.65);
   }
-  36% {
+  46% {
     opacity: 1;
-    filter: brightness(1.3);
-  }
-  58% {
-    opacity: 1;
-    filter: brightness(1);
   }
   100% {
     opacity: 1;
-    filter: brightness(1);
   }
 }
 

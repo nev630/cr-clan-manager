@@ -414,6 +414,9 @@ class ClanManagerApp {
       introImg.src = introSrc;
       introImg.classList.remove("hidden");
       if (introFallback) introFallback.classList.add("hidden");
+      if (typeof introImg.decode === "function") {
+        await introImg.decode().catch(() => {});
+      }
     } else if (introFallback) {
       introFallback.classList.remove("hidden");
     }
@@ -429,8 +432,10 @@ class ClanManagerApp {
     const splashWrap = document.getElementById("cr-splash-logo-wrap");
     const splashHalo = document.getElementById("cr-splash-halo");
     requestAnimationFrame(() => {
-      if (splashWrap) splashWrap.classList.add("is-animating");
-      if (splashHalo) splashHalo.classList.add("is-animating");
+      requestAnimationFrame(() => {
+        if (splashWrap) splashWrap.classList.add("is-animating");
+        if (splashHalo) splashHalo.classList.add("is-animating");
+      });
     });
 
     // Phase 1: 검은 배경 중앙 로고 반짝 연출 후 Phase 2(아트워크 + 하단 로딩바)로 전환
