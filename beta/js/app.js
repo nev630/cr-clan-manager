@@ -396,8 +396,8 @@ class ClanManagerApp {
     }
 
     const introCandidates = [
-      "assets/loading/intro-logo.jpg",
       "assets/loading/intro-logo.png",
+      "assets/loading/intro-logo.jpg",
       "assets/loading/intro-logo.webp",
       "assets/loading/intro-logo.jpeg",
       "assets/loading/intro-logo.svg"

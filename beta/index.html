@@ -53,7 +53,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted v1.8.26) -->
-  <link rel="stylesheet" href="css/style.css?v=1.9.6-beta" />
+  <link rel="stylesheet" href="css/style.css?v=1.9.8-beta" />
 </head>
 <body class="app-body text-slate-100 min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
 
@@ -315,8 +315,8 @@
     <!-- Phase 1: 검은 배경 + 중앙 원형 후광 + 로고 반짝 등장 -->
     <div id="cr-splash-phase" class="absolute inset-0 z-20 bg-black flex items-center justify-center px-6 transition-opacity duration-300">
       <div class="cr-splash-halo" aria-hidden="true"></div>
-      <div id="cr-splash-logo-wrap" class="cr-splash-logo-wrap relative z-10 flex items-center justify-center overflow-hidden rounded-2xl p-3">
-        <img id="cr-intro-logo-img" alt="Good Fellas" class="hidden max-w-[220px] sm:max-w-[250px] max-h-[220px] object-contain mix-blend-screen pointer-events-none select-none" />
+      <div id="cr-splash-logo-wrap" class="cr-splash-logo-wrap relative z-10 flex items-center justify-center">
+        <img id="cr-intro-logo-img" alt="Good Fellas" class="hidden w-[160px] sm:w-[190px] h-auto object-contain pointer-events-none select-none" />
         <div id="cr-intro-logo-fallback" class="flex flex-col items-center gap-2.5 text-center">
           <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 p-[2px] shadow-[0_0_32px_rgba(251,191,36,0.35)]">
             <div class="w-full h-full rounded-[14px] bg-[#0b1020] flex items-center justify-center">
@@ -387,6 +387,6 @@
 
   <!-- Scripts with Cache Busting v1.8.26 -->
   <script src="js/api.js?v=1.9.2"></script>
-  <script src="js/app.js?v=1.9.7-beta"></script>
+  <script src="js/app.js?v=1.9.8-beta"></script>
 </body>
 </html>
