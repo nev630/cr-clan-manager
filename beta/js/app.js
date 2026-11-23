@@ -116,7 +116,7 @@ class ClanManagerApp {
     if (window.lucide) window.lucide.createIcons();
 
     this.autoSyncLive(true);
-    this.syncCompareLive(true);
+    setTimeout(() => this.syncCompareLive(true), 1200);
 
     setInterval(() => {
       if (document.visibilityState === "visible") {
@@ -309,45 +309,24 @@ class ClanManagerApp {
     }, 110);
   }
 
-  probeAllAvailableAssets(candidates, timeoutMs = 850) {
-    return new Promise((resolve) => {
-      const found = [];
-      let settled = false;
-      let pending = candidates.length;
-      if (pending === 0) {
-        resolve(found);
-        return;
-      }
-
-      const finish = () => {
-        if (!settled) {
-          settled = true;
-          resolve(found);
-        }
-      };
-
-      const timer = setTimeout(finish, timeoutMs);
-
-      candidates.forEach((src) => {
-        const img = new Image();
-        img.onload = () => {
-          found.push(src);
-          pending -= 1;
-          if (pending <= 0) {
-            clearTimeout(timer);
-            finish();
+  async probeAllAvailableAssets(candidates, timeoutMs = 850) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const checks = await Promise.all(
+        candidates.map(async (src) => {
+          try {
+            const res = await fetch(src, { method: "HEAD", signal: controller.signal });
+            return res.ok ? src : null;
+          } catch (e) {
+            return null;
           }
-        };
-        img.onerror = () => {
-          pending -= 1;
-          if (pending <= 0) {
-            clearTimeout(timer);
-            finish();
-          }
-        };
-        img.src = src;
-      });
-    });
+        })
+      );
+      return checks.filter(Boolean);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async pickRandomArtworkAsset() {
@@ -403,10 +382,7 @@ class ClanManagerApp {
       "assets/loading/intro-logo.svg"
     ];
 
-    const [introSrc, artworkSrc] = await Promise.all([
-      this.probeFirstAvailableAsset(introCandidates, 900),
-      this.pickRandomArtworkAsset()
-    ]);
+    const introSrc = await this.probeFirstAvailableAsset(introCandidates, 900);
 
     const introImg = document.getElementById("cr-intro-logo-img");
     const introFallback = document.getElementById("cr-intro-logo-fallback");
@@ -421,25 +397,38 @@ class ClanManagerApp {
       introFallback.classList.remove("hidden");
     }
 
-    const artworkImg = document.getElementById("cr-artwork-img");
-    const artworkFallback = document.getElementById("cr-artwork-fallback");
-    if (artworkSrc && artworkImg) {
-      artworkImg.src = artworkSrc;
-      artworkImg.classList.remove("hidden");
-      if (artworkFallback) artworkFallback.classList.add("hidden");
-    }
+    // 아트워크는 스플래시와 동시에 백그라운드에서 가볍게 탐색/프리로드
+    const artworkPromise = this.pickRandomArtworkAsset().then(async (artworkSrc) => {
+      const artworkImg = document.getElementById("cr-artwork-img");
+      const artworkFallback = document.getElementById("cr-artwork-fallback");
+      if (artworkSrc && artworkImg) {
+        artworkImg.src = artworkSrc;
+        artworkImg.classList.remove("hidden");
+        if (artworkFallback) artworkFallback.classList.add("hidden");
+        if (typeof artworkImg.decode === "function") {
+          await artworkImg.decode().catch(() => {});
+        }
+      }
+    });
 
     const splashWrap = document.getElementById("cr-splash-logo-wrap");
     const splashHalo = document.getElementById("cr-splash-halo");
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (splashWrap) splashWrap.classList.add("is-animating");
-        if (splashHalo) splashHalo.classList.add("is-animating");
-      });
-    });
 
-    // Phase 1: 검은 배경 중앙 로고 반짝 연출 후 Phase 2(아트워크 + 하단 로딩바)로 전환
-    await new Promise((r) => setTimeout(r, 1050));
+    // 1) 부드럽게 어두운 실루엣으로 등장
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    if (splashWrap) splashWrap.classList.add("is-dim");
+    if (splashHalo) splashHalo.classList.add("is-dim");
+
+    // 2) 잠시 머문 뒤 순백색으로 부드럽게 점등
+    await new Promise((r) => setTimeout(r, 320));
+    if (splashWrap) splashWrap.classList.add("is-lit");
+    if (splashHalo) splashHalo.classList.add("is-lit");
+
+    // 3) 점등 상태 유지 후 아트워크 준비 완료와 함께 Phase 2로 전환
+    await Promise.all([
+      new Promise((r) => setTimeout(r, 780)),
+      artworkPromise
+    ]);
 
     const splashPhase = document.getElementById("cr-splash-phase");
     const artworkPhase = document.getElementById("cr-artwork-phase");

@@ -866,29 +866,17 @@ html.light .toast-pill {
   opacity: 0;
   transform: translate3d(0, 0, 0);
   will-change: opacity;
+  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
 }
 
-.cr-splash-halo.is-animating {
-  animation: crHaloBloom 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.cr-splash-halo.is-dim {
+  opacity: 0.25;
 }
 
-@keyframes crHaloBloom {
-  0% {
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.22;
-  }
-  32% {
-    opacity: 0.24;
-  }
-  48% {
-    opacity: 0.95;
-  }
-  100% {
-    opacity: 0.82;
-  }
+.cr-splash-halo.is-lit {
+  opacity: 0.9;
+  transition-duration: 0.45s;
 }
 
 .cr-splash-logo-wrap {
@@ -897,28 +885,16 @@ html.light .toast-pill {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   will-change: opacity;
+  transition: opacity 0.26s ease-out;
 }
 
-.cr-splash-logo-wrap.is-animating {
-  animation: crSupercellFlash 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.cr-splash-logo-wrap.is-dim {
+  opacity: 0.28;
 }
 
-@keyframes crSupercellFlash {
-  0% {
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.24;
-  }
-  32% {
-    opacity: 0.26;
-  }
-  46% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-  }
+.cr-splash-logo-wrap.is-lit {
+  opacity: 1;
+  transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .cr-artwork-fallback-bg {
