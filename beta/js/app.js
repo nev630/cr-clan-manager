@@ -309,6 +309,83 @@ class ClanManagerApp {
     }, 110);
   }
 
+  probeAllAvailableAssets(candidates, timeoutMs = 850) {
+    return new Promise((resolve) => {
+      const found = [];
+      let settled = false;
+      let pending = candidates.length;
+      if (pending === 0) {
+        resolve(found);
+        return;
+      }
+
+      const finish = () => {
+        if (!settled) {
+          settled = true;
+          resolve(found);
+        }
+      };
+
+      const timer = setTimeout(finish, timeoutMs);
+
+      candidates.forEach((src) => {
+        const img = new Image();
+        img.onload = () => {
+          found.push(src);
+          pending -= 1;
+          if (pending <= 0) {
+            clearTimeout(timer);
+            finish();
+          }
+        };
+        img.onerror = () => {
+          pending -= 1;
+          if (pending <= 0) {
+            clearTimeout(timer);
+            finish();
+          }
+        };
+        img.src = src;
+      });
+    });
+  }
+
+  async pickRandomArtworkAsset() {
+    // 1순위: artworks.json 목록이 있으면 그중 랜덤 1개 선택
+    try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 450);
+      const res = await fetch("assets/loading/artworks.json", { cache: "no-store", signal: controller.signal });
+      clearTimeout(t);
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list) && list.length > 0) {
+          const valid = list.filter((name) => typeof name === "string" && name.trim());
+          if (valid.length > 0) {
+            const picked = valid[Math.floor(Math.random() * valid.length)].trim();
+            const src = picked.startsWith("assets/") || picked.startsWith("http") ? picked : `assets/loading/${picked}`;
+            const loaded = await this.probeFirstAvailableAsset([src], 900);
+            if (loaded) return loaded;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 2순위: artwork, artwork1 ~ artwork10 중 업로드된 이미지들을 모두 찾아 랜덤 1개 선택
+    const baseNames = ["artwork", "artwork1", "artwork2", "artwork3", "artwork4", "artwork5", "artwork6", "artwork7", "artwork8", "artwork9", "artwork10"];
+    const exts = ["png", "jpg", "webp", "jpeg"];
+    const candidates = [];
+    baseNames.forEach((name) => {
+      exts.forEach((ext) => {
+        candidates.push(`assets/loading/${name}.${ext}`);
+      });
+    });
+
+    const available = await this.probeAllAvailableAssets(candidates, 850);
+    if (available.length === 0) return null;
+    return available[Math.floor(Math.random() * available.length)];
+  }
+
   async initInGameLoadingScreen() {
     this.loadingFinished = false;
     this.loadingStartTime = Date.now();
@@ -319,22 +396,16 @@ class ClanManagerApp {
     }
 
     const introCandidates = [
+      "assets/loading/intro-logo.jpg",
       "assets/loading/intro-logo.png",
       "assets/loading/intro-logo.webp",
-      "assets/loading/intro-logo.jpg",
       "assets/loading/intro-logo.jpeg",
       "assets/loading/intro-logo.svg"
-    ];
-    const artworkCandidates = [
-      "assets/loading/artwork.png",
-      "assets/loading/artwork.webp",
-      "assets/loading/artwork.jpg",
-      "assets/loading/artwork.jpeg"
     ];
 
     const [introSrc, artworkSrc] = await Promise.all([
       this.probeFirstAvailableAsset(introCandidates, 900),
-      this.probeFirstAvailableAsset(artworkCandidates, 900)
+      this.pickRandomArtworkAsset()
     ]);
 
     const introImg = document.getElementById("cr-intro-logo-img");
