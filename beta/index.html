@@ -49,9 +49,6 @@
     }
   </script>
 
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -130,8 +127,8 @@
         <section class="lg:col-span-5 lg:sticky lg:top-4 space-y-3">
           <!-- 모바일 전용 시각화 전환 스위치 (스크롤 압축용) -->
           <div class="flex lg:hidden items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <button type="button" id="btn-viz-podium" class="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition" onclick="switchMobileViz('podium')">주간 지원 Top 7</button>
-            <button type="button" id="btn-viz-compare" class="flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition" onclick="switchMobileViz('compare')">타 갤클 비교</button>
+            <button type="button" id="btn-viz-podium" class="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition" onclick="window.app.switchMobileViz('podium')">주간 지원 Top 7</button>
+            <button type="button" id="btn-viz-compare" class="flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition" onclick="window.app.switchMobileViz('compare')">타 갤클 비교</button>
           </div>
 
           <!-- 시상대 단상: 주간 지원 기여도 Top 7 -->
@@ -153,14 +150,9 @@
           <!-- 통합 비교 섹션: 타 갤클과 비교 (총 지원량 / 1인 평균) -->
           <div id="viz-card-compare" class="hidden lg:block space-y-3">
             <div class="surface-card p-3.5 flex flex-col justify-between">
-              <div class="flex items-center justify-between gap-2 mb-2.5">
-                <div>
-                  <span class="hidden lg:block text-xs font-semibold text-slate-200" id="compare-chart-title">주간 총 지원량 비교</span>
-                  <p class="text-[10px] text-slate-400 mt-0.5">
-                    <span class="text-indigo-400 font-semibold">Good Fellas</span> vs <span class="text-emerald-400 font-semibold">Vandros</span> vs <span class="text-rose-400 font-semibold">딜넣는 도둑</span>
-                  </p>
-                </div>
-                <div id="compare-metric-tabs" class="segmented-control relative grid grid-cols-2 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] w-36 shrink-0 overflow-hidden">
+              <div class="flex flex-col lg:flex-row items-center lg:justify-between gap-2 mb-2.5">
+                <span class="hidden lg:block text-xs font-semibold text-slate-200" id="compare-chart-title">주간 총 지원량 비교</span>
+                <div id="compare-metric-tabs" class="segmented-control relative grid grid-cols-2 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] w-44 lg:w-36 mx-auto lg:mx-0 shrink-0 overflow-hidden">
                   <div id="compare-tab-pill" class="segmented-pill compare-pill"></div>
                   <button type="button" class="compare-metric-chip active relative z-10 text-[11px] py-1" data-metric="donationsWeekly" onclick="window.app.switchCompareMetric('donationsWeekly', this)">총 지원</button>
                   <button type="button" class="compare-metric-chip relative z-10 text-[11px] py-1" data-metric="donationsAvg" onclick="window.app.switchCompareMetric('donationsAvg', this)">1인 평균</button>
@@ -356,45 +348,5 @@
   <!-- Scripts with Cache Busting v1.8.26 -->
   <script src="js/api.js?v=1.8.26"></script>
   <script src="js/app.js?v=1.8.26"></script>
-  <script>
-    function switchMobileViz(tab) {
-      var podiumCard = document.getElementById('viz-card-podium');
-      var compareCard = document.getElementById('viz-card-compare');
-      var btnPodium = document.getElementById('btn-viz-podium');
-      var btnCompare = document.getElementById('btn-viz-compare');
-      if (!podiumCard || !compareCard) return;
-
-      var savedScrollY = window.scrollY || window.pageYOffset || 0;
-      if (document.activeElement && typeof document.activeElement.blur === 'function') {
-        document.activeElement.blur();
-      }
-
-      if (tab === 'compare') {
-        podiumCard.classList.add('hidden', 'lg:flex');
-        compareCard.classList.remove('hidden');
-        if (btnCompare) btnCompare.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition';
-        if (btnPodium) btnPodium.className = 'flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition';
-        if (window.app && typeof window.app.renderComparisonView === 'function') {
-          window.app.renderComparisonView(true);
-        }
-      } else {
-        podiumCard.classList.remove('hidden');
-        compareCard.classList.add('hidden', 'lg:block');
-        if (btnPodium) btnPodium.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition';
-        if (btnCompare) btnCompare.className = 'flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition';
-        if (window.app && window.app.currentData && window.app.currentData.memberList) {
-          window.app.renderPodium(window.app.currentData.memberList, true);
-          setTimeout(function() {
-            document.getElementById('podium-container')?.classList.remove('podium-animate');
-            document.getElementById('podium-runners-container')?.classList.remove('podium-animate');
-          }, 850);
-        }
-      }
-
-      window.scrollTo(0, savedScrollY);
-      requestAnimationFrame(function() { window.scrollTo(0, savedScrollY); });
-      setTimeout(function() { window.scrollTo(0, savedScrollY); }, 40);
-    }
-  </script>
 </body>
 </html>

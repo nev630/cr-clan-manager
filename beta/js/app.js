@@ -44,14 +44,12 @@ class ClanManagerApp {
     this.activeFilter = "all"; // 'all' | 'low-donations'
     this.searchQuery = "";
     this.sorting = { key: "lastSeen", order: "desc" };
-    this.activeMainTab = "dashboard";
     this.activeCompareMetric = "donationsWeekly";
     this.compareTags = ["#G890J9JC", "#JYQRP2C2", "#Q0U22YGQ"];
     this.compareClansData = [];
     this.hasCompareLoaded = false;
 
     this.battleLogCache = this.loadBattleLogCache();
-    this.charts = { activity: null, compareDonations: null };
     this.elements = {};
 
     this.pendingClanData = null;
@@ -62,7 +60,6 @@ class ClanManagerApp {
     this.syncThrottleMs = 15000;
     this.compareThrottleMs = 30000;
     this.loadingStartTime = Date.now();
-    this.lastTabSwitchTime = 0;
 
     this.init();
   }
@@ -87,7 +84,6 @@ class ClanManagerApp {
 
   init() {
     this.loadingStartTime = Date.now();
-    this.lastTabSwitchTime = 0;
     this.emotesReadyPromise = this.renderRandomLoadingEmotes();
 
     try {
@@ -167,14 +163,7 @@ class ClanManagerApp {
       sortOrderIcon: document.getElementById("sort-order-icon"),
       sortOrderIconWrapper: document.getElementById("sort-order-icon-wrapper"),
 
-      viewDashboard: document.getElementById("view-dashboard"),
-      viewCompare: document.getElementById("view-compare"),
-      tabBtnDashboard: document.getElementById("tab-btn-dashboard"),
-      tabBtnCompare: document.getElementById("tab-btn-compare"),
-      mainTabPill: document.getElementById("main-tab-pill"),
       compareTabPill: document.getElementById("compare-tab-pill"),
-      tabContextHint: document.getElementById("tab-context-hint"),
-      btnQuickCompare: document.getElementById("btn-quick-compare"),
       clanName: document.getElementById("clan-name"),
       clanTag: document.getElementById("clan-tag"),
       clanDesc: document.getElementById("clan-desc"),
@@ -187,12 +176,9 @@ class ClanManagerApp {
       chipCountLow: document.getElementById("chip-count-low"),
       podiumContainer: document.getElementById("podium-container"),
       podiumRunnersContainer: document.getElementById("podium-runners-container"),
-      chartActivity: document.getElementById("chart-activity"),
-      chartCompareDonations: document.getElementById("chart-compare-donations"),
       compareBarsStage: document.getElementById("compare-bars-stage"),
       compareChartContainer: document.getElementById("compare-chart-container"),
       compareChartTitle: document.getElementById("compare-chart-title"),
-      compareChartUnit: document.getElementById("compare-chart-unit"),
       compareListTitle: document.getElementById("compare-list-title"),
       compareSummaryList: document.getElementById("compare-summary-list"),
       memberTableBody: document.getElementById("member-table-body"),
@@ -302,7 +288,6 @@ class ClanManagerApp {
     `).join("");
 
     this.loadingStartTime = Date.now();
-    this.lastTabSwitchTime = 0;
   }
 
   stopSlotReel(slotIdx, targetEmote) {
@@ -610,21 +595,6 @@ class ClanManagerApp {
 
     const isLight = !isDark;
 
-    if (this.charts.activity) {
-      const donutChart = this.charts.activity;
-      donutChart.data.datasets[0].borderColor = isLight ? "#ffffff" : "#0b0d13";
-      if (donutChart.options.plugins?.legend?.labels) {
-        donutChart.options.plugins.legend.labels.color = isLight ? "#0f172a" : "#94a3b8";
-      }
-      if (donutChart.options.plugins?.tooltip) {
-        donutChart.options.plugins.tooltip.backgroundColor = isLight ? "#ffffff" : "#11141e";
-        donutChart.options.plugins.tooltip.titleColor = isLight ? "#0f172a" : "#f8fafc";
-        donutChart.options.plugins.tooltip.bodyColor = isLight ? "#334155" : "#94a3b8";
-        donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)";
-      }
-      donutChart.update("none");
-    }
-
     this.renderComparisonView(false);
 
     if (this.currentData) {
@@ -652,78 +622,42 @@ class ClanManagerApp {
     }
   }
 
-  // 120fps 슬라이딩 필 & 뷰 글라이드 기반 메인 탭 전환
-  switchMainTab(tabName) {
-    if (this.activeMainTab === tabName) return;
-    this.activeMainTab = tabName;
-    this.lastTabSwitchTime = Date.now();
+  // 모바일 시각화 전환 스위치 (주간 지원 Top 7 <-> 타 갤클 비교)
+  switchMobileViz(tab) {
+    const podiumCard = document.getElementById("viz-card-podium");
+    const compareCard = document.getElementById("viz-card-compare");
+    const btnPodium = document.getElementById("btn-viz-podium");
+    const btnCompare = document.getElementById("btn-viz-compare");
+    if (!podiumCard || !compareCard) return;
 
-    const { viewDashboard, viewCompare, tabBtnDashboard, tabBtnCompare, mainTabPill, tabContextHint: tabHint, btnQuickCompare: quickCompareBtn } = this.elements;
-
-    if (mainTabPill) {
-      mainTabPill.classList.toggle("slide-right", tabName === "compare");
+    const savedScrollY = window.scrollY || window.pageYOffset || 0;
+    if (document.activeElement && typeof document.activeElement.blur === "function") {
+      document.activeElement.blur();
     }
 
-    if (tabBtnDashboard) tabBtnDashboard.classList.toggle("active", tabName !== "compare");
-    if (tabBtnCompare) tabBtnCompare.classList.toggle("active", tabName === "compare");
-
-    if (window.scrollY > 60) {
-      window.scrollTo(0, 0);
-    }
-
-    if (tabName === "compare") {
-      if (viewDashboard) {
-        viewDashboard.classList.add("hidden");
-        viewDashboard.classList.remove("tab-view-enter");
-      }
-      if (viewCompare) {
-        viewCompare.classList.remove("hidden");
-        viewCompare.classList.remove("tab-view-enter");
-        void viewCompare.offsetWidth;
-        viewCompare.classList.add("tab-view-enter");
-      }
-
-      if (quickCompareBtn) quickCompareBtn.classList.add("opacity-50", "pointer-events-none");
-      if (tabHint) {
-        tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span><span>디시 갤러리 클랜 3자 비교 뷰</span>`;
-      }
-
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          this.renderComparisonView(true);
-        }, 60);
-      });
-
-      if (!this.hasCompareLoaded || Date.now() - this.lastCompareSyncTime > this.compareThrottleMs) {
-        this.syncCompareLive(false);
-      }
+    if (tab === "compare") {
+      podiumCard.classList.add("hidden", "lg:flex");
+      compareCard.classList.remove("hidden");
+      if (btnCompare) btnCompare.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition";
+      if (btnPodium) btnPodium.className = "flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition";
+      this.renderComparisonView(true);
     } else {
-      if (viewCompare) {
-        viewCompare.classList.add("hidden");
-        viewCompare.classList.remove("tab-view-enter");
+      podiumCard.classList.remove("hidden");
+      compareCard.classList.add("hidden", "lg:block");
+      if (btnPodium) btnPodium.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition";
+      if (btnCompare) btnCompare.className = "flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition";
+      if (this.currentData?.memberList) {
+        this.renderPodium(this.currentData.memberList, true);
+        setTimeout(() => {
+          this.elements.podiumContainer?.classList.remove("podium-animate");
+          this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
+        }, 850);
       }
-      if (viewDashboard) {
-        viewDashboard.classList.remove("hidden");
-        viewDashboard.classList.remove("tab-view-enter");
-        void viewDashboard.offsetWidth;
-        viewDashboard.classList.add("tab-view-enter");
-      }
-
-      if (quickCompareBtn) quickCompareBtn.classList.remove("opacity-50", "pointer-events-none");
-      if (tabHint) {
-        tabHint.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Good Fellas 단독 뷰</span>`;
-      }
-
-      requestAnimationFrame(() => {
-        if (this.currentData?.memberList) {
-          this.renderPodium(this.currentData.memberList, true);
-              setTimeout(() => {
-            this.elements.podiumContainer?.classList.remove("podium-animate");
-            this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
-          }, 700);
-        }
-      });
     }
+
+    window.scrollTo(0, savedScrollY);
+    requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
+    setTimeout(() => window.scrollTo(0, savedScrollY), 40);
   }
 
   // 120fps 슬라이딩 필 기반 비교 지표 전환 (총 지원량 ↔ 1인 평균)
@@ -1060,7 +994,7 @@ class ClanManagerApp {
     }
 
     this.updateStats(clanData);
-    this.renderCharts(clanData.memberList || [], triggerAnimation);
+    this.renderPodium(clanData.memberList || [], triggerAnimation);
     this.applyFilterAndRender(isFirstRender || shouldStaggerList);
   }
 
@@ -1210,90 +1144,6 @@ class ClanManagerApp {
           <span class="text-[11px] font-bold text-slate-400 shrink-0 ml-1">${(m.donations || 0).toLocaleString()}</span>
         </div>
       `).join("");
-    }
-  }
-
-  renderActivityDonut(members, triggerAnimation = false) {
-    if (!window.Chart) return;
-
-    let seenToday = 0;
-    let seen1to2d = 0;
-    let seenDormant = 0;
-    const now = Date.now();
-
-    members.forEach((m) => {
-      const activeDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
-      if (!activeDate) {
-        seenDormant++;
-        return;
-      }
-      const daysAgo = (now - activeDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (daysAgo < 1) seenToday++;
-      else if (daysAgo < 3) seen1to2d++;
-      else seenDormant++;
-    });
-
-    const activityCanvas = this.elements.chartActivity;
-    if (!activityCanvas) return;
-
-    const chartData = [seenToday, seen1to2d, seenDormant];
-
-    if (this.charts.activity && triggerAnimation) {
-      this.charts.activity.destroy();
-      this.charts.activity = null;
-    }
-
-    if (this.charts.activity) {
-      this.charts.activity.data.datasets[0].data = chartData;
-      this.charts.activity.update("none");
-    } else {
-      const isLight = document.documentElement.classList.contains("light");
-      const ctx = activityCanvas.getContext("2d");
-      this.charts.activity = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-          labels: ["오늘 접속", "1~2일 전", "3일+ 미접속"],
-          datasets: [{
-            data: chartData,
-            backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(59, 130, 246, 0.85)", "rgba(244, 63, 94, 0.85)"],
-            borderColor: isLight ? "#ffffff" : "#0b0d13",
-            borderWidth: 2,
-            hoverOffset: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: {
-            animateRotate: true,
-            animateScale: true,
-            duration: 680,
-            easing: "easeOutQuart"
-          },
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: {
-                color: isLight ? "#0f172a" : "#94a3b8",
-                boxWidth: 8,
-                padding: 10,
-                font: { size: 10, weight: "bold" }
-              }
-            },
-            tooltip: {
-              backgroundColor: isLight ? "#ffffff" : "#11141e",
-              titleColor: isLight ? "#0f172a" : "#f8fafc",
-              bodyColor: isLight ? "#334155" : "#94a3b8",
-              borderColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)",
-              borderWidth: 1,
-              padding: 8,
-              displayColors: true,
-              callbacks: { label: (c) => ` ${c.label}: ${c.raw}명` }
-            }
-          },
-          cutout: "68%"
-        }
-      });
     }
   }
 
