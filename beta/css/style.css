@@ -1,5 +1,13 @@
 @charset "UTF-8";
 
+@font-face {
+  font-family: "Supercell-Magic";
+  src: url("../assets/fonts/Supercell-Magic.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Pretendard Web Font */
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 
@@ -1000,6 +1008,7 @@ html.light .toast-pill {
 }
 
 .cr-loading-percent {
+  font-family: "Supercell-Magic", "Pretendard", sans-serif;
   text-shadow:
     -2px -2px 0 #000,
      2px -2px 0 #000,
