@@ -743,11 +743,11 @@ class ClanManagerApp {
     if (this.elements.compareChartUnit) this.elements.compareChartUnit.textContent = meta.unitText;
     if (this.elements.compareListTitle) this.elements.compareListTitle.textContent = meta.listTitle;
 
-    const savedScrollY = window.scrollY;
-    requestAnimationFrame(() => {
-      this.renderComparisonView(true);
-      window.scrollTo(0, savedScrollY);
-    });
+    const savedScrollY = window.scrollY || window.pageYOffset || 0;
+    this.renderComparisonView(true);
+    window.scrollTo(0, savedScrollY);
+    requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
+    setTimeout(() => window.scrollTo(0, savedScrollY), 40);
   }
 
   bindCachedBattleLogs(members) {

@@ -28,11 +28,8 @@
 
 * {
   box-sizing: border-box;
+  overflow-anchor: none !important;
   -webkit-tap-highlight-color: transparent;
-}
-
-html, body {
-  overflow-anchor: none;
 }
 
 body {

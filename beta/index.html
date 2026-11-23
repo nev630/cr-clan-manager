@@ -364,7 +364,10 @@
       var btnCompare = document.getElementById('btn-viz-compare');
       if (!podiumCard || !compareCard) return;
 
-      var savedScrollY = window.scrollY;
+      var savedScrollY = window.scrollY || window.pageYOffset || 0;
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
 
       if (tab === 'compare') {
         podiumCard.classList.add('hidden', 'lg:flex');
@@ -372,12 +375,7 @@
         if (btnCompare) btnCompare.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition';
         if (btnPodium) btnPodium.className = 'flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition';
         if (window.app && typeof window.app.renderComparisonView === 'function') {
-          requestAnimationFrame(function() {
-            window.app.renderComparisonView(true);
-            window.scrollTo(0, savedScrollY);
-          });
-        } else {
-          window.scrollTo(0, savedScrollY);
+          window.app.renderComparisonView(true);
         }
       } else {
         podiumCard.classList.remove('hidden');
@@ -385,18 +383,17 @@
         if (btnPodium) btnPodium.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition';
         if (btnCompare) btnCompare.className = 'flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition';
         if (window.app && window.app.currentData && window.app.currentData.memberList) {
-          requestAnimationFrame(function() {
-            window.app.renderPodium(window.app.currentData.memberList, true);
-            setTimeout(function() {
-              document.getElementById('podium-container')?.classList.remove('podium-animate');
-              document.getElementById('podium-runners-container')?.classList.remove('podium-animate');
-            }, 850);
-            window.scrollTo(0, savedScrollY);
-          });
-        } else {
-          window.scrollTo(0, savedScrollY);
+          window.app.renderPodium(window.app.currentData.memberList, true);
+          setTimeout(function() {
+            document.getElementById('podium-container')?.classList.remove('podium-animate');
+            document.getElementById('podium-runners-container')?.classList.remove('podium-animate');
+          }, 850);
         }
       }
+
+      window.scrollTo(0, savedScrollY);
+      requestAnimationFrame(function() { window.scrollTo(0, savedScrollY); });
+      setTimeout(function() { window.scrollTo(0, savedScrollY); }, 40);
     }
   </script>
 </body>
