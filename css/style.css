@@ -28,6 +28,7 @@
 
 * {
   box-sizing: border-box;
+  overflow-anchor: none !important;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -74,7 +75,6 @@ body {
 button:active,
 .surface-card[onclick]:active,
 .filter-chip:active,
-.main-nav-btn:active,
 .compare-metric-chip:active,
 .mobile-member-card:active {
   transform: scale3d(0.975, 0.975, 1) !important;
@@ -173,33 +173,6 @@ button:active,
 
 .segmented-pill.slide-right {
   transform: translate3d(100%, 0, 0);
-}
-
-/* 메인 네비게이션 탭 버튼 (배경은 슬라이딩 필이 담당) */
-.main-nav-btn {
-  padding: 8px 16px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent !important;
-  border: 1px solid transparent !important;
-  box-shadow: none !important;
-  transition: color 0.26s var(--ease-silky), transform 0.15s var(--ease-spring);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  touch-action: manipulation;
-  user-select: none;
-}
-.main-nav-btn:hover {
-  color: var(--text-primary);
-}
-.main-nav-btn.active {
-  color: #ffffff;
-  font-weight: 600;
 }
 
 /* 타 갤클 비교 지표 전환 칩 (배경은 슬라이딩 필이 담당) */
@@ -432,16 +405,6 @@ button:active,
   will-change: transform, opacity;
 }
 
-/* 차트 래퍼 높이 */
-.chart-container-donut {
-  position: relative;
-  height: 200px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* 미니멀 스크롤바 */
 ::-webkit-scrollbar {
   width: 5px;
@@ -456,12 +419,6 @@ button:active,
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
-}
-
-@media (max-width: 640px) {
-  .chart-container-donut {
-    height: 170px;
-  }
 }
 
 /* 비교 차트 컨테이너 - flex 레이아웃 붕괴 방지 및 고정 높이 절대 보장 */
@@ -480,16 +437,9 @@ button:active,
 }
 
 /* 모바일 텍스트 줄바꿈 방지 */
-#clan-name, #clan-tag, .main-nav-btn, #btn-quick-compare {
+#clan-name, #clan-tag {
   white-space: nowrap !important;
   word-break: keep-all;
-}
-
-@media (max-width: 640px) {
-  .main-nav-btn {
-    padding: 7px 8px !important;
-    font-size: 11.5px !important;
-  }
 }
 
 /* ============================================================
@@ -674,11 +624,9 @@ html.light .segmented-pill {
   border-color: rgba(99, 102, 241, 0.3) !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
 }
-html.light .main-nav-btn,
 html.light .compare-metric-chip {
   color: #475569 !important;
 }
-html.light .main-nav-btn.active,
 html.light .compare-metric-chip.active {
   color: #4338ca !important;
 }
@@ -698,7 +646,7 @@ html.light #initial-sync-modal {
   touch-action: manipulation;
   user-select: none;
 }
-#btn-sort-order:active, .filter-chip:active, .compare-metric-chip:active, .main-nav-btn:active {
+#btn-sort-order:active, .filter-chip:active, .compare-metric-chip:active {
   transform: scale3d(0.95, 0.95, 1);
 }
 #btn-theme-toggle:active {
@@ -961,14 +909,14 @@ html.light .toast-pill {
 
 /* v1.8.24: 라이트 모드 룰렛 이모지 배경 흰색(#ffffff) 지원 및 틈새 제거 */
 .slot-window {
-  background-color: #141824 !important;
+  background-color: var(--bg-surface) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 .slot-reel-strip {
-  background-color: #141824 !important;
+  background-color: var(--bg-surface) !important;
 }
 .slot-item {
-  background-color: #141824;
+  background-color: var(--bg-surface);
 }
 
 html.light .slot-window {
@@ -1215,4 +1163,24 @@ html.light #sync-error-modal #error-modal-message {
   background-color: #f8fafc !important;
   border-color: rgba(0, 0, 0, 0.08) !important;
   color: #475569 !important;
+}
+
+
+/* 통합 색상 토큰 유틸리티 */
+.app-body {
+  background-color: var(--bg-base);
+}
+.app-input-bg {
+  background-color: var(--bg-base);
+}
+.app-overlay-bg {
+  background-color: rgba(11, 13, 19, 0.94);
+}
+html.light .app-overlay-bg {
+  background-color: rgba(248, 250, 252, 0.94);
+}
+html.light .app-input-bg {
+  background-color: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
 }
