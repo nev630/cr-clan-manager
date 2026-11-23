@@ -854,86 +854,76 @@ html.light .toast-pill {
    ============================================================ */
 .cr-splash-halo {
   position: absolute;
-  width: 300px;
-  height: 300px;
+  width: 320px;
+  height: 320px;
   border-radius: 9999px;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 255, 0.24) 0%,
-    rgba(255, 255, 255, 0.08) 38%,
-    rgba(255, 255, 255, 0) 72%
+    rgba(255, 255, 255, 0.26) 0%,
+    rgba(255, 255, 255, 0.09) 38%,
+    rgba(255, 255, 255, 0) 70%
   );
+  opacity: 0.28;
+  transform: scale3d(0.92, 0.92, 1);
   pointer-events: none;
-  animation: crHaloPulse 1.1s ease-out forwards;
+  animation: crHaloBloom 0.9s ease-out forwards;
 }
 
-@keyframes crHaloPulse {
+@keyframes crHaloBloom {
   0% {
-    opacity: 0;
-    transform: scale3d(0.7, 0.7, 1);
+    opacity: 0.22;
+    transform: scale3d(0.92, 0.92, 1);
   }
-  50% {
+  26% {
+    opacity: 0.28;
+    transform: scale3d(0.95, 0.95, 1);
+  }
+  38% {
     opacity: 1;
-    transform: scale3d(1.05, 1.05, 1);
+    transform: scale3d(1.06, 1.06, 1);
   }
   100% {
-    opacity: 0.9;
+    opacity: 0.85;
     transform: scale3d(1, 1, 1);
   }
 }
 
 .cr-splash-logo-wrap {
-  opacity: 0;
-  transform: scale3d(0.76, 0.76, 1);
+  opacity: 0.3;
+  transform: scale3d(0.96, 0.96, 1);
+  filter: brightness(0.42);
   will-change: transform, opacity, filter;
 }
 
 .cr-splash-logo-wrap.is-animating {
-  animation: crSplashPop 0.65s var(--ease-bounce) forwards;
+  animation: crSupercellFlash 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-@keyframes crSplashPop {
+@keyframes crSupercellFlash {
   0% {
-    opacity: 0;
-    transform: scale3d(0.76, 0.76, 1);
-    filter: brightness(1.8);
+    opacity: 0.3;
+    transform: scale3d(0.96, 0.96, 1);
+    filter: brightness(0.42);
   }
-  55% {
+  24% {
+    opacity: 0.34;
+    transform: scale3d(0.96, 0.96, 1);
+    filter: brightness(0.45);
+  }
+  34% {
     opacity: 1;
-    transform: scale3d(1.04, 1.04, 1);
-    filter: brightness(1.25);
+    transform: scale3d(1.03, 1.03, 1);
+    filter: brightness(1.45);
+  }
+  58% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+    filter: brightness(1);
   }
   100% {
     opacity: 1;
     transform: scale3d(1, 1, 1);
     filter: brightness(1);
-  }
-}
-
-.cr-sparkle-sweep {
-  position: absolute;
-  inset: -20%;
-  background: linear-gradient(
-    115deg,
-    transparent 32%,
-    rgba(255, 255, 255, 0.55) 48%,
-    rgba(253, 224, 71, 0.45) 52%,
-    transparent 68%
-  );
-  transform: translate3d(-130%, 0, 0);
-  pointer-events: none;
-}
-
-.cr-splash-logo-wrap.is-animating .cr-sparkle-sweep {
-  animation: crSparkleSweep 0.6s ease-out 0.22s forwards;
-}
-
-@keyframes crSparkleSweep {
-  0% {
-    transform: translate3d(-130%, 0, 0);
-  }
-  100% {
-    transform: translate3d(130%, 0, 0);
   }
 }
 

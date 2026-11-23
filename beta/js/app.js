@@ -361,7 +361,7 @@ class ClanManagerApp {
     }
 
     // Phase 1: 검은 배경 중앙 로고 반짝 연출 후 Phase 2(아트워크 + 하단 로딩바)로 전환
-    await new Promise((r) => setTimeout(r, 950));
+    await new Promise((r) => setTimeout(r, 1050));
 
     const splashPhase = document.getElementById("cr-splash-phase");
     const artworkPhase = document.getElementById("cr-artwork-phase");
