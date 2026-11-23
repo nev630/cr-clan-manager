@@ -7,15 +7,15 @@
  * 4. 이벤트 위임(Event Delegation) 기반 카드/테이블/시상대 클릭 처리
  */
 
-const CR_EMOTES_POOL = [
-  { name: "웃는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/8/84/HeHeHeHa.png/revision/latest?cb=20230915211717", offsetY: 0 },
-  { name: "우는 킹", url: "https://static.wikia.nocookie.net/clashroyale/images/a/af/Crying_King.png/revision/latest?cb=20230915211808", offsetY: 0 },
-  { name: "비명 호그라이더", url: "https://static.wikia.nocookie.net/clashroyale/images/b/b6/Hog_Rider_Scream.png/revision/latest?cb=20230922123136", offsetY: 0 },
-  { name: "이마 짚는 고블린", url: "https://static.wikia.nocookie.net/clashroyale/images/d/dc/Facepalm_Goblin.png/revision/latest?cb=20230918084628", offsetY: 2 },
-  { name: "브이 프린세스", url: "https://static.wikia.nocookie.net/clashroyale/images/0/0f/Peace_Princess.png/revision/latest?cb=20230920123025", offsetY: -3 },
-  { name: "따봉 일렉트로 마법사", url: "https://static.wikia.nocookie.net/clashroyale/images/3/37/Electro_Wizard_Thumbs-Up.png/revision/latest?cb=20181027033128", offsetY: -2 },
-  { name: "우는 해골", url: "https://static.wikia.nocookie.net/clashroyale/images/7/73/Crying_Skeleton.png/revision/latest?cb=20180921183431", offsetY: 3 },
-  { name: "고기 뜯는 자이언트", url: "https://static.wikia.nocookie.net/clashroyale/images/b/bb/Eating_Giant.png/revision/latest?cb=20230920123020", offsetY: 0 }
+const CR_LOADING_TIPS = [
+  "클랜전 훈련일과 전투일에 꾸준히 참여하면 클랜 트로피가 빠르게 상승합니다.",
+  "지원량이 부족할 때는 클랜 채팅에서 카드 요청을 자주 확인해 보세요.",
+  "클랜원 이름을 누르면 RoyaleAPI 전적 페이지로 바로 이동할 수 있습니다.",
+  "상단 타 갤클 비교 카드에서 다른 클랜과의 주간 지원량 격차를 확인할 수 있습니다.",
+  "대형 스펠과 소형 스펠을 균형 있게 배치하면 어떤 덱을 만나도 유연하게 대처할 수 있습니다.",
+  "엘릭서 2배 타임 전까지는 무리한 공격보다 수비 후 역습 기회를 노리는 것이 유리합니다.",
+  "미접속 3일 이상 클랜원이나 지원 부족 인원은 필터 칩으로 한눈에 모아볼 수 있습니다.",
+  "클랜전 4개 덱은 서로 겹치지 않는 다양한 승리 플랜으로 구성해 두는 것이 좋습니다."
 ];
 
 const SWORDS_INLINE_SVG = `<svg class="w-3 h-3 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>`;
@@ -86,7 +86,10 @@ class ClanManagerApp {
 
   init() {
     this.loadingStartTime = Date.now();
-    this.emotesReadyPromise = this.renderRandomLoadingEmotes();
+    this.loadingProgress = 0;
+    this.loadingProgressTimer = null;
+    this.artworkPhaseStartedAt = 0;
+    this.loadingReadyPromise = this.initInGameLoadingScreen();
 
     try {
       document.addEventListener("touchstart", () => {}, { passive: true });
@@ -247,101 +250,157 @@ class ClanManagerApp {
     }
   }
 
-  async renderRandomLoadingEmotes() {
-    const container = document.getElementById("loading-emotes-container");
-    if (!container) return;
+  probeFirstAvailableAsset(candidates, timeoutMs = 900) {
+    return new Promise((resolve) => {
+      let settled = false;
+      let pending = candidates.length;
+      if (pending === 0) {
+        resolve(null);
+        return;
+      }
 
-    const shuffled = [...CR_EMOTES_POOL].sort(() => Math.random() - 0.5);
-    this.targetEmotes = shuffled.slice(0, 3);
-    this.slotStopTriggered = false;
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          resolve(null);
+        }
+      }, timeoutMs);
 
-    container.innerHTML = this.targetEmotes.map((_, idx) => `
-      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl border" id="slot-window-${idx}"></div>
-    `).join("");
-
-    const preloadPromises = CR_EMOTES_POOL.map((emote) => {
-      return new Promise((resolve) => {
+      candidates.forEach((src) => {
         const img = new Image();
-        img.src = emote.url;
-        img.onload = () => resolve();
-        img.onerror = () => resolve();
+        img.onload = () => {
+          if (!settled) {
+            settled = true;
+            clearTimeout(timer);
+            resolve(src);
+          }
+        };
+        img.onerror = () => {
+          pending -= 1;
+          if (pending <= 0 && !settled) {
+            settled = true;
+            clearTimeout(timer);
+            resolve(null);
+          }
+        };
+        img.src = src;
       });
     });
+  }
 
-    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 1500));
-    await Promise.race([Promise.all(preloadPromises), timeoutPromise]);
+  setLoadingProgress(percent) {
+    const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+    this.loadingProgress = clamped;
+    const fillEl = document.getElementById("cr-loading-bar-fill");
+    const textEl = document.getElementById("cr-loading-percent");
+    if (fillEl) fillEl.style.width = `${clamped}%`;
+    if (textEl) textEl.textContent = `${clamped}%`;
+  }
 
-    const loopItems = [...CR_EMOTES_POOL, ...CR_EMOTES_POOL];
-    const itemsHtml = loopItems.map((item) => `
-      <div class="slot-item w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
-        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
-          <img src="${item.url}"
-               alt="${item.name}"
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain pointer-events-none select-none" />
-        </div>
-      </div>
-    `).join("");
+  startLoadingProgressLoop() {
+    if (this.loadingProgressTimer) clearInterval(this.loadingProgressTimer);
+    this.setLoadingProgress(8);
 
-    container.innerHTML = [0, 1, 2].map((slotIdx) => `
-      <div class="slot-window relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 overflow-hidden rounded-2xl border" id="slot-window-${slotIdx}">
-        <div class="slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-spin-infinite-${slotIdx}" id="slot-reel-${slotIdx}">
-          ${itemsHtml}
-        </div>
-      </div>
-    `).join("");
+    this.loadingProgressTimer = setInterval(() => {
+      if (this.loadingProgress >= 86) return;
+      const remaining = 86 - this.loadingProgress;
+      const step = Math.max(1, Math.ceil(remaining * 0.14));
+      this.setLoadingProgress(Math.min(86, this.loadingProgress + step));
+    }, 110);
+  }
 
+  async initInGameLoadingScreen() {
+    this.loadingFinished = false;
     this.loadingStartTime = Date.now();
-  }
 
-  stopSlotReel(slotIdx, targetEmote) {
-    const reelEl = document.getElementById(`slot-reel-${slotIdx}`);
-    const windowEl = document.getElementById(`slot-window-${slotIdx}`);
-    if (!reelEl || !windowEl) return;
-
-    const pool = CR_EMOTES_POOL.filter((e) => e.name !== targetEmote.name);
-    const dummies = [];
-    for (let i = 0; i < 4; i++) {
-      dummies.push(pool[Math.floor(Math.random() * pool.length)]);
-    }
-    const decelItems = [...dummies, targetEmote];
-
-    const decelHtml = decelItems.map((item) => `
-      <div class="slot-item w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
-        <div class="w-full h-full flex items-center justify-center" style="transform: translateY(${item.offsetY || 0}px);">
-          <img src="${item.url}"
-               alt="${item.name}"
-               class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)] pointer-events-none select-none" />
-        </div>
-      </div>
-    `).join("");
-
-    reelEl.className = "slot-reel-strip absolute top-0 left-0 w-full flex flex-col items-center slot-stopping";
-    reelEl.innerHTML = decelHtml;
-
-    setTimeout(() => {
-      windowEl.classList.add("slot-locked");
-    }, 420);
-  }
-
-  async triggerSlotStopSequence() {
-    if (this.slotStopTriggered) return;
-    this.slotStopTriggered = true;
-
-    const elapsed = Date.now() - (this.loadingStartTime || Date.now());
-    const minSpinDuration = 550;
-    if (elapsed < minSpinDuration) {
-      await new Promise((r) => setTimeout(r, minSpinDuration - elapsed));
+    const tipBody = document.getElementById("cr-loading-tip-body");
+    if (tipBody && CR_LOADING_TIPS.length > 0) {
+      tipBody.textContent = CR_LOADING_TIPS[Math.floor(Math.random() * CR_LOADING_TIPS.length)];
     }
 
-    const targets = this.targetEmotes || CR_EMOTES_POOL.slice(0, 3);
+    const introCandidates = [
+      "assets/loading/intro-logo.png",
+      "assets/loading/intro-logo.webp",
+      "assets/loading/intro-logo.jpg",
+      "assets/loading/intro-logo.jpeg",
+      "assets/loading/intro-logo.svg"
+    ];
+    const artworkCandidates = [
+      "assets/loading/artwork.png",
+      "assets/loading/artwork.webp",
+      "assets/loading/artwork.jpg",
+      "assets/loading/artwork.jpeg"
+    ];
 
-    this.stopSlotReel(0, targets[0]);
-    await new Promise((r) => setTimeout(r, 180));
-    this.stopSlotReel(1, targets[1]);
-    await new Promise((r) => setTimeout(r, 180));
-    this.stopSlotReel(2, targets[2]);
+    const [introSrc, artworkSrc] = await Promise.all([
+      this.probeFirstAvailableAsset(introCandidates, 900),
+      this.probeFirstAvailableAsset(artworkCandidates, 900)
+    ]);
 
-    await new Promise((r) => setTimeout(r, 420 + 260));
+    const introImg = document.getElementById("cr-intro-logo-img");
+    const introFallback = document.getElementById("cr-intro-logo-fallback");
+    if (introSrc && introImg) {
+      introImg.src = introSrc;
+      introImg.classList.remove("hidden");
+      if (introFallback) introFallback.classList.add("hidden");
+    }
+
+    const artworkImg = document.getElementById("cr-artwork-img");
+    const artworkFallback = document.getElementById("cr-artwork-fallback");
+    if (artworkSrc && artworkImg) {
+      artworkImg.src = artworkSrc;
+      artworkImg.classList.remove("hidden");
+      if (artworkFallback) artworkFallback.classList.add("hidden");
+    }
+
+    const splashWrap = document.getElementById("cr-splash-logo-wrap");
+    if (splashWrap) {
+      requestAnimationFrame(() => {
+        splashWrap.classList.add("is-animating");
+      });
+    }
+
+    // Phase 1: 검은 배경 중앙 로고 반짝 연출 후 Phase 2(아트워크 + 하단 로딩바)로 전환
+    await new Promise((r) => setTimeout(r, 950));
+
+    const splashPhase = document.getElementById("cr-splash-phase");
+    const artworkPhase = document.getElementById("cr-artwork-phase");
+    if (artworkPhase) {
+      artworkPhase.classList.remove("opacity-0");
+      artworkPhase.classList.add("opacity-100", "is-visible");
+    }
+    if (splashPhase) {
+      splashPhase.classList.add("opacity-0", "pointer-events-none");
+    }
+
+    this.artworkPhaseStartedAt = Date.now();
+    this.startLoadingProgressLoop();
+  }
+
+  async finishLoadingScreen() {
+    if (this.loadingFinished) return;
+    this.loadingFinished = true;
+
+    const artworkElapsed = Date.now() - (this.artworkPhaseStartedAt || Date.now());
+    const minArtworkDuration = 450;
+    if (artworkElapsed < minArtworkDuration) {
+      await new Promise((r) => setTimeout(r, minArtworkDuration - artworkElapsed));
+    }
+
+    if (this.loadingProgressTimer) {
+      clearInterval(this.loadingProgressTimer);
+      this.loadingProgressTimer = null;
+    }
+
+    // 100%까지 자연스럽게 채운 뒤 대시보드로 전환
+    const current = this.loadingProgress || 0;
+    if (current < 100) {
+      this.setLoadingProgress(Math.min(96, Math.max(current + 12, 90)));
+      await new Promise((r) => setTimeout(r, 90));
+      this.setLoadingProgress(100);
+    }
+
+    await new Promise((r) => setTimeout(r, 220));
     await this.hideInitialSyncModal();
   }
 
@@ -350,13 +409,7 @@ class ClanManagerApp {
     if (!modal || modal.dataset.dismissed) return;
     modal.dataset.dismissed = "true";
 
-    for (let i = 0; i < 3; i++) {
-      document.getElementById(`slot-window-${i}`)?.classList.add("slot-locked");
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 280));
-
-    modal.style.transition = "opacity 0.28s ease, visibility 0.28s ease";
+    modal.style.transition = "opacity 0.32s ease, visibility 0.32s ease";
     modal.style.opacity = "0";
     modal.style.pointerEvents = "none";
 
@@ -371,9 +424,7 @@ class ClanManagerApp {
 
     setTimeout(() => {
       modal.classList.add("hidden");
-      const emotesContainer = document.getElementById("loading-emotes-container");
-      if (emotesContainer) emotesContainer.innerHTML = "";
-    }, 290);
+    }, 340);
   }
 
   bindEvents() {
@@ -846,8 +897,8 @@ class ClanManagerApp {
     try {
       const dataFetchPromise = window.crApi.fetchClanFullData(tag, null, isManual);
 
-      if (isInitial && this.emotesReadyPromise) {
-        await this.emotesReadyPromise;
+      if (isInitial && this.loadingReadyPromise) {
+        await this.loadingReadyPromise;
       }
 
       const liveData = await dataFetchPromise;
@@ -858,7 +909,7 @@ class ClanManagerApp {
       }
 
       if (isInitial) {
-        await this.triggerSlotStopSequence();
+        await this.finishLoadingScreen();
       }
     } catch (err) {
       console.error("실시간 최신 동기화 실패:", err.message);
@@ -876,7 +927,7 @@ class ClanManagerApp {
       }
     } finally {
       if (isInitial) {
-        await this.triggerSlotStopSequence();
+        await this.finishLoadingScreen();
       }
     }
   }

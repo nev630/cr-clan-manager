@@ -842,105 +842,135 @@ html.light .toast-pill {
 }
 
 /* ============================================================
-   GPU 합성 최적화 슬롯머신 룰렛 애니메이션
+   클래시 로얄 인게임 스타일 2단계 로딩 화면
    ============================================================ */
-.slot-window {
-  box-shadow: inset 0 3px 12px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.4);
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s var(--ease-spring);
+.cr-splash-logo-wrap {
+  opacity: 0;
+  transform: scale3d(0.76, 0.76, 1);
+  will-change: transform, opacity, filter;
 }
 
-.slot-window.slot-locked {
-  border-color: rgba(251, 191, 36, 0.7) !important;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 20px rgba(251, 191, 36, 0.4) !important;
-  transform: scale3d(1.03, 1.03, 1);
+.cr-splash-logo-wrap.is-animating {
+  animation: crSplashPop 0.65s var(--ease-bounce) forwards;
 }
 
-.slot-reel-strip {
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-@keyframes slotSpinLoop {
+@keyframes crSplashPop {
   0% {
-    transform: translate3d(0, 0%, 0);
+    opacity: 0;
+    transform: scale3d(0.76, 0.76, 1);
+    filter: brightness(1.8);
+  }
+  55% {
+    opacity: 1;
+    transform: scale3d(1.04, 1.04, 1);
+    filter: brightness(1.25);
   }
   100% {
-    transform: translate3d(0, -50%, 0);
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+    filter: brightness(1);
   }
 }
 
-.slot-spin-infinite-0 {
-  filter: blur(0.4px);
-  animation: slotSpinLoop 0.24s linear infinite !important;
+.cr-sparkle-sweep {
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    115deg,
+    transparent 32%,
+    rgba(255, 255, 255, 0.55) 48%,
+    rgba(253, 224, 71, 0.45) 52%,
+    transparent 68%
+  );
+  transform: translate3d(-130%, 0, 0);
+  pointer-events: none;
 }
 
-.slot-spin-infinite-1 {
-  filter: blur(0.4px);
-  animation: slotSpinLoop 0.21s linear infinite !important;
+.cr-splash-logo-wrap.is-animating .cr-sparkle-sweep {
+  animation: crSparkleSweep 0.6s ease-out 0.22s forwards;
 }
 
-.slot-spin-infinite-2 {
-  filter: blur(0.4px);
-  animation: slotSpinLoop 0.26s linear infinite !important;
-}
-
-@keyframes slotStopDecel {
+@keyframes crSparkleSweep {
   0% {
-    transform: translate3d(0, 0%, 0);
-    filter: blur(0.4px);
-  }
-  50% {
-    filter: blur(0.2px);
-  }
-  82% {
-    transform: translate3d(0, -82.6%, 0);
-    filter: blur(0);
+    transform: translate3d(-130%, 0, 0);
   }
   100% {
-    transform: translate3d(0, -80%, 0);
-    filter: blur(0);
+    transform: translate3d(130%, 0, 0);
   }
 }
 
-.slot-stopping {
-  animation: slotStopDecel 0.42s cubic-bezier(0.12, 0.8, 0.25, 1) forwards !important;
+.cr-artwork-fallback-bg {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(37, 99, 235, 0.45) 0%, rgba(15, 23, 42, 0.92) 60%, #050814 100%);
 }
 
-/* v1.8.24: 라이트 모드 룰렛 이모지 배경 흰색(#ffffff) 지원 및 틈새 제거 */
-.slot-window {
-  background-color: var(--bg-surface) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-.slot-reel-strip {
-  background-color: var(--bg-surface) !important;
-}
-.slot-item {
-  background-color: var(--bg-surface);
+.cr-artwork-zoom {
+  transform: scale3d(1.04, 1.04, 1);
+  transition: transform 6s ease-out;
 }
 
-html.light .slot-window {
-  background-color: #ffffff !important;
-  border-color: rgba(15, 23, 42, 0.12) !important;
-  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.8) !important;
+#cr-artwork-phase.is-visible .cr-artwork-zoom {
+  transform: scale3d(1, 1, 1);
 }
 
-html.light .slot-window.slot-locked {
-  border-color: rgba(245, 158, 11, 0.9) !important;
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.45), 0 6px 16px rgba(15, 23, 42, 0.08) !important;
-  transform: scale3d(1.03, 1.03, 1);
+.cr-artwork-vignette {
+  background: linear-gradient(
+    to top,
+    rgba(3, 7, 18, 0.92) 0%,
+    rgba(3, 7, 18, 0.58) 26%,
+    rgba(3, 7, 18, 0.14) 55%,
+    rgba(3, 7, 18, 0.25) 100%
+  );
 }
 
-html.light .slot-reel-strip {
-  background-color: #ffffff !important;
+.cr-tip-text {
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.9);
 }
 
-html.light .slot-item {
-  background-color: #ffffff !important;
+.cr-loading-bar-track {
+  background: linear-gradient(180deg, #0b1120 0%, #172033 100%);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 3px 6px rgba(0, 0, 0, 0.85),
+    0 4px 16px rgba(0, 0, 0, 0.65);
+  padding: 2px;
 }
 
-.slot-spin-infinite-0, .slot-spin-infinite-1, .slot-spin-infinite-2 {
-  filter: blur(0.2px) !important;
+.cr-loading-bar-fill {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 38%, #2563eb 70%, #1d4ed8 100%);
+  box-shadow:
+    inset 0 2px 2px rgba(255, 255, 255, 0.45),
+    0 0 12px rgba(59, 130, 246, 0.55);
+  transition: width 0.14s linear;
+}
+
+.cr-loading-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 100%
+  );
+  animation: crBarShimmer 1.4s infinite linear;
+}
+
+@keyframes crBarShimmer {
+  0% {
+    transform: translate3d(-100%, 0, 0);
+  }
+  100% {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+.cr-loading-percent {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.95),
+    0 0 6px rgba(0, 0, 0, 0.85);
 }
 
 /* ============================================================

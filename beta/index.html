@@ -53,7 +53,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted v1.8.26) -->
-  <link rel="stylesheet" href="css/style.css?v=1.9.2" />
+  <link rel="stylesheet" href="css/style.css?v=1.9.3-beta" />
 </head>
 <body class="app-body text-slate-100 min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
 
@@ -310,10 +310,51 @@
     </div>
   </div>
 
-  <!-- 7. 초기 실시간 동기화 오버레이 (실시간 데이터 로딩 연동형 3연 슬롯머신 룰렛) -->
-  <div id="initial-sync-modal" class="fixed inset-0 z-50 flex items-center justify-center app-overlay-bg backdrop-blur-md transition-opacity duration-300">
-    <div class="flex flex-col items-center justify-center p-6 select-none pointer-events-none">
-      <div id="loading-emotes-container" class="flex items-center justify-center gap-3.5 sm:gap-5 py-2">
+  <!-- 7. 초기 실시간 동기화 오버레이 (인게임 스타일 2단계 로딩 화면) -->
+  <div id="initial-sync-modal" class="fixed inset-0 z-50 bg-black overflow-hidden select-none">
+    <!-- Phase 1: 검은 배경 + 중앙 로고 반짝 등장 -->
+    <div id="cr-splash-phase" class="absolute inset-0 z-20 bg-black flex items-center justify-center px-6 transition-opacity duration-300">
+      <div id="cr-splash-logo-wrap" class="cr-splash-logo-wrap relative flex items-center justify-center overflow-hidden rounded-2xl p-3">
+        <img id="cr-intro-logo-img" alt="Good Fellas" class="hidden max-w-[220px] sm:max-w-[260px] max-h-[180px] object-contain drop-shadow-[0_0_24px_rgba(255,255,255,0.22)] pointer-events-none select-none" />
+        <div id="cr-intro-logo-fallback" class="flex flex-col items-center gap-2.5 text-center">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 p-[2px] shadow-[0_0_32px_rgba(251,191,36,0.4)]">
+            <div class="w-full h-full rounded-[14px] bg-[#0b1020] flex items-center justify-center">
+              <svg class="w-9 h-9 sm:w-11 sm:h-11 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M3 18h18v2H3v-2zm0-2l2-9 4.5 3.5L12 4l2.5 6.5L19 7l2 9H3z"/>
+              </svg>
+            </div>
+          </div>
+          <span class="text-xl sm:text-2xl font-black tracking-[0.18em] text-white uppercase drop-shadow-[0_2px_10px_rgba(255,255,255,0.25)]">GOOD FELLAS</span>
+        </div>
+        <div class="cr-sparkle-sweep" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!-- Phase 2: 아트워크 + 하단 인게임 로딩바 & 랜덤 TIP -->
+    <div id="cr-artwork-phase" class="absolute inset-0 z-10 opacity-0 transition-opacity duration-500">
+      <div id="cr-artwork-fallback" class="absolute inset-0 cr-artwork-fallback-bg"></div>
+      <img id="cr-artwork-img" alt="Loading Artwork" class="hidden absolute inset-0 w-full h-full object-cover object-center cr-artwork-zoom pointer-events-none select-none" />
+      <div class="absolute inset-0 cr-artwork-vignette pointer-events-none"></div>
+
+      <!-- 하단 인게임 HUD: TIP 문구 + 프로그레스 바 -->
+      <div class="absolute inset-x-0 bottom-0 pb-7 sm:pb-10 pt-16 px-5 sm:px-8 flex flex-col items-center justify-end pointer-events-none">
+        <div class="w-full max-w-md flex flex-col items-center gap-3">
+          <p id="cr-loading-tip" class="cr-tip-text text-center text-xs sm:text-[13px] font-semibold leading-snug text-amber-100/95 px-2">
+            <span class="inline-block text-amber-400 font-extrabold mr-1">팁:</span>
+            <span id="cr-loading-tip-body">클랜 데이터를 불러오는 중입니다...</span>
+          </p>
+
+          <div class="w-full">
+            <div class="cr-loading-bar-track relative w-full h-6 sm:h-7 rounded-full overflow-hidden">
+              <div id="cr-loading-bar-fill" class="cr-loading-bar-fill h-full rounded-full" style="width: 0%;">
+                <div class="cr-loading-shimmer"></div>
+              </div>
+              <span id="cr-loading-percent" class="cr-loading-percent absolute inset-0 flex items-center justify-center text-xs sm:text-[13px] font-black text-white tabular-nums tracking-wide">
+                0%
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -347,6 +388,6 @@
 
   <!-- Scripts with Cache Busting v1.8.26 -->
   <script src="js/api.js?v=1.9.2"></script>
-  <script src="js/app.js?v=1.9.2"></script>
+  <script src="js/app.js?v=1.9.3-beta"></script>
 </body>
 </html>
