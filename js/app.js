@@ -173,7 +173,8 @@ class ClanManagerApp {
       statMemberVacant: document.getElementById("stat-member-vacant"),
       statTotalDonations: document.getElementById("stat-total-donations"),
       statAvgDonations: document.getElementById("stat-avg-donations"),
-      statDormantCount: document.getElementById("stat-dormant-count"),
+      statTodayRate: document.getElementById("stat-today-rate"),
+      statTodayCount: document.getElementById("stat-today-count"),
       chipCountAll: document.getElementById("chip-count-all"),
       chipCountLow: document.getElementById("chip-count-low"),
       podiumContainer: document.getElementById("podium-container"),
@@ -1031,7 +1032,7 @@ class ClanManagerApp {
   updateStats(clanData) {
     const members = Array.isArray(clanData) ? clanData : (clanData?.memberList || []);
     const totalMembers = members.length;
-    let dormantCount = 0;
+    let todayActiveCount = 0;
     let lowDonationCount = 0;
     const now = Date.now();
 
@@ -1042,11 +1043,11 @@ class ClanManagerApp {
       const effectiveDate = this.getEffectiveActiveDate(m.lastSeen, m.lastBattleTime);
       if (effectiveDate) {
         const daysAgo = (now - effectiveDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysAgo >= 3) dormantCount++;
-      } else {
-        dormantCount++;
+        if (daysAgo < 1) todayActiveCount++;
       }
     });
+
+    const todayRate = totalMembers > 0 ? Math.round((todayActiveCount / totalMembers) * 100) : 0;
 
     const officialWeeklyDonations = (clanData && typeof clanData.donationsPerWeek === "number")
       ? clanData.donationsPerWeek
@@ -1054,13 +1055,14 @@ class ClanManagerApp {
 
     const avgDonations = Math.round(officialWeeklyDonations / (totalMembers || 1));
 
-    const { statTotalMembers, statMemberVacant, statTotalDonations, statAvgDonations, statDormantCount, chipCountAll, chipCountLow } = this.elements;
+    const { statTotalMembers, statMemberVacant, statTotalDonations, statAvgDonations, statTodayRate, statTodayCount, chipCountAll, chipCountLow } = this.elements;
 
     if (statTotalMembers) this.animateNumber(statTotalMembers, totalMembers, 600, " / 50");
     if (statMemberVacant) statMemberVacant.textContent = `여유 자리: ${50 - totalMembers}석`;
     if (statTotalDonations) this.animateNumber(statTotalDonations, officialWeeklyDonations, 700);
     if (statAvgDonations) statAvgDonations.textContent = `1인 평균 ${avgDonations.toLocaleString()}개`;
-    if (statDormantCount) this.animateNumber(statDormantCount, dormantCount, 500, "명");
+    if (statTodayRate) this.animateNumber(statTodayRate, todayRate, 500, "%");
+    if (statTodayCount) statTodayCount.textContent = `24시간 내 ${todayActiveCount}명`;
 
     if (chipCountAll) this.animateNumber(chipCountAll, totalMembers, 400);
     if (chipCountLow) this.animateNumber(chipCountLow, lowDonationCount, 400);
