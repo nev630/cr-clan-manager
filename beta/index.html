@@ -58,7 +58,7 @@
   <!-- Custom Stylesheet (Cache Busted v1.8.26) -->
   <link rel="stylesheet" href="css/style.css?v=1.8.26" />
 </head>
-<body class="bg-[#0b0d13] text-slate-100 min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
+<body class="app-body text-slate-100 min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
 
   <!-- 메인 레이아웃: PC에서도 모바일 원래 너비(max-w-md, 약 448px)와 패딩으로 중앙 정렬 -->
   <div class="max-w-md lg:max-w-6xl mx-auto px-3.5 sm:px-5 lg:px-6 py-5">
@@ -77,10 +77,6 @@
 
       <!-- 우측: 테마 전환 버튼 단독 배치 -->
       <div class="flex items-center gap-1.5 shrink-0">
-        <button id="btn-quick-compare" class="hidden px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold items-center gap-1.5 transition shadow-sm whitespace-nowrap" onclick="window.app.switchMainTab('compare')">
-          <i data-lucide="scale" class="w-3.5 h-3.5"></i>
-          <span>타 갤클과 비교</span>
-        </button>
 
         <!-- 테마 전환 버튼 (해/달 360도 회전 모핑) -->
         <button id="btn-theme-toggle" class="p-2 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300 hover:text-white transition flex items-center justify-center relative overflow-hidden select-none" title="다크 / 라이트 모드 전환" aria-label="테마 전환">
@@ -99,27 +95,7 @@
       </div>
     </header>
 
-    <!-- 1-B. 상단 메인 탭 네비게이션: 120fps 슬라이딩 필(Pill) 인디케이터 탑재 -->
-    <nav class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mt-3 pb-2.5 border-b border-white/[0.06]">
-      <div class="segmented-control relative grid grid-cols-2 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-full lg:w-80 overflow-hidden">
-        <!-- GPU 가속 슬라이딩 배경 필 -->
-        <div id="main-tab-pill" class="segmented-pill main-pill"></div>
 
-        <button id="tab-btn-dashboard" class="main-nav-btn active relative z-10 justify-center whitespace-nowrap py-2 text-center text-xs" onclick="window.app.switchMainTab('dashboard')">
-          <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
-          <span>내 클랜 대시보드</span>
-        </button>
-        <button id="tab-btn-compare" class="main-nav-btn relative z-10 justify-center whitespace-nowrap py-2 text-center text-xs" onclick="window.app.switchMainTab('compare')">
-          <i data-lucide="scale" class="w-3.5 h-3.5"></i>
-          <span>타 갤클과 비교</span>
-        </button>
-      </div>
-
-      <div class="text-[11px] text-slate-400 hidden lg:flex items-center gap-1.5" id="tab-context-hint">
-        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-        <span>Good Fellas 단독 뷰</span>
-      </div>
-    </nav>
 
     <!-- ========================================== -->
     <!-- VIEW A: 내 클랜 대시보드 (Good Fellas 전용) -->
@@ -150,12 +126,12 @@
       <!-- 3. 반응형 2단 비대칭 레이아웃 (모바일: 압축 1열 / 데스크톱: 좌측 Sticky 요약 5 : 우측 로스터 7) -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
-        <!-- 좌측 컬럼: 시각화 세션 (올림픽 시상대 Top 7 & 접속 분포 도넛) -->
+        <!-- 좌측 컬럼: 시각화 세션 (올림픽 시상대 Top 7 & 타 갤클 비교 통합) -->
         <section class="lg:col-span-5 lg:sticky lg:top-4 space-y-3">
           <!-- 모바일 전용 시각화 전환 스위치 (스크롤 압축용) -->
           <div class="flex lg:hidden items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
             <button type="button" id="btn-viz-podium" class="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition" onclick="switchMobileViz('podium')">주간 지원 Top 7</button>
-            <button type="button" id="btn-viz-donut" class="flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition" onclick="switchMobileViz('donut')">클랜원 접속 분포</button>
+            <button type="button" id="btn-viz-compare" class="flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition" onclick="switchMobileViz('compare')">타 갤클 비교</button>
           </div>
 
           <!-- 시상대 단상: 주간 지원 기여도 Top 7 -->
@@ -174,13 +150,34 @@
             </div>
           </div>
 
-          <!-- 차트 2: 접속 상태 분포 도넛 -->
-          <div id="viz-card-donut" class="hidden lg:block surface-card p-3.5">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-slate-300">클랜원 접속 분포</span>
+          <!-- 통합 비교 섹션: 타 갤클과 비교 (총 지원량 / 1인 평균) -->
+          <div id="viz-card-compare" class="hidden lg:block space-y-3">
+            <div class="surface-card p-3.5 flex flex-col justify-between">
+              <div class="flex items-center justify-between gap-2 mb-2.5">
+                <div>
+                  <span class="text-xs font-semibold text-slate-200" id="compare-chart-title">주간 총 지원량 비교</span>
+                  <p class="text-[10px] text-slate-400 mt-0.5">
+                    <span class="text-indigo-400 font-semibold">Good Fellas</span> vs <span class="text-emerald-400 font-semibold">Vandros</span> vs <span class="text-rose-400 font-semibold">딜넣는 도둑</span>
+                  </p>
+                </div>
+                <div id="compare-metric-tabs" class="segmented-control relative grid grid-cols-2 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] w-36 shrink-0 overflow-hidden">
+                  <div id="compare-tab-pill" class="segmented-pill compare-pill"></div>
+                  <button type="button" class="compare-metric-chip active relative z-10 text-[11px] py-1" data-metric="donationsWeekly" onclick="window.app.switchCompareMetric('donationsWeekly', this)">총 지원</button>
+                  <button type="button" class="compare-metric-chip relative z-10 text-[11px] py-1" data-metric="donationsAvg" onclick="window.app.switchCompareMetric('donationsAvg', this)">1인 평균</button>
+                </div>
+              </div>
+              <div class="chart-container-compare relative" id="compare-chart-container">
+                <div id="compare-bars-stage" class="w-full h-full relative"></div>
+              </div>
             </div>
-            <div class="chart-container-donut">
-              <canvas id="chart-activity"></canvas>
+
+            <div class="surface-card overflow-hidden flex flex-col justify-between">
+              <div class="p-3 border-b border-white/[0.04] flex items-center gap-2">
+                <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+                <h3 class="text-xs font-semibold text-white" id="compare-list-title">클랜별 핵심 현황 및 지원량 격차</h3>
+              </div>
+              <div class="divide-y divide-white/[0.04] flex-1 flex flex-col justify-around" id="compare-summary-list">
+              </div>
             </div>
           </div>
         </section>
@@ -204,12 +201,12 @@
               <div class="relative flex-1">
                 <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                 <input type="text" id="search-input" placeholder="닉네임 또는 #태그 검색..."
-                  class="w-full pl-8 pr-7 py-1.5 bg-[#0f121a] border border-white/[0.06] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition" />
+                  class="w-full pl-8 pr-7 py-1.5 app-input-bg border border-white/[0.06] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition" />
                 <button type="button" id="btn-search-clear" onclick="window.app.clearSearch()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/[0.08] hover:bg-white/[0.16] text-slate-400 hover:text-white items-center justify-center text-[10px] leading-none transition" title="검색어 지우기" aria-label="검색어 지우기">✕</button>
               </div>
 
               <!-- 정렬 기준 선택: 지원량 / 마지막 접속 / 마지막 배틀 / 트로피 -->
-              <select id="sort-key-select" class="bg-[#0f121a] border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer shrink-0">
+              <select id="sort-key-select" class="app-input-bg border border-white/[0.06] rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer shrink-0">
                 <option value="lastSeen" selected>마지막 접속</option>
                 <option value="donations">지원량</option>
                 <option value="lastBattle">마지막 배틀</option>
@@ -217,7 +214,7 @@
               </select>
 
               <!-- 오름차순 / 내림차순 원클릭 토글 버튼 -->
-              <button id="btn-sort-order" type="button" class="flex items-center gap-1.5 bg-[#0f121a] hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0 select-none active:scale-95" title="정렬 순서 변경">
+              <button id="btn-sort-order" type="button" class="flex items-center gap-1.5 app-input-bg hover:bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 transition shrink-0 select-none active:scale-95" title="정렬 순서 변경">
                 <span id="sort-order-icon-wrapper" class="inline-flex items-center justify-center transition-transform duration-300 ease-out origin-center">
                   <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 text-indigo-400" id="sort-order-icon"></i>
                 </span>
@@ -265,60 +262,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- VIEW B: 타 갤클과 비교 (총 지원량 / 1인 평균 비교 탭) -->
-    <!-- ========================================== -->
-    <div id="view-compare" class="tab-view hidden space-y-3.5">
-
-      <!-- 1. 비교 상단 헤더 타이틀 & 비교 지표 전환 칩 (슬라이딩 필 적용) -->
-      <div class="pt-1 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-base font-bold text-white tracking-tight">갤러리 클랜 활동성 및 규모 비교</h2>
-            <p class="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap">
-              <span class="text-indigo-400 font-semibold">Good Fellas</span> vs <span class="text-emerald-400 font-semibold">Vandros</span> vs <span class="text-rose-400 font-semibold">딜넣는 도둑</span>
-            </p>
-          </div>
-        </div>
-
-        <!-- 2종 비교 지표 세그먼트 칩 (총 지원량 / 1인 평균) + 슬라이딩 필 -->
-        <div id="compare-metric-tabs" class="segmented-control relative grid grid-cols-2 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-full lg:w-72 overflow-hidden">
-          <div id="compare-tab-pill" class="segmented-pill compare-pill"></div>
-          <button type="button" class="compare-metric-chip active relative z-10" data-metric="donationsWeekly" onclick="window.app.switchCompareMetric('donationsWeekly', this)">총 지원량</button>
-          <button type="button" class="compare-metric-chip relative z-10" data-metric="donationsAvg" onclick="window.app.switchCompareMetric('donationsAvg', this)">1인 평균</button>
-        </div>
-      </div>
-
-      <!-- 2. 모바일 세로 1열 적층: 상단 차트 + 하단 핵심 현황 -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-
-        <!-- A. 시각화: 선택 지표 비교 차트 -->
-        <section class="lg:col-span-7 surface-card p-3.5 flex flex-col justify-between">
-          <div class="flex items-center justify-between mb-2 shrink-0">
-            <span class="text-xs font-semibold text-slate-200" id="compare-chart-title">주간 총 지원량 비교</span>
-          </div>
-          <div class="chart-container-compare relative" id="compare-chart-container">
-            <div id="compare-bars-stage" class="w-full h-full relative"></div>
-          </div>
-        </section>
-
-        <!-- B. 클랜별 핵심 현황 및 격차 -->
-        <section class="lg:col-span-5 surface-card overflow-hidden flex flex-col justify-between">
-          <div class="p-3.5 border-b border-white/[0.04] flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-2">
-              <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
-              <h3 class="text-xs font-semibold text-white" id="compare-list-title">클랜별 핵심 현황 및 지원량 격차</h3>
-            </div>
-          </div>
-
-          <div class="divide-y divide-white/[0.04] flex-1 flex flex-col justify-around" id="compare-summary-list">
-            <!-- JavaScript 동적 렌더링 -->
-          </div>
-        </section>
-      </div>
-
     </div>
 
   </div>
@@ -376,7 +319,7 @@
   </div>
 
   <!-- 7. 초기 실시간 동기화 오버레이 (실시간 데이터 로딩 연동형 3연 슬롯머신 룰렛) -->
-  <div id="initial-sync-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#090b10]/95 backdrop-blur-md transition-opacity duration-300">
+  <div id="initial-sync-modal" class="fixed inset-0 z-50 flex items-center justify-center app-overlay-bg backdrop-blur-md transition-opacity duration-300">
     <div class="flex flex-col items-center justify-center p-6 select-none pointer-events-none">
       <div id="loading-emotes-container" class="flex items-center justify-center gap-3.5 sm:gap-5 py-2">
       </div>
@@ -416,24 +359,24 @@
   <script>
     function switchMobileViz(tab) {
       var podiumCard = document.getElementById('viz-card-podium');
-      var donutCard = document.getElementById('viz-card-donut');
+      var compareCard = document.getElementById('viz-card-compare');
       var btnPodium = document.getElementById('btn-viz-podium');
-      var btnDonut = document.getElementById('btn-viz-donut');
-      if (!podiumCard || !donutCard) return;
+      var btnCompare = document.getElementById('btn-viz-compare');
+      if (!podiumCard || !compareCard) return;
 
-      if (tab === 'donut') {
+      if (tab === 'compare') {
         podiumCard.classList.add('hidden', 'lg:flex');
-        donutCard.classList.remove('hidden');
-        if (btnDonut) btnDonut.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition';
+        compareCard.classList.remove('hidden');
+        if (btnCompare) btnCompare.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition';
         if (btnPodium) btnPodium.className = 'flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition';
-        if (window.app && window.app.charts && window.app.charts.activity) {
-          requestAnimationFrame(function() { window.app.charts.activity.resize(); });
+        if (window.app && typeof window.app.renderComparisonView === 'function') {
+          requestAnimationFrame(function() { window.app.renderComparisonView(true); });
         }
       } else {
         podiumCard.classList.remove('hidden');
-        donutCard.classList.add('hidden', 'lg:block');
+        compareCard.classList.add('hidden', 'lg:block');
         if (btnPodium) btnPodium.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] text-white transition';
-        if (btnDonut) btnDonut.className = 'flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition';
+        if (btnCompare) btnCompare.className = 'flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition';
       }
     }
   </script>

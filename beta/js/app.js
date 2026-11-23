@@ -120,7 +120,7 @@ class ClanManagerApp {
     setInterval(() => {
       if (document.visibilityState === "visible") {
         this.autoSyncLive(false);
-        if (this.activeMainTab === "compare" || Date.now() - this.lastCompareSyncTime >= 60000) {
+        if (Date.now() - this.lastCompareSyncTime >= 60000) {
           this.syncCompareLive(false);
         }
       }
@@ -133,9 +133,7 @@ class ClanManagerApp {
           memberModal.classList.remove("is-open");
         }
         this.autoSyncLive(false);
-        if (this.activeMainTab === "compare") {
-          this.syncCompareLive(false);
-        }
+        this.syncCompareLive(false);
       }
     });
 
@@ -374,9 +372,9 @@ class ClanManagerApp {
     modal.style.opacity = "0";
     modal.style.pointerEvents = "none";
 
+    this.renderComparisonView(true);
     if (this.currentData?.memberList) {
       this.renderPodium(this.currentData.memberList, true);
-      this.renderActivityDonut(this.currentData.memberList, true);
       setTimeout(() => {
         this.elements.podiumContainer?.classList.remove("podium-animate");
         this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
@@ -614,12 +612,12 @@ class ClanManagerApp {
 
     if (this.charts.activity) {
       const donutChart = this.charts.activity;
-      donutChart.data.datasets[0].borderColor = isLight ? "#ffffff" : "#0f121a";
+      donutChart.data.datasets[0].borderColor = isLight ? "#ffffff" : "#0b0d13";
       if (donutChart.options.plugins?.legend?.labels) {
         donutChart.options.plugins.legend.labels.color = isLight ? "#0f172a" : "#94a3b8";
       }
       if (donutChart.options.plugins?.tooltip) {
-        donutChart.options.plugins.tooltip.backgroundColor = isLight ? "#ffffff" : "#171b26";
+        donutChart.options.plugins.tooltip.backgroundColor = isLight ? "#ffffff" : "#11141e";
         donutChart.options.plugins.tooltip.titleColor = isLight ? "#0f172a" : "#f8fafc";
         donutChart.options.plugins.tooltip.bodyColor = isLight ? "#334155" : "#94a3b8";
         donutChart.options.plugins.tooltip.borderColor = isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)";
@@ -627,9 +625,7 @@ class ClanManagerApp {
       donutChart.update("none");
     }
 
-    if (this.activeMainTab === "compare") {
-      this.renderComparisonView(false);
-    }
+    this.renderComparisonView(false);
 
     if (this.currentData) {
       this.applyFilterAndRender(shouldStagger);
@@ -721,8 +717,7 @@ class ClanManagerApp {
       requestAnimationFrame(() => {
         if (this.currentData?.memberList) {
           this.renderPodium(this.currentData.memberList, true);
-          this.renderActivityDonut(this.currentData.memberList, true);
-          setTimeout(() => {
+              setTimeout(() => {
             this.elements.podiumContainer?.classList.remove("podium-animate");
             this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
           }, 700);
@@ -842,7 +837,6 @@ class ClanManagerApp {
       if (this.currentData && !this.isAnyModalOpen()) {
         this.applyFilterAndRender(false);
         this.updateStats(this.currentData);
-        this.renderActivityDonut(this.currentData.memberList || [], false);
       }
     }
   }
@@ -961,9 +955,7 @@ class ClanManagerApp {
     } catch (e) {
       console.warn("갤클 비교 실시간 조회 오류 (프리셋 유지):", e.message);
     } finally {
-      if (this.activeMainTab === "compare" && (Date.now() - this.lastTabSwitchTime >= 1000)) {
-        this.renderComparisonView(false);
-      }
+      this.renderComparisonView(false);
     }
   }
 
@@ -1062,9 +1054,7 @@ class ClanManagerApp {
       if (clanData.clanWarTrophies) gfInCompare.clanWarTrophies = clanData.clanWarTrophies;
       if (clanData.description) gfInCompare.description = clanData.description;
 
-      if (this.activeMainTab === "compare" && (Date.now() - this.lastTabSwitchTime >= 1000)) {
-        this.renderComparisonView(false);
-      }
+      this.renderComparisonView(false);
     }
 
     this.updateStats(clanData);
@@ -1136,7 +1126,6 @@ class ClanManagerApp {
   renderCharts(members, triggerAnimation = false) {
     if (members.length === 0) return;
     this.renderPodium(members, triggerAnimation);
-    this.renderActivityDonut(members, triggerAnimation);
   }
 
   renderPodium(members, triggerAnimation = false) {
@@ -1265,7 +1254,7 @@ class ClanManagerApp {
           datasets: [{
             data: chartData,
             backgroundColor: ["rgba(16, 185, 129, 0.85)", "rgba(59, 130, 246, 0.85)", "rgba(244, 63, 94, 0.85)"],
-            borderColor: isLight ? "#ffffff" : "#0f121a",
+            borderColor: isLight ? "#ffffff" : "#0b0d13",
             borderWidth: 2,
             hoverOffset: 4
           }]
@@ -1290,7 +1279,7 @@ class ClanManagerApp {
               }
             },
             tooltip: {
-              backgroundColor: isLight ? "#ffffff" : "#171b26",
+              backgroundColor: isLight ? "#ffffff" : "#11141e",
               titleColor: isLight ? "#0f172a" : "#f8fafc",
               bodyColor: isLight ? "#334155" : "#94a3b8",
               borderColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.1)",

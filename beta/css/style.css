@@ -961,14 +961,14 @@ html.light .toast-pill {
 
 /* v1.8.24: 라이트 모드 룰렛 이모지 배경 흰색(#ffffff) 지원 및 틈새 제거 */
 .slot-window {
-  background-color: #141824 !important;
+  background-color: var(--bg-surface) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 .slot-reel-strip {
-  background-color: #141824 !important;
+  background-color: var(--bg-surface) !important;
 }
 .slot-item {
-  background-color: #141824;
+  background-color: var(--bg-surface);
 }
 
 html.light .slot-window {
@@ -1233,4 +1233,23 @@ html.light .mobile-sticky-controls {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+}
+
+/* 통합 색상 토큰 유틸리티 */
+.app-body {
+  background-color: var(--bg-base);
+}
+.app-input-bg {
+  background-color: var(--bg-base);
+}
+.app-overlay-bg {
+  background-color: rgba(11, 13, 19, 0.94);
+}
+html.light .app-overlay-bg {
+  background-color: rgba(248, 250, 252, 0.94);
+}
+html.light .app-input-bg {
+  background-color: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
 }
