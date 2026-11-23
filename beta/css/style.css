@@ -460,7 +460,7 @@ button:active,
 
 @media (max-width: 640px) {
   .chart-container-donut {
-    height: 170px;
+    height: 155px;
   }
 }
 
@@ -1215,4 +1215,22 @@ html.light #sync-error-modal #error-modal-message {
   background-color: #f8fafc !important;
   border-color: rgba(0, 0, 0, 0.08) !important;
   color: #475569 !important;
+}
+
+/* 모바일 상단 고정(Sticky) 컨트롤 바 배경 및 라이트 모드 대응 */
+.mobile-sticky-controls {
+  background: rgba(11, 13, 19, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+html.light .mobile-sticky-controls {
+  background: rgba(248, 250, 252, 0.9);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+@media (min-width: 1024px) {
+  .mobile-sticky-controls {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
