@@ -54,6 +54,8 @@ class ClanManagerApp {
 
     this.pendingClanData = null;
     this.pendingFlushTimer = null;
+    this.compareAnimTimer = null;
+    this.podiumAnimTimer = null;
 
     this.lastSyncTime = 0;
     this.lastCompareSyncTime = 0;
@@ -648,7 +650,12 @@ class ClanManagerApp {
       if (btnCompare) btnCompare.className = "flex-1 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition";
       if (this.currentData?.memberList) {
         this.renderPodium(this.currentData.memberList, true);
-        setTimeout(() => {
+        if (this.podiumAnimTimer) {
+          clearTimeout(this.podiumAnimTimer);
+          this.podiumAnimTimer = null;
+        }
+        this.podiumAnimTimer = setTimeout(() => {
+          this.podiumAnimTimer = null;
           this.elements.podiumContainer?.classList.remove("podium-animate");
           this.elements.podiumRunnersContainer?.classList.remove("podium-animate");
         }, 850);
@@ -1246,8 +1253,13 @@ class ClanManagerApp {
 
     stage.innerHTML = html;
 
+    if (this.compareAnimTimer) {
+      clearTimeout(this.compareAnimTimer);
+      this.compareAnimTimer = null;
+    }
     if (triggerAnimation) {
-      setTimeout(() => {
+      this.compareAnimTimer = setTimeout(() => {
+        this.compareAnimTimer = null;
         const barsWrapper = document.getElementById("compare-bars-wrapper");
         if (barsWrapper) barsWrapper.classList.remove("compare-animate");
       }, 850);
