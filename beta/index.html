@@ -53,7 +53,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Stylesheet (Cache Busted v1.8.26) -->
-  <link rel="stylesheet" href="css/style.css?v=1.9.1" />
+  <link rel="stylesheet" href="css/style.css?v=1.9.2" />
 </head>
 <body class="app-body text-slate-100 min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
 
@@ -113,10 +113,10 @@
           <div class="text-[10px] lg:text-xs text-slate-400 mt-0.5 truncate" id="stat-avg-donations">1인 평균 계산 중...</div>
         </div>
 
-        <div class="surface-card p-2.5 lg:p-4 cursor-pointer border-rose-500/20 hover:border-rose-500/40 active:scale-[0.97] transition-transform duration-150 group" onclick="window.app.openDormantModal()">
-          <div class="text-[10px] lg:text-[11px] font-medium text-rose-300/90 group-hover:text-rose-400 uppercase tracking-wider">3일+ 미접속</div>
-          <div class="text-base lg:text-xl font-bold text-rose-400 mt-0.5" id="stat-dormant-count">-</div>
-          <div class="text-[10px] lg:text-xs text-slate-400 group-hover:text-rose-400/90 mt-0.5 truncate underline">대상자 보기</div>
+        <div class="surface-card p-2.5 lg:p-4">
+          <div class="text-[10px] lg:text-[11px] font-medium text-slate-400 uppercase tracking-wider">오늘 활동률</div>
+          <div class="text-base lg:text-xl font-bold text-emerald-400 mt-0.5" id="stat-today-rate">-%</div>
+          <div class="text-[10px] lg:text-xs text-slate-400 mt-0.5 truncate" id="stat-today-count">24시간 내 집계 중...</div>
         </div>
       </section>
 
@@ -346,7 +346,7 @@
   <div id="toast-container" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-max max-w-[90vw]"></div>
 
   <!-- Scripts with Cache Busting v1.8.26 -->
-  <script src="js/api.js?v=1.9.1"></script>
-  <script src="js/app.js?v=1.9.1"></script>
+  <script src="js/api.js?v=1.9.2"></script>
+  <script src="js/app.js?v=1.9.2"></script>
 </body>
 </html>
