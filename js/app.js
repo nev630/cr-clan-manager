@@ -7,17 +7,6 @@
  * 4. 이벤트 위임(Event Delegation) 기반 카드/테이블/시상대 클릭 처리
  */
 
-const CR_LOADING_TIPS = [
-  "클랜전 훈련일과 전투일에 꾸준히 참여하면 클랜 트로피가 빠르게 상승합니다.",
-  "지원량이 부족할 때는 클랜 채팅에서 카드 요청을 자주 확인해 보세요.",
-  "클랜원 이름을 누르면 RoyaleAPI 전적 페이지로 바로 이동할 수 있습니다.",
-  "상단 타 갤클 비교 카드에서 다른 클랜과의 주간 지원량 격차를 확인할 수 있습니다.",
-  "대형 스펠과 소형 스펠을 균형 있게 배치하면 어떤 덱을 만나도 유연하게 대처할 수 있습니다.",
-  "엘릭서 2배 타임 전까지는 무리한 공격보다 수비 후 역습 기회를 노리는 것이 유리합니다.",
-  "미접속 3일 이상 클랜원이나 지원 부족 인원은 필터 칩으로 한눈에 모아볼 수 있습니다.",
-  "클랜전 4개 덱은 서로 겹치지 않는 다양한 승리 플랜으로 구성해 두는 것이 좋습니다."
-];
-
 const SWORDS_INLINE_SVG = `<svg class="w-3 h-3 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>`;
 
 const COMPARE_METRICS_META = {
@@ -368,11 +357,6 @@ class ClanManagerApp {
   async initInGameLoadingScreen() {
     this.loadingFinished = false;
     this.loadingStartTime = Date.now();
-
-    const tipBody = document.getElementById("cr-loading-tip-body");
-    if (tipBody && CR_LOADING_TIPS.length > 0) {
-      tipBody.textContent = CR_LOADING_TIPS[Math.floor(Math.random() * CR_LOADING_TIPS.length)];
-    }
 
     const introImg = document.getElementById("cr-intro-logo-img");
     const introFallback = document.getElementById("cr-intro-logo-fallback");

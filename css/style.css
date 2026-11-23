@@ -900,15 +900,6 @@ html.light .toast-pill {
   );
 }
 
-.cr-tip-text {
-  text-shadow:
-    -1px -1px 0 #000,
-     1px -1px 0 #000,
-    -1px  1px 0 #000,
-     1px  1px 0 #000,
-     0    2px 5px rgba(0, 0, 0, 0.95);
-}
-
 .cr-loading-bar-track {
   background: #0d1017;
   border-top: 2px solid #000000;
