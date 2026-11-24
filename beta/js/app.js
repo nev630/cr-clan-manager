@@ -39,6 +39,7 @@ class ClanManagerApp {
     this.hasCompareLoaded = false;
 
     this.battleLogCache = this.loadBattleLogCache();
+    this.seasonalTrophyCache = this.loadSeasonalTrophyCache();
     this.elements = {};
 
     this.pendingClanData = null;
@@ -71,6 +72,96 @@ class ClanManagerApp {
       const obj = Object.fromEntries(this.battleLogCache);
       localStorage.setItem("cr_clan_battle_cache_v5", JSON.stringify(obj));
     } catch (e) {}
+  }
+
+  loadSeasonalTrophyCache() {
+    try {
+      const saved = localStorage.getItem("cr_clan_seasonal_trophies_v1");
+      if (saved) {
+        const obj = JSON.parse(saved);
+        return new Map(Object.entries(obj));
+      }
+    } catch (e) {}
+    return new Map();
+  }
+
+  saveSeasonalTrophyCache() {
+    try {
+      const obj = Object.fromEntries(this.seasonalTrophyCache);
+      localStorage.setItem("cr_clan_seasonal_trophies_v1", JSON.stringify(obj));
+    } catch (e) {}
+  }
+
+  extractSeasonalTrophies(playerData) {
+    if (!playerData) return null;
+    const base = typeof playerData.trophies === "number" ? playerData.trophies : 0;
+    const progress = playerData.progress;
+    if (!progress || typeof progress !== "object") return base;
+
+    const seasonalKeys = Object.keys(progress)
+      .filter((k) => k.startsWith("seasonal-trophy-road-"))
+      .sort();
+    if (seasonalKeys.length === 0) return base;
+
+    const latestKey = seasonalKeys[seasonalKeys.length - 1];
+    const seasonalTrophies = progress[latestKey]?.trophies;
+    if (typeof seasonalTrophies === "number" && seasonalTrophies > base) {
+      return seasonalTrophies;
+    }
+    return base;
+  }
+
+  bindCachedSeasonalTrophies(members) {
+    if (!Array.isArray(members)) return;
+    members.forEach((m) => {
+      if ((m.trophies || 0) >= 14000 && this.seasonalTrophyCache.has(m.tag)) {
+        const cachedVal = this.seasonalTrophyCache.get(m.tag);
+        if (typeof cachedVal === "number" && cachedVal > m.trophies) {
+          m.trophies = cachedVal;
+        }
+      }
+    });
+  }
+
+  async fetchSeasonalTrophiesForCapMembers(members) {
+    if (!Array.isArray(members) || members.length === 0) return;
+    if (!window.crApi || typeof window.crApi.fetchPlayer !== "function") return;
+
+    const capMembers = members.filter((m) => (m.trophies || 0) >= 14000);
+    if (capMembers.length === 0) return;
+
+    let hasUpdated = false;
+    const chunkSize = 10;
+
+    for (let i = 0; i < capMembers.length; i += chunkSize) {
+      const chunk = capMembers.slice(i, i + chunkSize);
+      await Promise.allSettled(
+        chunk.map(async (m) => {
+          try {
+            const playerData = await window.crApi.fetchPlayer(m.tag);
+            const resolved = this.extractSeasonalTrophies(playerData);
+            if (typeof resolved === "number" && resolved > 0) {
+              this.seasonalTrophyCache.set(m.tag, resolved);
+              if (resolved !== m.trophies) {
+                m.trophies = resolved;
+                hasUpdated = true;
+              }
+            }
+          } catch (e) {}
+        })
+      );
+
+      if (i + chunkSize < capMembers.length) {
+        await new Promise((r) => setTimeout(r, 40));
+      }
+    }
+
+    if (hasUpdated) {
+      this.saveSeasonalTrophyCache();
+      if (this.currentData && !this.isAnyModalOpen()) {
+        this.applyFilterAndRender(false);
+      }
+    }
   }
 
   init() {
@@ -930,9 +1021,14 @@ class ClanManagerApp {
     }
 
     this.bindCachedBattleLogs(liveData.memberList);
+    this.bindCachedSeasonalTrophies(liveData.memberList);
 
-    if (waitForBattleLogs && missingBattleMembers.length > 0) {
-      await this.fetchAllMembersBattleLogs(missingBattleMembers);
+    if (waitForBattleLogs) {
+      const initTasks = [this.fetchSeasonalTrophiesForCapMembers(liveData.memberList)];
+      if (missingBattleMembers.length > 0) {
+        initTasks.push(this.fetchAllMembersBattleLogs(missingBattleMembers));
+      }
+      await Promise.allSettled(initTasks);
     }
 
     this.renderClan(liveData, shouldAnimate, shouldAnimate);
@@ -944,8 +1040,11 @@ class ClanManagerApp {
       }, 850);
     }
 
-    if (!waitForBattleLogs && missingBattleMembers.length > 0) {
-      this.fetchAllMembersBattleLogs(missingBattleMembers);
+    if (!waitForBattleLogs) {
+      this.fetchSeasonalTrophiesForCapMembers(liveData.memberList);
+      if (missingBattleMembers.length > 0) {
+        this.fetchAllMembersBattleLogs(missingBattleMembers);
+      }
     }
   }
 
