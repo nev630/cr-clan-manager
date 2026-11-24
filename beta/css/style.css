@@ -284,9 +284,9 @@ button:active,
   border: 1px solid rgba(168, 85, 247, 0.25);
 }
 .badge-elder {
-  background: rgba(59, 130, 246, 0.1);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 .badge-member {
   background: rgba(148, 163, 184, 0.08);
@@ -593,9 +593,9 @@ html.light .badge-coleader {
   border-color: #e9d5ff !important;
 }
 html.light .badge-elder {
-  background: #dbeafe !important;
-  color: #1d4ed8 !important;
-  border-color: #bfdbfe !important;
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
 }
 html.light .badge-member {
   background: #f1f5f9 !important;

@@ -1686,9 +1686,9 @@ class ClanManagerApp {
       return {
         isOnline: false,
         text: `${diffMinutes}분 전`,
-        dotColor: "green",
+        dotColor: "slate",
         isPulse: false,
-        textColor: "text-slate-300 font-medium"
+        textColor: "text-slate-200 font-medium"
       };
     }
 
@@ -1697,9 +1697,9 @@ class ClanManagerApp {
       return {
         isOnline: false,
         text: `${diffHours}시간 전`,
-        dotColor: "amber",
+        dotColor: "slate",
         isPulse: false,
-        textColor: "text-amber-300 font-semibold"
+        textColor: "text-slate-200 font-medium"
       };
     }
 
@@ -1717,9 +1717,9 @@ class ClanManagerApp {
     return {
       isOnline: false,
       text: `${diffDays}일 전`,
-      dotColor: "amber",
+      dotColor: "slate",
       isPulse: false,
-      textColor: "text-amber-300 font-semibold"
+      textColor: "text-slate-200 font-medium"
     };
   }
 
@@ -1867,7 +1867,7 @@ class ClanManagerApp {
               <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
               <span class="${status.textColor} text-xs">${status.text}</span>
             </div>
-            <div class="text-[10px] text-indigo-300/80 font-mono mt-0.5">
+            <div class="text-[10px] text-slate-400 font-mono mt-0.5">
               배틀: ${relativeBattle}
             </div>
           </td>
@@ -1905,12 +1905,11 @@ class ClanManagerApp {
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
-      let battleTextColor = "text-slate-300";
+      let battleTextColor = "text-slate-200 font-medium";
       const battleDate = this.parseDateSafe(member.lastBattleTime);
       if (battleDate) {
         const battleSecsAgo = Math.floor((now - battleDate.getTime()) / 1000);
         if (battleSecsAgo <= 180) battleTextColor = "text-emerald-400 font-bold";
-        else if (battleSecsAgo < 86400) battleTextColor = "text-indigo-300 font-semibold";
         else if (battleSecsAgo >= 604800) battleTextColor = "text-rose-400 font-bold";
         else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/80 font-medium";
       }
