@@ -1304,56 +1304,37 @@ class ClanManagerApp {
     const third = sorted[2];
     const runners = sorted.slice(3);
 
-    const basePodiumClasses = "flex items-end justify-center gap-2 pt-4 pb-0 px-1 min-h-[140px]";
+    const basePodiumClasses = "flex flex-col gap-2 pt-1";
     podiumContainer.className = triggerAnimation ? `${basePodiumClasses} podium-animate` : basePodiumClasses;
 
-    podiumContainer.innerHTML = `
-      <!-- 2등 은메달 -->
-      <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(second.tag)}">
-        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
-          <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-slate-300" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
+    const maxDonations = Math.max(first.donations || 0, 1);
+    const topThree = [
+      { member: first, rank: 1, isFirst: true, delay: "0s" },
+      { member: second, rank: 2, isFirst: false, delay: "0.05s" },
+      { member: third, rank: 3, isFirst: false, delay: "0.1s" }
+    ];
+
+    podiumContainer.innerHTML = topThree.map(({ member, rank, isFirst, delay }) => {
+      const donations = member.donations || 0;
+      const ratio = Math.max(4, Math.min(100, Math.round((donations / maxDonations) * 100)));
+      const cardClass = isFirst ? "podium-card podium-card-1st" : "podium-card";
+      const badgeClass = isFirst ? "podium-rank-1st" : "podium-rank-2nd";
+      const barFillClass = isFirst ? "leaderboard-bar-fill-1st" : "leaderboard-bar-fill-other";
+      return `
+        <div class="${cardClass} podium-header rounded-xl px-3 py-2.5 cursor-pointer" style="animation-delay: ${delay}" data-member-tag="${this.escapeHtml(member.tag)}">
+          <div class="flex items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="podium-rank-badge ${badgeClass} inline-flex items-center justify-center w-6 h-5 rounded-md text-[11px] font-bold tabular-nums shrink-0">${rank}</span>
+              <span class="text-xs sm:text-[13px] font-bold text-white truncate" title="${this.escapeHtml(member.name)}">${this.escapeHtml(member.name)}</span>
+            </div>
+            <span class="text-xs sm:text-[13px] font-bold ${isFirst ? "text-white" : "text-slate-300"} tabular-nums shrink-0">${donations.toLocaleString()}개</span>
           </div>
-          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
-          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
-        </div>
-        <div class="podium-step podium-2nd w-full h-20 sm:h-24">
-          <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
-        </div>
-      </div>
-      <!-- 1등 금메달 -->
-      <div class="flex-1 max-w-[145px] flex flex-col items-center" data-member-tag="${this.escapeHtml(first.tag)}">
-        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer">
-          <div class="flex items-center justify-center mb-1">
-            <svg class="w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
+          <div class="leaderboard-bar-track w-full h-1.5 rounded-full overflow-hidden mt-2">
+            <div class="${barFillClass} h-full rounded-full" style="width: ${ratio}%;"></div>
           </div>
-          <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs font-bold text-slate-300 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
         </div>
-        <div class="podium-step podium-1st w-full h-28 sm:h-32">
-          <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
-        </div>
-      </div>
-      <!-- 3등 동메달 -->
-      <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(third.tag)}">
-        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
-          <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-amber-600" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
-          </div>
-          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
-        </div>
-        <div class="podium-step podium-3rd w-full h-14 sm:h-16">
-          <span class="text-lg sm:text-xl font-black text-amber-600/80 font-mono mb-1">3</span>
-        </div>
-      </div>
-    `;
+      `;
+    }).join("");
 
     if (runnersContainer) {
       const baseRunnerClasses = "grid grid-cols-2 gap-1.5 pt-3 mt-3 border-t border-white/[0.04]";
@@ -1441,22 +1422,21 @@ class ClanManagerApp {
       const val = c[metricKey] || 0;
       const barHeightPercent = Math.max(3.5, Math.min(100, (val / tickMax) * 100));
 
-      let barClasses = "bg-gradient-to-t from-[#d41f45] to-[#eb3a60] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
-      if (c.isHome) {
-        barClasses = "bg-gradient-to-t from-[#3d4ac6] to-[#4f5ddb] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
-      } else if ((c.name || "").includes("Vandros")) {
-        barClasses = "bg-gradient-to-t from-[#059669] to-[#10b981] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
-      }
+      const isHome = Boolean(c.isHome);
+      const barClasses = isHome
+        ? "compare-bar-home bg-gradient-to-t from-[#3d4ac6] to-[#4f5ddb] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]"
+        : "compare-bar-other";
+      const labelColorClass = isHome ? "text-white font-bold" : "compare-other-label font-semibold";
 
       html += `
         <div class="flex-1 max-w-[95px] sm:max-w-[130px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
           <div class="w-[76%] sm:w-[72%] max-w-[72px] sm:max-w-[96px] relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
             <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1 sm:mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
-              <span class="text-xs sm:text-[13px] font-bold tracking-tight text-white compare-header-num">${val.toLocaleString()}${meta.suffix}</span>
+              <span class="text-xs sm:text-[13px] tracking-tight ${labelColorClass} compare-header-num">${val.toLocaleString()}${meta.suffix}</span>
             </div>
             <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-xl ${barClasses}"></div>
           </div>
-          <div class="compare-clan-name absolute top-full pt-1.5 sm:pt-2 w-full text-center text-xs sm:text-[13px] font-bold text-white tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
+          <div class="compare-clan-name absolute top-full pt-1.5 sm:pt-2 w-full text-center text-xs sm:text-[13px] ${labelColorClass} tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
             ${this.escapeHtml(c.name)}
           </div>
         </div>
@@ -1687,9 +1667,9 @@ class ClanManagerApp {
       return {
         isOnline: false,
         text: `${diffMinutes}분 전`,
-        dotColor: "green",
+        dotColor: "slate",
         isPulse: false,
-        textColor: "text-slate-300 font-medium"
+        textColor: "text-slate-200 font-medium"
       };
     }
 
@@ -1698,9 +1678,9 @@ class ClanManagerApp {
       return {
         isOnline: false,
         text: `${diffHours}시간 전`,
-        dotColor: "amber",
+        dotColor: "slate",
         isPulse: false,
-        textColor: "text-amber-300 font-semibold"
+        textColor: "text-slate-200 font-medium"
       };
     }
 
@@ -1718,9 +1698,9 @@ class ClanManagerApp {
     return {
       isOnline: false,
       text: `${diffDays}일 전`,
-      dotColor: "amber",
+      dotColor: "slate",
       isPulse: false,
-      textColor: "text-amber-300 font-semibold"
+      textColor: "text-slate-200 font-medium"
     };
   }
 
@@ -1868,7 +1848,7 @@ class ClanManagerApp {
               <span class="status-dot ${status.dotColor} ${status.isPulse ? 'live-pulse' : ''}"></span>
               <span class="${status.textColor} text-xs">${status.text}</span>
             </div>
-            <div class="text-[10px] text-indigo-300/80 font-mono mt-0.5">
+            <div class="text-[10px] text-slate-400 font-mono mt-0.5">
               배틀: ${relativeBattle}
             </div>
           </td>
@@ -1906,12 +1886,11 @@ class ClanManagerApp {
       const status = this.getOnlineStatus(member.lastSeen, member.lastBattleTime);
       const relativeBattle = this.formatRelativeTime(member.lastBattleTime);
 
-      let battleTextColor = "text-slate-300";
+      let battleTextColor = "text-slate-200 font-medium";
       const battleDate = this.parseDateSafe(member.lastBattleTime);
       if (battleDate) {
         const battleSecsAgo = Math.floor((now - battleDate.getTime()) / 1000);
         if (battleSecsAgo <= 180) battleTextColor = "text-emerald-400 font-bold";
-        else if (battleSecsAgo < 86400) battleTextColor = "text-indigo-300 font-semibold";
         else if (battleSecsAgo >= 604800) battleTextColor = "text-rose-400 font-bold";
         else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/80 font-medium";
       }

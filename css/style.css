@@ -284,9 +284,9 @@ button:active,
   border: 1px solid rgba(168, 85, 247, 0.25);
 }
 .badge-elder {
-  background: rgba(59, 130, 246, 0.1);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 .badge-member {
   background: rgba(148, 163, 184, 0.08);
@@ -325,16 +325,16 @@ button:active,
 }
 
 .podium-1st {
-  border-color: #fbbf24 rgba(251, 191, 36, 0.35) transparent rgba(251, 191, 36, 0.35);
-  background: linear-gradient(180deg, rgba(251, 191, 36, 0.28) 0%, rgba(180, 83, 9, 0.12) 58%, rgba(15, 18, 26, 0.94) 100%);
+  border-color: #f59e0b rgba(255, 255, 255, 0.08) transparent rgba(255, 255, 255, 0.08);
+  background: #1a2033;
 }
 .podium-2nd {
-  border-color: #e2e8f0 rgba(203, 213, 225, 0.28) transparent rgba(203, 213, 225, 0.28);
-  background: linear-gradient(180deg, rgba(203, 213, 225, 0.2) 0%, rgba(100, 116, 139, 0.08) 58%, rgba(15, 18, 26, 0.94) 100%);
+  border-color: #94a3b8 rgba(255, 255, 255, 0.07) transparent rgba(255, 255, 255, 0.07);
+  background: #151a2a;
 }
 .podium-3rd {
-  border-color: #f59e0b rgba(217, 119, 6, 0.28) transparent rgba(217, 119, 6, 0.28);
-  background: linear-gradient(180deg, rgba(217, 119, 6, 0.22) 0%, rgba(154, 52, 18, 0.1) 58%, rgba(15, 18, 26, 0.94) 100%);
+  border-color: #b45309 rgba(255, 255, 255, 0.07) transparent rgba(255, 255, 255, 0.07);
+  background: #151a2a;
 }
 
 @keyframes podiumScaleRise {
@@ -555,30 +555,36 @@ html.light #search-input::placeholder {
   color: #94a3b8 !important;
 }
 
-/* 올림픽 시상대 단상 (라이트 모드) */
+/* 올림픽 시상대 단상 (라이트 모드 - 플랫 메탈릭) */
 html.light .podium-1st {
-  border-color: #d97706 rgba(217, 119, 6, 0.45) rgba(217, 119, 6, 0.2) rgba(217, 119, 6, 0.45) !important;
-  background: linear-gradient(180deg, #fde68a 0%, #fef3c7 55%, #fffbeb 100%) !important;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+  border-color: #d97706 rgba(15, 23, 42, 0.1) transparent rgba(15, 23, 42, 0.1) !important;
+  background: #f1f5f9 !important;
+  box-shadow: none !important;
 }
 html.light .podium-1st span {
-  color: #92400e !important;
+  color: #b45309 !important;
 }
 html.light .podium-2nd {
-  border-color: #64748b rgba(100, 116, 139, 0.42) rgba(100, 116, 139, 0.2) rgba(100, 116, 139, 0.42) !important;
-  background: linear-gradient(180deg, #cbd5e1 0%, #e2e8f0 55%, #f1f5f9 100%) !important;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+  border-color: #94a3b8 rgba(15, 23, 42, 0.08) transparent rgba(15, 23, 42, 0.08) !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
 }
 html.light .podium-2nd span {
-  color: #334155 !important;
+  color: #475569 !important;
 }
 html.light .podium-3rd {
-  border-color: #c2410c rgba(194, 65, 12, 0.42) rgba(194, 65, 12, 0.2) rgba(194, 65, 12, 0.42) !important;
-  background: linear-gradient(180deg, #fdba74 0%, #fed7aa 55%, #ffedd5 100%) !important;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+  border-color: #c2410c rgba(15, 23, 42, 0.08) transparent rgba(15, 23, 42, 0.08) !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
 }
 html.light .podium-3rd span {
-  color: #7c2d12 !important;
+  color: #9a3412 !important;
+}
+html.light .podium-crown-silver {
+  color: #64748b !important;
+}
+html.light .podium-crown-bronze {
+  color: #c2410c !important;
 }
 
 /* 직책 뱃지 (라이트 모드) */
@@ -593,9 +599,9 @@ html.light .badge-coleader {
   border-color: #e9d5ff !important;
 }
 html.light .badge-elder {
-  background: #dbeafe !important;
-  color: #1d4ed8 !important;
-  border-color: #bfdbfe !important;
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
 }
 html.light .badge-member {
   background: #f1f5f9 !important;
@@ -1189,4 +1195,104 @@ html.light .app-input-bg {
   background-color: #ffffff;
   border-color: rgba(15, 23, 42, 0.12);
   color: #0f172a;
+}
+
+/* 타 갤클 비교 차트: 타 클랜 무채색 톤 다운 (내 클랜 강조) */
+.compare-bar-other {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.28) 0%, rgba(71, 85, 105, 0.38) 100%);
+  border-top: 1px solid rgba(148, 163, 184, 0.28);
+  border-left: 1px solid rgba(148, 163, 184, 0.16);
+  border-right: 1px solid rgba(148, 163, 184, 0.16);
+}
+.compare-other-label {
+  color: #94a3b8;
+}
+html.light .compare-bar-other {
+  background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
+  border-top: 1px solid rgba(100, 116, 139, 0.35);
+  border-left: 1px solid rgba(100, 116, 139, 0.2);
+  border-right: 1px solid rgba(100, 116, 139, 0.2);
+}
+html.light .compare-other-label {
+  color: #64748b !important;
+}
+
+/* 미니멀 3열 카드형 시상대 (1번 방식) */
+.podium-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.18s var(--ease-spring), border-color 0.2s ease, background-color 0.2s ease;
+  touch-action: manipulation;
+  user-select: none;
+}
+.podium-card:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translate3d(0, -2px, 0);
+}
+.podium-card:active {
+  transform: scale3d(0.97, 0.97, 1) !important;
+}
+.podium-card-1st {
+  background: rgba(99, 102, 241, 0.09);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+.podium-card-1st:hover {
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+.podium-rank-1st {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+.podium-rank-2nd,
+.podium-rank-3rd {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+}
+
+html.light .podium-card {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.09);
+}
+html.light .podium-card:hover {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.16);
+}
+html.light .podium-card-1st {
+  background: rgba(79, 70, 229, 0.06);
+  border-color: rgba(79, 70, 229, 0.28);
+}
+html.light .podium-card-1st:hover {
+  background: rgba(79, 70, 229, 0.1);
+  border-color: rgba(79, 70, 229, 0.4);
+}
+html.light .podium-rank-1st {
+  background: rgba(79, 70, 229, 0.12);
+  color: #4338ca !important;
+}
+html.light .podium-rank-2nd,
+html.light .podium-rank-3rd {
+  background: #e2e8f0;
+  color: #475569 !important;
+}
+
+/* 세로 통합 리더보드 비율 바 */
+.leaderboard-bar-track {
+  background: rgba(255, 255, 255, 0.06);
+}
+.leaderboard-bar-fill-1st {
+  background: linear-gradient(90deg, #4f46e5 0%, #6366f1 100%);
+}
+.leaderboard-bar-fill-other {
+  background: rgba(148, 163, 184, 0.42);
+}
+html.light .leaderboard-bar-track {
+  background: rgba(15, 23, 42, 0.07);
+}
+html.light .leaderboard-bar-fill-1st {
+  background: linear-gradient(90deg, #4338ca 0%, #4f46e5 100%);
+}
+html.light .leaderboard-bar-fill-other {
+  background: #94a3b8;
 }

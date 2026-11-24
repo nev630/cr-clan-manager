@@ -1320,16 +1320,11 @@ class ClanManagerApp {
       const cardClass = isFirst ? "podium-card podium-card-1st" : "podium-card";
       const badgeClass = isFirst ? "podium-rank-1st" : "podium-rank-2nd";
       const barFillClass = isFirst ? "leaderboard-bar-fill-1st" : "leaderboard-bar-fill-other";
-      const crownHtml = isFirst
-        ? `<svg class="w-3.5 h-3.5 text-amber-400 shrink-0" style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>`
-        : "";
-
       return `
         <div class="${cardClass} podium-header rounded-xl px-3 py-2.5 cursor-pointer" style="animation-delay: ${delay}" data-member-tag="${this.escapeHtml(member.tag)}">
           <div class="flex items-center justify-between gap-2.5">
             <div class="flex items-center gap-2 min-w-0">
               <span class="podium-rank-badge ${badgeClass} inline-flex items-center justify-center w-6 h-5 rounded-md text-[11px] font-bold tabular-nums shrink-0">${rank}</span>
-              ${crownHtml}
               <span class="text-xs sm:text-[13px] font-bold text-white truncate" title="${this.escapeHtml(member.name)}">${this.escapeHtml(member.name)}</span>
             </div>
             <span class="text-xs sm:text-[13px] font-bold ${isFirst ? "text-white" : "text-slate-300"} tabular-nums shrink-0">${donations.toLocaleString()}개</span>
