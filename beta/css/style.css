@@ -99,14 +99,12 @@ button:active,
 }
 .status-dot.green {
   background-color: var(--accent-green);
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
 }
 .status-dot.amber {
   background-color: var(--accent-amber);
 }
 .status-dot.rose, .status-dot.red {
   background-color: var(--accent-rose);
-  box-shadow: 0 0 6px rgba(244, 63, 94, 0.4);
 }
 .status-dot.slate {
   background-color: #64748b;
@@ -329,7 +327,6 @@ button:active,
 .podium-1st {
   border-color: #fbbf24 rgba(251, 191, 36, 0.35) transparent rgba(251, 191, 36, 0.35);
   background: linear-gradient(180deg, rgba(251, 191, 36, 0.28) 0%, rgba(180, 83, 9, 0.12) 58%, rgba(15, 18, 26, 0.94) 100%);
-  box-shadow: 0 -4px 22px rgba(245, 158, 11, 0.22);
 }
 .podium-2nd {
   border-color: #e2e8f0 rgba(203, 213, 225, 0.28) transparent rgba(203, 213, 225, 0.28);
@@ -562,7 +559,7 @@ html.light #search-input::placeholder {
 html.light .podium-1st {
   border-color: #d97706 rgba(217, 119, 6, 0.45) rgba(217, 119, 6, 0.2) rgba(217, 119, 6, 0.45) !important;
   background: linear-gradient(180deg, #fde68a 0%, #fef3c7 55%, #fffbeb 100%) !important;
-  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
 }
 html.light .podium-1st span {
   color: #92400e !important;
@@ -570,7 +567,7 @@ html.light .podium-1st span {
 html.light .podium-2nd {
   border-color: #64748b rgba(100, 116, 139, 0.42) rgba(100, 116, 139, 0.2) rgba(100, 116, 139, 0.42) !important;
   background: linear-gradient(180deg, #cbd5e1 0%, #e2e8f0 55%, #f1f5f9 100%) !important;
-  box-shadow: 0 4px 14px rgba(100, 116, 139, 0.16) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
 }
 html.light .podium-2nd span {
   color: #334155 !important;
@@ -578,7 +575,7 @@ html.light .podium-2nd span {
 html.light .podium-3rd {
   border-color: #c2410c rgba(194, 65, 12, 0.42) rgba(194, 65, 12, 0.2) rgba(194, 65, 12, 0.42) !important;
   background: linear-gradient(180deg, #fdba74 0%, #fed7aa 55%, #ffedd5 100%) !important;
-  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.16) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
 }
 html.light .podium-3rd span {
   color: #7c2d12 !important;
@@ -714,22 +711,10 @@ html.dark #icon-moon {
 }
 
 /* ============================================================
-   1위 시상대 금빛 왕관 럭셔리 네온 오라 & 카드/뱃지 모션
+   카드/뱃지 등장 모션
    ============================================================ */
-@keyframes goldAuraPulse {
-  0%, 100% {
-    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7)) drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
-    transform: scale3d(1, 1, 1);
-  }
-  50% {
-    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.65));
-    transform: scale3d(1.05, 1.05, 1);
-  }
-}
 .crown-aura-glow {
   display: inline-block;
-  transform-origin: center;
-  animation: goldAuraPulse 2.8s ease-in-out infinite;
 }
 
 @keyframes cardStaggerIn {
@@ -1148,7 +1133,7 @@ html.light #member-detail-modal #btn-royaleapi-link {
   background-color: #4f46e5 !important;
   color: #ffffff !important;
   border: 1px solid #4338ca !important;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3) !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12) !important;
 }
 
 html.light #member-detail-modal #btn-royaleapi-link:hover {
