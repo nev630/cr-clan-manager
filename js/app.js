@@ -39,6 +39,7 @@ class ClanManagerApp {
     this.hasCompareLoaded = false;
 
     this.battleLogCache = this.loadBattleLogCache();
+    this.seasonalTrophyCache = this.loadSeasonalTrophyCache();
     this.elements = {};
 
     this.pendingClanData = null;
@@ -71,6 +72,96 @@ class ClanManagerApp {
       const obj = Object.fromEntries(this.battleLogCache);
       localStorage.setItem("cr_clan_battle_cache_v5", JSON.stringify(obj));
     } catch (e) {}
+  }
+
+  loadSeasonalTrophyCache() {
+    try {
+      const saved = localStorage.getItem("cr_clan_seasonal_trophies_v1");
+      if (saved) {
+        const obj = JSON.parse(saved);
+        return new Map(Object.entries(obj));
+      }
+    } catch (e) {}
+    return new Map();
+  }
+
+  saveSeasonalTrophyCache() {
+    try {
+      const obj = Object.fromEntries(this.seasonalTrophyCache);
+      localStorage.setItem("cr_clan_seasonal_trophies_v1", JSON.stringify(obj));
+    } catch (e) {}
+  }
+
+  extractSeasonalTrophies(playerData) {
+    if (!playerData) return null;
+    const base = typeof playerData.trophies === "number" ? playerData.trophies : 0;
+    const progress = playerData.progress;
+    if (!progress || typeof progress !== "object") return base;
+
+    const seasonalKeys = Object.keys(progress)
+      .filter((k) => k.startsWith("seasonal-trophy-road-"))
+      .sort();
+    if (seasonalKeys.length === 0) return base;
+
+    const latestKey = seasonalKeys[seasonalKeys.length - 1];
+    const seasonalTrophies = progress[latestKey]?.trophies;
+    if (typeof seasonalTrophies === "number" && seasonalTrophies > base) {
+      return seasonalTrophies;
+    }
+    return base;
+  }
+
+  bindCachedSeasonalTrophies(members) {
+    if (!Array.isArray(members)) return;
+    members.forEach((m) => {
+      if ((m.trophies || 0) >= 14000 && this.seasonalTrophyCache.has(m.tag)) {
+        const cachedVal = this.seasonalTrophyCache.get(m.tag);
+        if (typeof cachedVal === "number" && cachedVal > m.trophies) {
+          m.trophies = cachedVal;
+        }
+      }
+    });
+  }
+
+  async fetchSeasonalTrophiesForCapMembers(members) {
+    if (!Array.isArray(members) || members.length === 0) return;
+    if (!window.crApi || typeof window.crApi.fetchPlayer !== "function") return;
+
+    const capMembers = members.filter((m) => (m.trophies || 0) >= 14000);
+    if (capMembers.length === 0) return;
+
+    let hasUpdated = false;
+    const chunkSize = 10;
+
+    for (let i = 0; i < capMembers.length; i += chunkSize) {
+      const chunk = capMembers.slice(i, i + chunkSize);
+      await Promise.allSettled(
+        chunk.map(async (m) => {
+          try {
+            const playerData = await window.crApi.fetchPlayer(m.tag);
+            const resolved = this.extractSeasonalTrophies(playerData);
+            if (typeof resolved === "number" && resolved > 0) {
+              this.seasonalTrophyCache.set(m.tag, resolved);
+              if (resolved !== m.trophies) {
+                m.trophies = resolved;
+                hasUpdated = true;
+              }
+            }
+          } catch (e) {}
+        })
+      );
+
+      if (i + chunkSize < capMembers.length) {
+        await new Promise((r) => setTimeout(r, 40));
+      }
+    }
+
+    if (hasUpdated) {
+      this.saveSeasonalTrophyCache();
+      if (this.currentData && !this.isAnyModalOpen()) {
+        this.applyFilterAndRender(false);
+      }
+    }
   }
 
   init() {
@@ -930,9 +1021,14 @@ class ClanManagerApp {
     }
 
     this.bindCachedBattleLogs(liveData.memberList);
+    this.bindCachedSeasonalTrophies(liveData.memberList);
 
-    if (waitForBattleLogs && missingBattleMembers.length > 0) {
-      await this.fetchAllMembersBattleLogs(missingBattleMembers);
+    if (waitForBattleLogs) {
+      const initTasks = [this.fetchSeasonalTrophiesForCapMembers(liveData.memberList)];
+      if (missingBattleMembers.length > 0) {
+        initTasks.push(this.fetchAllMembersBattleLogs(missingBattleMembers));
+      }
+      await Promise.allSettled(initTasks);
     }
 
     this.renderClan(liveData, shouldAnimate, shouldAnimate);
@@ -944,8 +1040,11 @@ class ClanManagerApp {
       }, 850);
     }
 
-    if (!waitForBattleLogs && missingBattleMembers.length > 0) {
-      this.fetchAllMembersBattleLogs(missingBattleMembers);
+    if (!waitForBattleLogs) {
+      this.fetchSeasonalTrophiesForCapMembers(liveData.memberList);
+      if (missingBattleMembers.length > 0) {
+        this.fetchAllMembersBattleLogs(missingBattleMembers);
+      }
     }
   }
 
@@ -1213,7 +1312,7 @@ class ClanManagerApp {
       <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(second.tag)}">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-slate-300 drop-shadow-[0_0_6px_rgba(203,213,225,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-4 h-4 text-slate-300" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
@@ -1228,7 +1327,7 @@ class ClanManagerApp {
       <div class="flex-1 max-w-[145px] flex flex-col items-center" data-member-tag="${this.escapeHtml(first.tag)}">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer">
           <div class="flex items-center justify-center mb-1">
-            <svg class="crown-aura-glow w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
@@ -1243,7 +1342,7 @@ class ClanManagerApp {
       <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(third.tag)}">
         <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
           <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-amber-600 drop-shadow-[0_0_6px_rgba(217,119,6,0.4)]" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-4 h-4 text-amber-600" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
             </svg>
           </div>
