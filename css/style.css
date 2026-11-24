@@ -938,8 +938,15 @@ html.light .toast-pill {
   }
 }
 
+.cr-loading-percent,
+html.light #initial-sync-modal .cr-loading-percent,
+html.light #initial-sync-modal .text-white {
+  color: #ffffff !important;
+}
+
 .cr-loading-percent {
   font-family: "Supercell-Magic", "Pretendard", sans-serif;
+  color: #ffffff !important;
   text-shadow:
     -2px -2px 0 #000,
      2px -2px 0 #000,
