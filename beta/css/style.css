@@ -1216,3 +1216,63 @@ html.light .compare-bar-other {
 html.light .compare-other-label {
   color: #64748b !important;
 }
+
+/* 미니멀 3열 카드형 시상대 (1번 방식) */
+.podium-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.18s var(--ease-spring), border-color 0.2s ease, background-color 0.2s ease;
+  touch-action: manipulation;
+  user-select: none;
+}
+.podium-card:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translate3d(0, -2px, 0);
+}
+.podium-card:active {
+  transform: scale3d(0.97, 0.97, 1) !important;
+}
+.podium-card-1st {
+  background: rgba(99, 102, 241, 0.09);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+.podium-card-1st:hover {
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+.podium-rank-1st {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+.podium-rank-2nd,
+.podium-rank-3rd {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+}
+
+html.light .podium-card {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.09);
+}
+html.light .podium-card:hover {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.16);
+}
+html.light .podium-card-1st {
+  background: rgba(79, 70, 229, 0.06);
+  border-color: rgba(79, 70, 229, 0.28);
+}
+html.light .podium-card-1st:hover {
+  background: rgba(79, 70, 229, 0.1);
+  border-color: rgba(79, 70, 229, 0.4);
+}
+html.light .podium-rank-1st {
+  background: rgba(79, 70, 229, 0.12);
+  color: #4338ca !important;
+}
+html.light .podium-rank-2nd,
+html.light .podium-rank-3rd {
+  background: #e2e8f0;
+  color: #475569 !important;
+}

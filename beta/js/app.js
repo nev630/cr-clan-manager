@@ -1304,53 +1304,39 @@ class ClanManagerApp {
     const third = sorted[2];
     const runners = sorted.slice(3);
 
-    const basePodiumClasses = "flex items-end justify-center gap-2 pt-4 pb-0 px-1 min-h-[140px]";
+    const basePodiumClasses = "grid grid-cols-3 items-end gap-2 sm:gap-2.5 pt-2 pb-1";
     podiumContainer.className = triggerAnimation ? `${basePodiumClasses} podium-animate` : basePodiumClasses;
 
     podiumContainer.innerHTML = `
-      <!-- 2등 은메달 -->
-      <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(second.tag)}">
-        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.06s">
-          <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-slate-300 podium-crown-silver" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
-          </div>
-          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
-          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
-        </div>
-        <div class="podium-step podium-2nd w-full h-20 sm:h-24">
-          <span class="text-xl sm:text-2xl font-black text-slate-300/80 font-mono mb-2">2</span>
+      <!-- 2위 카드 -->
+      <div class="podium-card podium-card-2nd podium-header rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-between text-center min-h-[104px] sm:min-h-[112px] cursor-pointer" style="animation-delay: 0.06s" data-member-tag="${this.escapeHtml(second.tag)}">
+        <span class="podium-rank-badge podium-rank-2nd inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold">2위</span>
+        <div class="w-full mt-2">
+          <div class="text-xs font-bold text-white truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
+          <div class="text-xs font-semibold text-slate-300 tabular-nums mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
         </div>
       </div>
-      <!-- 1등 금메달 -->
-      <div class="flex-1 max-w-[145px] flex flex-col items-center" data-member-tag="${this.escapeHtml(first.tag)}">
-        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer">
-          <div class="flex items-center justify-center mb-1">
-            <svg class="w-5 h-5 text-amber-400" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
-          </div>
-          <div class="text-xs sm:text-sm text-white font-bold truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs font-bold text-slate-300 mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
+
+      <!-- 1위 카드 -->
+      <div class="podium-card podium-card-1st podium-header rounded-xl p-3 sm:p-3.5 flex flex-col items-center justify-between text-center min-h-[122px] sm:min-h-[132px] cursor-pointer" data-member-tag="${this.escapeHtml(first.tag)}">
+        <div class="flex flex-col items-center gap-1">
+          <svg class="w-4 h-4 text-amber-400" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+          </svg>
+          <span class="podium-rank-badge podium-rank-1st inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold">1위</span>
         </div>
-        <div class="podium-step podium-1st w-full h-28 sm:h-32">
-          <span class="text-2xl sm:text-3xl font-black text-amber-400/90 font-mono mb-2">1</span>
+        <div class="w-full mt-2">
+          <div class="text-xs sm:text-[13px] font-bold text-white truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
+          <div class="text-xs sm:text-[13px] font-bold text-white tabular-nums mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
         </div>
       </div>
-      <!-- 3등 동메달 -->
-      <div class="flex-1 max-w-[130px] flex flex-col items-center" data-member-tag="${this.escapeHtml(third.tag)}">
-        <div class="podium-header text-center mb-1.5 w-full px-1 cursor-pointer" style="animation-delay: 0.12s">
-          <div class="flex items-center justify-center mb-1">
-            <svg class="w-4 h-4 text-amber-600 podium-crown-bronze" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-            </svg>
-          </div>
-          <div class="text-xs text-white font-bold truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-[11px] font-bold text-slate-300 mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
-        </div>
-        <div class="podium-step podium-3rd w-full h-14 sm:h-16">
-          <span class="text-lg sm:text-xl font-black text-amber-600/80 font-mono mb-1">3</span>
+
+      <!-- 3위 카드 -->
+      <div class="podium-card podium-card-3rd podium-header rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-between text-center min-h-[96px] sm:min-h-[104px] cursor-pointer" style="animation-delay: 0.12s" data-member-tag="${this.escapeHtml(third.tag)}">
+        <span class="podium-rank-badge podium-rank-3rd inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold">3위</span>
+        <div class="w-full mt-2">
+          <div class="text-xs font-bold text-white truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
+          <div class="text-xs font-semibold text-slate-300 tabular-nums mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
         </div>
       </div>
     `;
