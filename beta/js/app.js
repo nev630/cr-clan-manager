@@ -1304,42 +1304,42 @@ class ClanManagerApp {
     const third = sorted[2];
     const runners = sorted.slice(3);
 
-    const basePodiumClasses = "grid grid-cols-3 items-end gap-2 sm:gap-2.5 pt-2 pb-1";
+    const basePodiumClasses = "flex flex-col gap-2 pt-1";
     podiumContainer.className = triggerAnimation ? `${basePodiumClasses} podium-animate` : basePodiumClasses;
 
-    podiumContainer.innerHTML = `
-      <!-- 2위 카드 -->
-      <div class="podium-card podium-card-2nd podium-header rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-between text-center min-h-[104px] sm:min-h-[112px] cursor-pointer" style="animation-delay: 0.06s" data-member-tag="${this.escapeHtml(second.tag)}">
-        <span class="podium-rank-badge podium-rank-2nd inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold">2위</span>
-        <div class="w-full mt-2">
-          <div class="text-xs font-bold text-white truncate" title="${this.escapeHtml(second.name)}">${this.escapeHtml(second.name)}</div>
-          <div class="text-xs font-semibold text-slate-300 tabular-nums mt-0.5">${(second.donations || 0).toLocaleString()}개</div>
-        </div>
-      </div>
+    const maxDonations = Math.max(first.donations || 0, 1);
+    const topThree = [
+      { member: first, rank: 1, isFirst: true, delay: "0s" },
+      { member: second, rank: 2, isFirst: false, delay: "0.05s" },
+      { member: third, rank: 3, isFirst: false, delay: "0.1s" }
+    ];
 
-      <!-- 1위 카드 -->
-      <div class="podium-card podium-card-1st podium-header rounded-xl p-3 sm:p-3.5 flex flex-col items-center justify-between text-center min-h-[122px] sm:min-h-[132px] cursor-pointer" data-member-tag="${this.escapeHtml(first.tag)}">
-        <div class="flex flex-col items-center gap-1">
-          <svg class="w-4 h-4 text-amber-400" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
-          </svg>
-          <span class="podium-rank-badge podium-rank-1st inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold">1위</span>
-        </div>
-        <div class="w-full mt-2">
-          <div class="text-xs sm:text-[13px] font-bold text-white truncate" title="${this.escapeHtml(first.name)}">${this.escapeHtml(first.name)}</div>
-          <div class="text-xs sm:text-[13px] font-bold text-white tabular-nums mt-0.5">${(first.donations || 0).toLocaleString()}개</div>
-        </div>
-      </div>
+    podiumContainer.innerHTML = topThree.map(({ member, rank, isFirst, delay }) => {
+      const donations = member.donations || 0;
+      const ratio = Math.max(4, Math.min(100, Math.round((donations / maxDonations) * 100)));
+      const cardClass = isFirst ? "podium-card podium-card-1st" : "podium-card";
+      const badgeClass = isFirst ? "podium-rank-1st" : "podium-rank-2nd";
+      const barFillClass = isFirst ? "leaderboard-bar-fill-1st" : "leaderboard-bar-fill-other";
+      const crownHtml = isFirst
+        ? `<svg class="w-3.5 h-3.5 text-amber-400 shrink-0" style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>`
+        : "";
 
-      <!-- 3위 카드 -->
-      <div class="podium-card podium-card-3rd podium-header rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-between text-center min-h-[96px] sm:min-h-[104px] cursor-pointer" style="animation-delay: 0.12s" data-member-tag="${this.escapeHtml(third.tag)}">
-        <span class="podium-rank-badge podium-rank-3rd inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold">3위</span>
-        <div class="w-full mt-2">
-          <div class="text-xs font-bold text-white truncate" title="${this.escapeHtml(third.name)}">${this.escapeHtml(third.name)}</div>
-          <div class="text-xs font-semibold text-slate-300 tabular-nums mt-0.5">${(third.donations || 0).toLocaleString()}개</div>
+      return `
+        <div class="${cardClass} podium-header rounded-xl px-3 py-2.5 cursor-pointer" style="animation-delay: ${delay}" data-member-tag="${this.escapeHtml(member.tag)}">
+          <div class="flex items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="podium-rank-badge ${badgeClass} inline-flex items-center justify-center w-6 h-5 rounded-md text-[11px] font-bold tabular-nums shrink-0">${rank}</span>
+              ${crownHtml}
+              <span class="text-xs sm:text-[13px] font-bold text-white truncate" title="${this.escapeHtml(member.name)}">${this.escapeHtml(member.name)}</span>
+            </div>
+            <span class="text-xs sm:text-[13px] font-bold ${isFirst ? "text-white" : "text-slate-300"} tabular-nums shrink-0">${donations.toLocaleString()}개</span>
+          </div>
+          <div class="leaderboard-bar-track w-full h-1.5 rounded-full overflow-hidden mt-2">
+            <div class="${barFillClass} h-full rounded-full" style="width: ${ratio}%;"></div>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }).join("");
 
     if (runnersContainer) {
       const baseRunnerClasses = "grid grid-cols-2 gap-1.5 pt-3 mt-3 border-t border-white/[0.04]";

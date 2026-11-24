@@ -1276,3 +1276,23 @@ html.light .podium-rank-3rd {
   background: #e2e8f0;
   color: #475569 !important;
 }
+
+/* 세로 통합 리더보드 비율 바 */
+.leaderboard-bar-track {
+  background: rgba(255, 255, 255, 0.06);
+}
+.leaderboard-bar-fill-1st {
+  background: linear-gradient(90deg, #4f46e5 0%, #6366f1 100%);
+}
+.leaderboard-bar-fill-other {
+  background: rgba(148, 163, 184, 0.42);
+}
+html.light .leaderboard-bar-track {
+  background: rgba(15, 23, 42, 0.07);
+}
+html.light .leaderboard-bar-fill-1st {
+  background: linear-gradient(90deg, #4338ca 0%, #4f46e5 100%);
+}
+html.light .leaderboard-bar-fill-other {
+  background: #94a3b8;
+}
