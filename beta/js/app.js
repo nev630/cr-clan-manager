@@ -1441,22 +1441,21 @@ class ClanManagerApp {
       const val = c[metricKey] || 0;
       const barHeightPercent = Math.max(3.5, Math.min(100, (val / tickMax) * 100));
 
-      let barClasses = "bg-gradient-to-t from-[#d41f45] to-[#eb3a60] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
-      if (c.isHome) {
-        barClasses = "bg-gradient-to-t from-[#3d4ac6] to-[#4f5ddb] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
-      } else if ((c.name || "").includes("Vandros")) {
-        barClasses = "bg-gradient-to-t from-[#059669] to-[#10b981] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]";
-      }
+      const isHome = Boolean(c.isHome);
+      const barClasses = isHome
+        ? "compare-bar-home bg-gradient-to-t from-[#3d4ac6] to-[#4f5ddb] border-t border-x border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.25)]"
+        : "compare-bar-other";
+      const labelColorClass = isHome ? "text-white font-bold" : "compare-other-label font-semibold";
 
       html += `
         <div class="flex-1 max-w-[95px] sm:max-w-[130px] h-full flex flex-col justify-end items-center relative pointer-events-auto">
           <div class="w-[76%] sm:w-[72%] max-w-[72px] sm:max-w-[96px] relative flex justify-center" style="height: ${barHeightPercent.toFixed(2)}%;">
             <div class="compare-bar-header compare-bar-header-${idx} absolute bottom-full mb-1 sm:mb-1.5 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap">
-              <span class="text-xs sm:text-[13px] font-bold tracking-tight text-white compare-header-num">${val.toLocaleString()}${meta.suffix}</span>
+              <span class="text-xs sm:text-[13px] tracking-tight ${labelColorClass} compare-header-num">${val.toLocaleString()}${meta.suffix}</span>
             </div>
             <div class="compare-bar compare-bar-${idx} w-full h-full rounded-t-xl ${barClasses}"></div>
           </div>
-          <div class="compare-clan-name absolute top-full pt-1.5 sm:pt-2 w-full text-center text-xs sm:text-[13px] font-bold text-white tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
+          <div class="compare-clan-name absolute top-full pt-1.5 sm:pt-2 w-full text-center text-xs sm:text-[13px] ${labelColorClass} tracking-tight truncate select-none" title="${this.escapeHtml(c.name)}">
             ${this.escapeHtml(c.name)}
           </div>
         </div>

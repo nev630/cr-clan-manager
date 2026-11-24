@@ -1190,3 +1190,23 @@ html.light .app-input-bg {
   border-color: rgba(15, 23, 42, 0.12);
   color: #0f172a;
 }
+
+/* 타 갤클 비교 차트: 타 클랜 무채색 톤 다운 (내 클랜 강조) */
+.compare-bar-other {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.28) 0%, rgba(71, 85, 105, 0.38) 100%);
+  border-top: 1px solid rgba(148, 163, 184, 0.28);
+  border-left: 1px solid rgba(148, 163, 184, 0.16);
+  border-right: 1px solid rgba(148, 163, 184, 0.16);
+}
+.compare-other-label {
+  color: #94a3b8;
+}
+html.light .compare-bar-other {
+  background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
+  border-top: 1px solid rgba(100, 116, 139, 0.35);
+  border-left: 1px solid rgba(100, 116, 139, 0.2);
+  border-right: 1px solid rgba(100, 116, 139, 0.2);
+}
+html.light .compare-other-label {
+  color: #64748b !important;
+}
