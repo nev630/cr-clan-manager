@@ -1891,8 +1891,7 @@ class ClanManagerApp {
       if (battleDate) {
         const battleSecsAgo = Math.floor((now - battleDate.getTime()) / 1000);
         if (battleSecsAgo <= 180) battleTextColor = "text-emerald-400 font-bold";
-        else if (battleSecsAgo >= 604800) battleTextColor = "text-rose-400 font-bold";
-        else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400/80 font-medium";
+        else if (battleSecsAgo >= 259200) battleTextColor = "text-rose-400 font-bold";
       }
 
       const donations = member.donations || 0;
@@ -1925,7 +1924,7 @@ class ClanManagerApp {
 
             <div class="text-center">
               <div class="text-[10px] text-slate-500 font-medium">최근 배틀</div>
-              <div class="text-xs ${battleTextColor} mt-0.5 font-medium flex items-center justify-center gap-1 truncate">
+              <div class="text-xs ${battleTextColor} mt-0.5 flex items-center justify-center gap-1 truncate">
                 ${SWORDS_INLINE_SVG}
                 <span class="truncate">${relativeBattle}</span>
               </div>
