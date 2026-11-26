@@ -90,7 +90,7 @@ class ClashRoyaleAPI {
     return `${workerUrl}${endpoint}`;
   }
 
-  async fetchWithAuth(endpoint, timeoutMs = 6000) {
+  async fetchWithAuth(endpoint, timeoutMs = 12000) {
     const sep = endpoint.includes("?") ? "&" : "?";
     const cacheBustedEndpoint = `${endpoint}${sep}_t=${Date.now()}`;
     const url = this.buildUrl(cacheBustedEndpoint);
@@ -150,7 +150,7 @@ class ClashRoyaleAPI {
   async fetchClanSummary(clanTag, force = false) {
     try {
       const q = force ? "?force=1" : "";
-      return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}/summary${q}`, 10000);
+      return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}/summary${q}`, 15000);
     } catch (e) {
       console.warn("단일 통합 요약 엔드포인트 미지원 또는 응답 지연 -> 일반 조회로 폴백:", e.message);
       return null;
@@ -173,7 +173,7 @@ class ClashRoyaleAPI {
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        const data = await this.fetchWithAuth(`/v1/players/${encoded}/battlelog`, 5000);
+        const data = await this.fetchWithAuth(`/v1/players/${encoded}/battlelog`, 8000);
         return Array.isArray(data) ? data : null;
       } catch (e) {
         const isRetryable = e.status === 429 || e.status === 403 || e.status === 502 || e.status === 504 || !e.status;
