@@ -161,25 +161,8 @@ class ClashRoyaleAPI {
     return await this.fetchWithAuth(`/v1/clans/${this.encodeTag(clanTag)}`);
   }
 
-  async fetchPlayer(playerTag, retries = 1) {
-    if (!playerTag) return null;
-    const encoded = this.encodeTag(playerTag);
-    if (!encoded) return null;
-
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        return await this.fetchWithAuth(`/v1/players/${encoded}`, 8000);
-      } catch (e) {
-        const isRetryable = e.status === 429 || e.status === 403 || e.status === 502 || e.status === 504 || !e.status;
-        if (isRetryable && attempt < retries) {
-          const delay = e.status === 429 ? 500 + Math.random() * 250 : 250;
-          await new Promise((r) => setTimeout(r, delay));
-          continue;
-        }
-        throw e;
-      }
-    }
-    return null;
+  async fetchPlayer(playerTag) {
+    return await this.fetchWithAuth(`/v1/players/${this.encodeTag(playerTag)}`);
   }
 
   // 재시도 및 타임아웃이 통합된 플레이어 배틀로그 조회
@@ -195,7 +178,7 @@ class ClashRoyaleAPI {
       } catch (e) {
         const isRetryable = e.status === 429 || e.status === 403 || e.status === 502 || e.status === 504 || !e.status;
         if (isRetryable && attempt < retries) {
-          await new Promise((r) => setTimeout(r, e.status === 429 ? 500 + Math.random() * 250 : 250));
+          await new Promise((r) => setTimeout(r, e.status === 429 ? 180 : 120));
           continue;
         }
         return null;
