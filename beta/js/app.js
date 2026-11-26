@@ -127,11 +127,11 @@ class ClanManagerApp {
     if (!Array.isArray(members) || members.length === 0) return;
     if (!window.crApi || typeof window.crApi.fetchPlayer !== "function") return;
 
-    const capMembers = members.filter((m) => (m.trophies || 0) >= 14000);
+    const capMembers = members.filter((m) => (m.trophies || 0) >= 14000 && !m._seasonalTrophiesResolved);
     if (capMembers.length === 0) return;
 
     let hasUpdated = false;
-    const chunkSize = 10;
+    const chunkSize = 5;
 
     for (let i = 0; i < capMembers.length; i += chunkSize) {
       const chunk = capMembers.slice(i, i + chunkSize);
@@ -152,7 +152,7 @@ class ClanManagerApp {
       );
 
       if (i + chunkSize < capMembers.length) {
-        await new Promise((r) => setTimeout(r, 40));
+        await new Promise((r) => setTimeout(r, 250));
       }
     }
 
@@ -500,7 +500,7 @@ class ClanManagerApp {
     }
 
     // 스플래시 점등이 끝난 뒤 아트워크 탐색/디코딩 시작 (애니메이션 프레임 보호)
-    await new Promise((r) => setTimeout(r, 700));
+    await new Promise((r) => setTimeout(r, 450));
     const artworkPromise = this.pickRandomArtworkAsset().then(async (artworkSrc) => {
       const artworkImg = document.getElementById("cr-artwork-img");
       const artworkFallback = document.getElementById("cr-artwork-fallback");
@@ -515,7 +515,7 @@ class ClanManagerApp {
     });
 
     await Promise.all([
-      new Promise((r) => setTimeout(r, 320)),
+      new Promise((r) => setTimeout(r, 150)),
       artworkPromise
     ]);
 
@@ -931,7 +931,7 @@ class ClanManagerApp {
     if (!window.crApi || typeof window.crApi.fetchPlayerBattleLog !== "function") return;
 
     let hasNewData = false;
-    const chunkSize = 10;
+    const chunkSize = 5;
 
     for (let i = 0; i < members.length; i += chunkSize) {
       const chunk = members.slice(i, i + chunkSize);
@@ -979,7 +979,7 @@ class ClanManagerApp {
       await Promise.allSettled(chunkPromises);
 
       if (i + chunkSize < members.length) {
-        await new Promise((r) => setTimeout(r, 40));
+        await new Promise((r) => setTimeout(r, 250));
       }
     }
 
@@ -1041,10 +1041,12 @@ class ClanManagerApp {
     }
 
     if (!waitForBattleLogs) {
-      this.fetchSeasonalTrophiesForCapMembers(liveData.memberList);
-      if (missingBattleMembers.length > 0) {
-        this.fetchAllMembersBattleLogs(missingBattleMembers);
-      }
+      (async () => {
+        if (missingBattleMembers.length > 0) {
+          await this.fetchAllMembersBattleLogs(missingBattleMembers);
+        }
+        await this.fetchSeasonalTrophiesForCapMembers(liveData.memberList);
+      })();
     }
   }
 
@@ -1069,7 +1071,7 @@ class ClanManagerApp {
 
       if (liveData && liveData.memberList) {
         const shouldAnimateManual = isManual && !isInitial;
-        await this.processIncomingClanData(liveData, shouldAnimateManual, isInitial);
+        await this.processIncomingClanData(liveData, shouldAnimateManual, false);
       }
 
       if (isInitial) {

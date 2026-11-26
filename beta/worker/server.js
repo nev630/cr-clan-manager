@@ -41,7 +41,7 @@ app.use((req, res, next) => {
   }
   rateLimitMap.set(ip, entry);
 
-  if (entry.count > 30) {
+  if (entry.count > 60) {
     return res.status(429).json({ error: 'Too Many Requests from this IP' });
   }
 
@@ -82,14 +82,22 @@ function setCache(key, data, ttlSeconds) {
 }
 
 // 4. 슈퍼셀 API 공통 호출 함수
-async function fetchSupercell(endpoint) {
+async function fetchSupercell(endpoint, timeoutMs = 6000) {
   const targetUrl = `https://api.clashroyale.com${endpoint}`;
-  const response = await fetch(targetUrl, {
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${SUPERCELL_KEY}`
-    }
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let response;
+  try {
+    response = await fetch(targetUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${SUPERCELL_KEY}`
+      },
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 
   const rawText = await response.text();
   if (!response.ok) {
@@ -106,7 +114,26 @@ async function fetchSupercell(endpoint) {
   }
 }
 
-// 5. 신규 단일 통합 엔드포인트 (/v1/clans/:clanTag/summary) + In-Flight Coalescing 적용
+function extractSeasonalTrophies(playerData) {
+  if (!playerData) return null;
+  const base = typeof playerData.trophies === 'number' ? playerData.trophies : 0;
+  const progress = playerData.progress;
+  if (!progress || typeof progress !== 'object') return base;
+
+  const seasonalKeys = Object.keys(progress)
+    .filter((k) => k.startsWith('seasonal-trophy-road-'))
+    .sort();
+  if (seasonalKeys.length === 0) return base;
+
+  const latestKey = seasonalKeys[seasonalKeys.length - 1];
+  const seasonalTrophies = progress[latestKey]?.trophies;
+  if (typeof seasonalTrophies === 'number' && seasonalTrophies > base) {
+    return seasonalTrophies;
+  }
+  return base;
+}
+
+// 5. 신규 단일 통합 엔드포인트 (/v1/clans/:clanTag/summary) + SWR + 시즌 트로피 번들링 + In-Flight Coalescing
 app.get('/v1/clans/:clanTag/summary', async (req, res) => {
   try {
     let tag = req.params.clanTag.trim();
@@ -121,68 +148,101 @@ app.get('/v1/clans/:clanTag/summary', async (req, res) => {
       return res.json(cachedSummary);
     }
 
-    // 이미 동일한 클랜 요약 수집이 진행 중이면 중복 호출하지 않고 완료될 Promise를 공유
-    if (!force && inFlightRequests.has(summaryCacheKey)) {
-      const coalescedData = await inFlightRequests.get(summaryCacheKey);
-      res.setHeader('X-Cache-Status', 'COALESCED');
-      return res.json(coalescedData);
-    }
-
-    const buildSummaryPromise = (async () => {
-      const clanData = await fetchSupercell(`/v1/clans/${encodedTag}`);
-      if (!clanData || !clanData.memberList) {
-        const err = new Error('Failed to retrieve clan members');
-        err.status = 502;
-        throw err;
+    const startBuildSummary = () => {
+      if (inFlightRequests.has(summaryCacheKey)) {
+        return inFlightRequests.get(summaryCacheKey);
       }
 
-      const members = clanData.memberList;
-      const chunkSize = 10;
-
-      for (let i = 0; i < members.length; i += chunkSize) {
-        const chunk = members.slice(i, i + chunkSize);
-        await Promise.allSettled(chunk.map(async (member) => {
-          if (!member || !member.tag) return;
-          const playerEncoded = encodeURIComponent(member.tag);
-          const playerCacheKey = `battlelog_${playerEncoded}`;
-
-          let battlelog = (!force ? getCached(playerCacheKey) : null);
-          if (!battlelog) {
-            try {
-              const fetched = await fetchSupercell(`/v1/players/${playerEncoded}/battlelog`);
-              if (Array.isArray(fetched) && fetched.length > 0) {
-                battlelog = fetched;
-                setCache(playerCacheKey, battlelog, 30);
-              }
-            } catch (e) {
-              battlelog = getCached(playerCacheKey, true);
-            }
-          }
-
-          if (Array.isArray(battlelog) && battlelog.length > 0) {
-            member.lastBattleTime = battlelog[0].battleTime;
-            member.lastBattleType = battlelog[0].type || 'Battle';
-          }
-        }));
-
-        if (i + chunkSize < members.length) {
-          await new Promise(r => setTimeout(r, 60));
+      const promise = (async () => {
+        const clanData = await fetchSupercell(`/v1/clans/${encodedTag}`);
+        if (!clanData || !clanData.memberList) {
+          const err = new Error('Failed to retrieve clan members');
+          err.status = 502;
+          throw err;
         }
-      }
 
-      setCache(summaryCacheKey, clanData, 20);
-      return clanData;
-    })();
+        const members = clanData.memberList;
+        const chunkSize = 15;
 
-    inFlightRequests.set(summaryCacheKey, buildSummaryPromise);
+        for (let i = 0; i < members.length; i += chunkSize) {
+          const chunk = members.slice(i, i + chunkSize);
+          await Promise.allSettled(chunk.map(async (member) => {
+            if (!member || !member.tag) return;
+            const playerEncoded = encodeURIComponent(member.tag);
+            const battleCacheKey = `battlelog_${playerEncoded}`;
 
-    try {
-      const resultData = await buildSummaryPromise;
-      res.setHeader('X-Cache-Status', 'MISS');
-      res.json(resultData);
-    } finally {
-      inFlightRequests.delete(summaryCacheKey);
+            let battlelog = !force ? getCached(battleCacheKey) : null;
+            if (!battlelog) {
+              try {
+                const fetched = await fetchSupercell(`/v1/players/${playerEncoded}/battlelog`);
+                if (Array.isArray(fetched) && fetched.length > 0) {
+                  battlelog = fetched;
+                  setCache(battleCacheKey, battlelog, 30);
+                }
+              } catch (e) {
+                battlelog = getCached(battleCacheKey, true);
+              }
+            }
+
+            if (Array.isArray(battlelog) && battlelog.length > 0) {
+              member.lastBattleTime = battlelog[0].battleTime;
+              member.lastBattleType = battlelog[0].type || 'Battle';
+            }
+
+            // 14,000점 이상 멤버의 시즌 트로피도 서버에서 함께 번들링 (TTL 180초)
+            if ((member.trophies || 0) >= 14000) {
+              const seasonalCacheKey = `seasonal_${playerEncoded}`;
+              let resolvedTrophies = !force ? getCached(seasonalCacheKey) : null;
+              if (typeof resolvedTrophies !== 'number') {
+                try {
+                  const playerData = await fetchSupercell(`/v1/players/${playerEncoded}`);
+                  const extracted = extractSeasonalTrophies(playerData);
+                  if (typeof extracted === 'number' && extracted > 0) {
+                    resolvedTrophies = extracted;
+                    setCache(seasonalCacheKey, resolvedTrophies, 180);
+                  }
+                } catch (e) {
+                  resolvedTrophies = getCached(seasonalCacheKey, true);
+                }
+              }
+              if (typeof resolvedTrophies === 'number' && resolvedTrophies > 0) {
+                if (resolvedTrophies > member.trophies) {
+                  member.trophies = resolvedTrophies;
+                }
+                member._seasonalTrophiesResolved = true;
+              }
+            }
+          }));
+
+          if (i + chunkSize < members.length) {
+            await new Promise(r => setTimeout(r, 30));
+          }
+        }
+
+        setCache(summaryCacheKey, clanData, 20);
+        return clanData;
+      })().finally(() => {
+        inFlightRequests.delete(summaryCacheKey);
+      });
+
+      inFlightRequests.set(summaryCacheKey, promise);
+      return promise;
+    };
+
+    // Stale-While-Revalidate: 만료된 캐시가 있으면 즉시 반환하고 백그라운드에서 최신화
+    const staleSummary = !force ? getCached(summaryCacheKey, true) : null;
+    if (staleSummary) {
+      startBuildSummary().catch((err) => {
+        console.error('Background summary refresh error:', err.message);
+      });
+      res.setHeader('X-Cache-Status', 'STALE');
+      return res.json(staleSummary);
     }
+
+    const wasInFlight = !force && inFlightRequests.has(summaryCacheKey);
+    const resultData = await startBuildSummary();
+    res.setHeader('X-Cache-Status', wasInFlight ? 'COALESCED' : 'MISS');
+    res.json(resultData);
   } catch (err) {
     console.error('Error fetching clan summary:', err.message);
     res.status(err.status || 500).json({ error: err.message });
